@@ -782,7 +782,10 @@ static void rkisp_config_ism(struct rkisp_device *dev)
 	void __iomem *base = dev->base_addr;
 	struct v4l2_rect *out_crop = &dev->isp_sdev.out_crop;
 	u32 val;
+	u32 mult = 1;
 
+	if (dev->isp_sdev.in_fmt.fmt_type == FMT_RGB)
+		mult = 3;
 	/* isp2.0 no ism */
 	if (dev->isp_ver == ISP_V20 || dev->isp_ver == ISP_V21)
 		return;
@@ -791,9 +794,9 @@ static void rkisp_config_ism(struct rkisp_device *dev)
 	writel(0, base + CIF_ISP_IS_MAX_DX);
 	writel(0, base + CIF_ISP_IS_MAX_DY);
 	writel(0, base + CIF_ISP_IS_DISPLACE);
-	writel(out_crop->left, base + CIF_ISP_IS_H_OFFS);
+	writel(mult * out_crop->left, base + CIF_ISP_IS_H_OFFS);
 	writel(out_crop->top, base + CIF_ISP_IS_V_OFFS);
-	writel(out_crop->width, base + CIF_ISP_IS_H_SIZE);
+	writel(mult * out_crop->width, base + CIF_ISP_IS_H_SIZE);
 	if (dev->cap_dev.stream[RKISP_STREAM_SP].interlaced)
 		writel(out_crop->height / 2, base + CIF_ISP_IS_V_SIZE);
 	else
@@ -1119,6 +1122,7 @@ static int rkisp_config_isp(struct rkisp_device *dev)
 	u32 acq_mult = 0;
 	u32 acq_prop = 0;
 	u32 extend_line = 0;
+	u32 out_mult = 1;
 
 	sensor = dev->active_sensor;
 	in_fmt = &dev->isp_sdev.in_fmt;
@@ -1185,6 +1189,13 @@ static int rkisp_config_isp(struct rkisp_device *dev)
 		irq_mask |= CIF_ISP_DATA_LOSS;
 		if (dev->isp_inp == INP_DMARX_ISP)
 			acq_prop = CIF_ISP_ACQ_PROP_DMA_YUV;
+	} else if (in_fmt->fmt_type == FMT_RGB) {
+		acq_mult = 3;
+		out_mult = 3;
+		if (sensor && sensor->mbus.type == V4L2_MBUS_BT656)
+			isp_ctrl = CIF_ISP_CTRL_ISP_MODE_ITU656;
+		else
+			isp_ctrl = CIF_ISP_CTRL_ISP_MODE_RAW_PICT;
 	}
 
 	/* Set up input acquisition properties */
@@ -1850,6 +1861,12 @@ static const struct ispsd_in_fmt rkisp_isp_input_formats[] = {
 		.mipi_dt	= CIF_CSI2_DT_RAW12,
 		.yuv_seq	= CIF_ISP_ACQ_PROP_YCBYCR,
 		.bus_width	= 12,
+	}, {
+		.name		= "RGB888_1X24",
+		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
+		.fmt_type	= FMT_RGB,
+		.mipi_dt	= CIF_CSI2_DT_RGB888,
+		.bus_width	= 24,
 	}
 };
 
@@ -1893,7 +1910,10 @@ static const struct ispsd_out_fmt rkisp_isp_output_formats[] = {
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGRBG8_1X8,
 		.fmt_type	= FMT_BAYER,
-	},
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
+		.fmt_type	= FMT_BAYER,
+	}
 };
 
 static const struct ispsd_in_fmt *find_in_fmt(u32 mbus_code)
