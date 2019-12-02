@@ -1203,6 +1203,8 @@ static void rkisp_config_ism(struct rkisp_device *dev)
 	u32 width = out_crop->width, mult = 1;
 	u32 height = out_crop->height;
 
+	if (dev->isp_sdev.in_fmt.fmt_type == FMT_RGB)
+		mult = 3;
 	/* isp2.0 no ism */
 	if (dev->isp_ver == ISP_V20 || dev->isp_ver == ISP_V21 ||
 	    dev->isp_ver == ISP_V32_L || dev->isp_ver == ISP_V39)
@@ -1216,8 +1218,8 @@ static void rkisp_config_ism(struct rkisp_device *dev)
 	rkisp_unite_write(dev, CIF_ISP_IS_MAX_DX, 0, false);
 	rkisp_unite_write(dev, CIF_ISP_IS_MAX_DY, 0, false);
 	rkisp_unite_write(dev, CIF_ISP_IS_DISPLACE, 0, false);
-	rkisp_unite_write(dev, CIF_ISP_IS_H_OFFS, out_crop->left, false);
-	rkisp_unite_write(dev, CIF_ISP_IS_V_OFFS, out_crop->top, false);
+	rkisp_unite_write(dev, CIF_ISP_IS_H_OFFS, mult * out_crop->left, false);
+	rkisp_unite_write(dev, CIF_ISP_IS_V_OFFS, mult * out_crop->top, false);
 	rkisp_unite_write(dev, CIF_ISP_IS_H_SIZE, width, false);
 	if (dev->cap_dev.stream[RKISP_STREAM_SP].interlaced)
 		mult = 2;
@@ -1668,6 +1670,7 @@ static int rkisp_config_isp(struct rkisp_device *dev)
 	u32 acq_prop = 0;
 	u32 extend_line = 0;
 	u32 width, height;
+	u32 out_mult = 1;
 
 	sensor = dev->active_sensor;
 	in_fmt = &dev->isp_sdev.in_fmt;
@@ -1736,6 +1739,13 @@ static int rkisp_config_isp(struct rkisp_device *dev)
 		irq_mask |= CIF_ISP_DATA_LOSS;
 		if (dev->isp_inp == INP_DMARX_ISP)
 			acq_prop = CIF_ISP_ACQ_PROP_DMA_YUV;
+	} else if (in_fmt->fmt_type == FMT_RGB) {
+		acq_mult = 3;
+		out_mult = 3;
+		if (sensor && sensor->mbus.type == V4L2_MBUS_BT656)
+			isp_ctrl = CIF_ISP_CTRL_ISP_MODE_ITU656;
+		else
+			isp_ctrl = CIF_ISP_CTRL_ISP_MODE_RAW_PICT;
 	}
 
 	/* Set up input acquisition properties */
@@ -2454,6 +2464,12 @@ static const struct ispsd_in_fmt rkisp_isp_input_formats[] = {
 		.mipi_dt	= CIF_CSI2_DT_RAW16,
 		.bayer_pat	= RAW_GRBG,
 		.bus_width	= 16,
+	}, {
+		.name		= "RGB888_1X24",
+		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
+		.fmt_type	= FMT_RGB,
+		.mipi_dt	= CIF_CSI2_DT_RGB888,
+		.bus_width	= 24,
 	}
 };
 
@@ -2497,7 +2513,10 @@ static const struct ispsd_out_fmt rkisp_isp_output_formats[] = {
 	}, {
 		.mbus_code	= MEDIA_BUS_FMT_SGRBG8_1X8,
 		.fmt_type	= FMT_BAYER,
-	},
+	}, {
+		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
+		.fmt_type	= FMT_BAYER,
+	}
 };
 
 static const struct ispsd_in_fmt *find_in_fmt(u32 mbus_code)
