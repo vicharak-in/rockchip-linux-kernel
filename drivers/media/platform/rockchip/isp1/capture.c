@@ -81,6 +81,12 @@
 #define STREAM_MIN_MP_SP_INPUT_WIDTH		32
 #define STREAM_MIN_MP_SP_INPUT_HEIGHT		32
 
+/*
+ * Round up height when allocate memory so that Rockchip encoder can
+ * use DMA buffer directly, though this may waste a bit of memory.
+ */
+#define MEMORY_ALIGN_ROUND_UP_HEIGHT		16
+
 /* Get xsubs and ysubs for fourcc formats
  *
  * @xsubs: horizontal color samples in a 4*4 matrix, for yuv
@@ -1306,9 +1312,10 @@ static int rkisp1_queue_setup(struct vb2_queue *queue,
 
 	for (i = 0; i < isp_fmt->mplanes; i++) {
 		const struct v4l2_plane_pix_format *plane_fmt;
+		int h = round_up(pixm->height, MEMORY_ALIGN_ROUND_UP_HEIGHT);
 
 		plane_fmt = &pixm->plane_fmt[i];
-		sizes[i] = plane_fmt->sizeimage;
+		sizes[i] = plane_fmt->sizeimage / pixm->height * h;
 	}
 
 	v4l2_dbg(1, rkisp1_debug, &dev->v4l2_dev, "%s count %d, size %d\n",
