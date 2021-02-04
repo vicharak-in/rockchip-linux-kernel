@@ -2119,13 +2119,13 @@
 		resets = <&cru SRST_VDEC_A>, <&cru SRST_VDEC_H>,
 			 <&cru SRST_VDEC_CA>, <&cru SRST_VDEC_CORE>,
 			 <&cru SRST_VDEC_HEVC_CA>;
-		reset-names = "video_a", "video_h", "video_cabac",
+		reset-names = "shared_video_a", "shared_video_h", "video_cabac",
 			      "video_core", "video_hevc_cabac";
 		power-domains = <&power RV1126_PD_VDPU>;
 		iommus = <&rkvdec_mmu>;
 		rockchip,srv = <&mpp_srv>;
 		rockchip,taskqueue-node = <0>;
-		rockchip,resetgroup-node = <0>;
+		rockchip,resetgroup-node = <1>;
 		status = "disabled";
 	};
 
