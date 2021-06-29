@@ -300,6 +300,9 @@ static inline int rockchip_drm_crtc_send_mcu_cmd(struct drm_device *drm_dev,
 }
 #endif
 
+uint32_t rockchip_drm_of_find_possible_crtcs(struct drm_device *dev,
+					     struct device_node *port);
+
 extern struct platform_driver cdn_dp_driver;
 extern struct platform_driver dw_hdmi_rockchip_pltfm_driver;
 extern struct platform_driver dw_mipi_dsi_driver;
