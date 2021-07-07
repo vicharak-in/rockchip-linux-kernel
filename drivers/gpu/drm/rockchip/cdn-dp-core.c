@@ -1237,8 +1237,8 @@ static int cdn_dp_bind(struct device *dev, struct device *master, void *data)
 
 	encoder = &dp->encoder;
 
-	encoder->possible_crtcs = drm_of_find_possible_crtcs(drm_dev,
-							     dev->of_node);
+	encoder->possible_crtcs = rockchip_drm_of_find_possible_crtcs(drm_dev,
+								      dev->of_node);
 	DRM_DEBUG_KMS("possible_crtcs = 0x%x\n", encoder->possible_crtcs);
 
 	ret = drm_encoder_init(drm_dev, encoder, &cdn_dp_encoder_funcs,
