@@ -61,6 +61,7 @@ struct rk_i2s_dev {
 	bool is_master_mode;
 	const struct rk_i2s_pins *pins;
 	unsigned int bclk_fs;
+	spinlock_t lock; /* tx/rx lock */
 	unsigned int clk_trcm;
 
 	unsigned int mclk_root_rate;
@@ -69,9 +70,6 @@ struct rk_i2s_dev {
 	bool mclk_calibrate;
 
 };
-
-/* txctrl/rxctrl lock */
-static DEFINE_SPINLOCK(lock);
 
 static int i2s_runtime_suspend(struct device *dev)
 {
@@ -149,7 +147,7 @@ reset:
 
 static void rockchip_snd_txctrl(struct rk_i2s_dev *i2s, int on)
 {
-	spin_lock(&lock);
+	spin_lock(&i2s->lock);
 	if (on) {
 		regmap_update_bits(i2s->regmap, I2S_DMACR,
 				   I2S_DMACR_TDE_ENABLE, I2S_DMACR_TDE_ENABLE);
@@ -176,12 +174,12 @@ static void rockchip_snd_txctrl(struct rk_i2s_dev *i2s, int on)
 			rockchip_i2s_clear(i2s);
 		}
 	}
-	spin_unlock(&lock);
+	spin_unlock(&i2s->lock);
 }
 
 static void rockchip_snd_rxctrl(struct rk_i2s_dev *i2s, int on)
 {
-	spin_lock(&lock);
+	spin_lock(&i2s->lock);
 	if (on) {
 		regmap_update_bits(i2s->regmap, I2S_DMACR,
 				   I2S_DMACR_RDE_ENABLE, I2S_DMACR_RDE_ENABLE);
@@ -208,7 +206,7 @@ static void rockchip_snd_rxctrl(struct rk_i2s_dev *i2s, int on)
 			rockchip_i2s_clear(i2s);
 		}
 	}
-	spin_unlock(&lock);
+	spin_unlock(&i2s->lock);
 }
 
 static int rockchip_i2s_set_fmt(struct snd_soc_dai *cpu_dai,
@@ -766,6 +764,7 @@ static int rockchip_i2s_probe(struct platform_device *pdev)
 	if (!i2s)
 		return -ENOMEM;
 
+	spin_lock_init(&i2s->lock);
 	i2s->dev = &pdev->dev;
 
 	i2s->grf = syscon_regmap_lookup_by_phandle(node, "rockchip,grf");
