@@ -114,6 +114,7 @@ struct rk_iommu_domain {
 	dma_addr_t dt_dma;
 	spinlock_t iommus_lock; /* lock for iommus list */
 	spinlock_t dt_lock; /* lock for modifying page directory table */
+	bool shootdown_entire;
 
 	struct iommu_domain domain;
 };
@@ -137,6 +138,7 @@ struct rk_iommu {
 	struct iommu_domain *domain; /* domain to which iommu is attached */
 	struct iommu_group *group;
 	u32 version;
+	bool shootdown_entire;
 };
 
 struct rk_iommudata {
@@ -986,7 +988,9 @@ static int rk_iommu_map_iova(struct rk_iommu_domain *rk_domain, u32 *pte_addr,
 	 * dte or pte shared with an existing mapping.
 	 */
 
-	rk_iommu_zap_iova_first_last(rk_domain, iova, size);
+	/* Do not zap tlb cache line if shootdown_entire set */
+	if (!rk_domain->shootdown_entire)
+		rk_iommu_zap_iova_first_last(rk_domain, iova, size);
 
 	return 0;
 unwind:
@@ -1032,7 +1036,9 @@ static int rk_iommu_map_iova_v2(struct rk_iommu_domain *rk_domain, u32 *pte_addr
 	 * dte or pte shared with an existing mapping.
 	 */
 
-	rk_iommu_zap_iova_first_last(rk_domain, iova, size);
+	/* Do not zap tlb cache line if shootdown_entire set */
+	if (!rk_domain->shootdown_entire)
+		rk_iommu_zap_iova_first_last(rk_domain, iova, size);
 
 	return 0;
 unwind:
@@ -1409,6 +1415,7 @@ static int rk_iommu_attach_device(struct iommu_domain *domain,
 	list_add_tail(&iommu->node, &rk_domain->iommus);
 	spin_unlock_irqrestore(&rk_domain->iommus_lock, flags);
 
+	rk_domain->shootdown_entire = iommu->shootdown_entire;
 	ret = pm_runtime_get_if_in_use(iommu->dev);
 	if (!ret || WARN_ON_ONCE(ret < 0))
 		return 0;
@@ -1760,6 +1767,8 @@ static int rk_iommu_probe(struct platform_device *pdev)
 					"rockchip,skip-mmu-read");
 	iommu->dlr_disable = device_property_read_bool(dev,
 					"rockchip,disable-device-link-resume");
+	iommu->shootdown_entire = device_property_read_bool(dev,
+					"rockchip,shootdown-entire");
 
 	if (of_machine_is_compatible("rockchip,rv1126") ||
 	    of_machine_is_compatible("rockchip,rv1109"))

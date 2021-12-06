@@ -63,6 +63,11 @@ static int rockchip_gem_iommu_map(struct rockchip_gem_object *rk_obj)
 		goto err_remove_node;
 	}
 
+#ifdef CONFIG_IOMMU_API
+	if (private->domain->ops->flush_iotlb_all)
+		private->domain->ops->flush_iotlb_all(private->domain);
+#endif
+
 	rk_obj->size = ret;
 
 	return 0;
