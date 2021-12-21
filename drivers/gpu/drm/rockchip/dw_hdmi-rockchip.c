@@ -1370,7 +1370,9 @@ dw_hdmi_rockchip_set_property(struct drm_connector *connector,
 		return 0;
 	}
 
-	DRM_ERROR("failed to set rockchip hdmi connector property %s\n", property->name);
+	DRM_ERROR("Unknown property [PROP:%d:%s]\n",
+		  property->base.id, property->name);
+
 	return -EINVAL;
 }
 
@@ -1441,7 +1443,9 @@ dw_hdmi_rockchip_get_property(struct drm_connector *connector,
 		return 0;
 	}
 
-	DRM_ERROR("failed to get rockchip hdmi connector property %s\n", property->name);
+	DRM_ERROR("Unknown property [PROP:%d:%s]\n",
+		  property->base.id, property->name);
+
 	return -EINVAL;
 }
 
