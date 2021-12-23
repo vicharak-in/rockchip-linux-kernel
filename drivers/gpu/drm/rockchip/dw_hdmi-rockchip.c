@@ -1199,7 +1199,7 @@ dw_hdmi_rockchip_attach_properties(struct drm_connector *connector,
 		drm_object_attach_property(&connector->base, prop, 0);
 	}
 
-	prop = drm_property_create_range(connector->dev, 0,
+	prop = drm_property_create_range(connector->dev, DRM_MODE_PROP_IMMUTABLE,
 					 "hdmi_color_depth_capacity",
 					 0, 0xff);
 	if (prop) {
@@ -1207,7 +1207,7 @@ dw_hdmi_rockchip_attach_properties(struct drm_connector *connector,
 		drm_object_attach_property(&connector->base, prop, 0);
 	}
 
-	prop = drm_property_create_range(connector->dev, 0,
+	prop = drm_property_create_range(connector->dev, DRM_MODE_PROP_IMMUTABLE,
 					 "hdmi_output_mode_capacity",
 					 0, 0xf);
 	if (prop) {
@@ -1243,7 +1243,7 @@ dw_hdmi_rockchip_attach_properties(struct drm_connector *connector,
 		drm_object_attach_property(&connector->base, prop, 0);
 	}
 
-	prop = drm_property_create_enum(connector->dev, 0,
+	prop = drm_property_create_enum(connector->dev, DRM_MODE_PROP_IMMUTABLE,
 					 "output_type_capacity",
 					 output_type_cap_list,
 					 ARRAY_SIZE(output_type_cap_list));
