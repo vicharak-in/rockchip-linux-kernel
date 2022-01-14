@@ -595,7 +595,7 @@ static int _vdpp_reset(struct mpp_dev *mpp, struct vdpp_dev *vdpp)
 		mpp_debug(DEBUG_RESET, "reset in\n");
 
 		/* Don't skip this or iommu won't work after reset */
-		rockchip_pmu_idle_request(mpp->dev, true);
+		mpp_pmu_idle_request(mpp, true);
 		mpp_safe_reset(vdpp->rst_a);
 		mpp_safe_reset(vdpp->rst_h);
 		mpp_safe_reset(vdpp->rst_s);
@@ -603,7 +603,7 @@ static int _vdpp_reset(struct mpp_dev *mpp, struct vdpp_dev *vdpp)
 		mpp_safe_unreset(vdpp->rst_a);
 		mpp_safe_unreset(vdpp->rst_h);
 		mpp_safe_unreset(vdpp->rst_s);
-		rockchip_pmu_idle_request(mpp->dev, false);
+		mpp_pmu_idle_request(mpp, false);
 
 		mpp_debug(DEBUG_RESET, "reset out\n");
 	}

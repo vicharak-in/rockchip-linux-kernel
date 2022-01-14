@@ -1815,6 +1815,8 @@ int mpp_dev_probe(struct mpp_dev *mpp,
 
 	/* Get disable auto frequent flag from dtsi */
 	mpp->auto_freq_en = !device_property_read_bool(dev, "rockchip,disable-auto-freq");
+	/* read flag for pum idle request */
+	mpp->skip_idle = device_property_read_bool(dev, "rockchip,skip-pmu-idle-request");
 
 	/* Get and attach to service */
 	ret = mpp_attach_service(mpp, dev);

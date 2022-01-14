@@ -1077,7 +1077,7 @@ static int rkvdec2_reset(struct mpp_dev *mpp)
 		mutex_lock(&dec->devfreq->lock);
 #endif
 	if (dec->rst_a && dec->rst_h) {
-		rockchip_pmu_idle_request(mpp->dev, true);
+		mpp_pmu_idle_request(mpp, true);
 		mpp_safe_reset(dec->rst_niu_a);
 		mpp_safe_reset(dec->rst_niu_h);
 		mpp_safe_reset(dec->rst_a);
@@ -1093,7 +1093,7 @@ static int rkvdec2_reset(struct mpp_dev *mpp)
 		mpp_safe_unreset(dec->rst_core);
 		mpp_safe_unreset(dec->rst_cabac);
 		mpp_safe_unreset(dec->rst_hevc_cabac);
-		rockchip_pmu_idle_request(mpp->dev, false);
+		mpp_pmu_idle_request(mpp, false);
 	}
 #ifdef CONFIG_PM_DEVFREQ
 	if (dec->devfreq)
