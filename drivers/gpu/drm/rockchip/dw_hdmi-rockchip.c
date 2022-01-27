@@ -1255,7 +1255,7 @@ dw_hdmi_rockchip_attach_properties(struct drm_connector *connector,
 	prop = connector->dev->mode_config.hdr_output_metadata_property;
 	if (version >= 0x211a)
 		drm_object_attach_property(&connector->base, prop, 0);
-	drm_object_attach_property(&connector->base, private->connector_id_prop, 0);
+	drm_object_attach_property(&connector->base, private->connector_id_prop, hdmi->id);
 }
 
 static void
@@ -1386,7 +1386,6 @@ dw_hdmi_rockchip_get_property(struct drm_connector *connector,
 	struct rockchip_hdmi *hdmi = (struct rockchip_hdmi *)data;
 	struct drm_display_info *info = &connector->display_info;
 	struct drm_mode_config *config = &connector->dev->mode_config;
-	struct rockchip_drm_private *private = connector->dev->dev_private;
 
 	if (property == hdmi->color_depth_property) {
 		*val = hdmi->colordepth;
@@ -1431,9 +1430,6 @@ dw_hdmi_rockchip_get_property(struct drm_connector *connector,
 		return 0;
 	} else if (property == hdmi->colorimetry_property) {
 		*val = hdmi->colorimetry;
-		return 0;
-	} else if (property == private->connector_id_prop) {
-		*val = hdmi->id;
 		return 0;
 	} else if (property == hdmi->output_hdmi_dvi) {
 		*val = hdmi->force_output;
