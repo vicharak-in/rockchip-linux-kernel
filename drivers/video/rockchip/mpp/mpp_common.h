@@ -471,7 +471,7 @@ struct mpp_taskqueue {
 	struct list_head session_attach;
 	/* link to session session_link for detached sessions */
 	struct list_head session_detach;
-	u32 detach_count;
+	atomic_t detach_count;
 
 	/* lock for pending list */
 	struct mutex pending_lock;
@@ -644,7 +644,10 @@ int mpp_task_dump_hw_reg(struct mpp_dev *mpp,
 void mpp_task_dump_timing(struct mpp_task *task, s64 time_diff);
 void mpp_reg_show(struct mpp_dev *mpp, u32 offset);
 
-int mpp_session_deinit(struct mpp_session *session);
+void mpp_session_deinit(struct mpp_session *session);
+void mpp_session_cleanup_detach(struct mpp_taskqueue *queue,
+				struct kthread_work *work);
+
 int mpp_dev_probe(struct mpp_dev *mpp,
 		  struct platform_device *pdev);
 int mpp_dev_remove(struct mpp_dev *mpp);

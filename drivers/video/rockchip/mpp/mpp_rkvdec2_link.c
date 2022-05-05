@@ -1636,28 +1636,7 @@ done:
 			rkvdec2_link_power_off(mpp);
 	}
 
-	mutex_lock(&queue->session_lock);
-	while (queue->detach_count) {
-		struct mpp_session *session = NULL;
-
-		session = list_first_entry_or_null(&queue->session_detach, struct mpp_session,
-				session_link);
-		if (session) {
-			list_del_init(&session->session_link);
-			queue->detach_count--;
-		}
-
-		mutex_unlock(&queue->session_lock);
-
-		if (session) {
-			mpp_dbg_session("%s detach count %d\n", dev_name(mpp->dev),
-					queue->detach_count);
-			mpp_session_deinit(session);
-		}
-
-		mutex_lock(&queue->session_lock);
-	}
-	mutex_unlock(&queue->session_lock);
+	mpp_session_cleanup_detach(queue, work_s);
 }
 
 void rkvdec2_link_session_deinit(struct mpp_session *session)
@@ -1670,9 +1649,9 @@ void rkvdec2_link_session_deinit(struct mpp_session *session)
 
 	if (session->dma) {
 		mpp_dbg_session("session %d destroy dma\n", session->index);
-		mpp_iommu_down_read(mpp->iommu_info);
+		mpp_iommu_down_write(mpp->iommu_info);
 		mpp_dma_session_destroy(session->dma);
-		mpp_iommu_up_read(mpp->iommu_info);
+		mpp_iommu_up_write(mpp->iommu_info);
 		session->dma = NULL;
 	}
 	if (session->srv) {
