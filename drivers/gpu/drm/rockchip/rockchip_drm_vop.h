@@ -24,6 +24,7 @@
 #define VOP_MAJOR(version)		((version) >> 8)
 #define VOP_MINOR(version)		((version) & 0xff)
 
+#define VOP_VERSION_RK3528	VOP_VERSION(0x50, 0x17)
 #define VOP_VERSION_RK3568	VOP_VERSION(0x40, 0x15)
 #define VOP_VERSION_RK3588	VOP_VERSION(0x40, 0x17)
 
@@ -92,10 +93,10 @@ enum win_dly_mode {
 };
 
 enum vop3_esmart_lb_mode {
-	VOP3_ESMART_ONE_8K_MODE,
-	VOP3_ESMART_TWO_4K_MODE,
-	VOP3_ESMART_ONE_4K_AND_TWO_2K_MODE,
-	VOP3_ESMART_FOUR_2K_MODE,
+	VOP3_ESMART_8K_MODE,
+	VOP3_ESMART_4K_4K_MODE,
+	VOP3_ESMART_4K_2K_2K_MODE,
+	VOP3_ESMART_2K_2K_2K_2K_MODE,
 };
 
 #define DSP_BG_SWAP		0x1
@@ -509,6 +510,7 @@ struct vop2_cluster_regs {
 	struct vop_reg enable;
 	struct vop_reg afbc_enable;
 	struct vop_reg lb_mode;
+	struct vop_reg scl_lb_mode;
 
 	struct vop_reg src_color_ctrl;
 	struct vop_reg dst_color_ctrl;
@@ -711,7 +713,6 @@ struct vop2_win_data {
 	uint8_t axi_id;
 	uint8_t axi_yrgb_id;
 	uint8_t axi_uv_id;
-	uint8_t scale_engine_num;
 	uint8_t possible_crtcs;
 
 	uint32_t base;

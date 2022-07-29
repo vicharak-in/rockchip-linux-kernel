@@ -652,6 +652,7 @@ struct vop2 {
 	 */
 	uint32_t registered_num_wins;
 	uint8_t used_mixers;
+	uint8_t esmart_lb_mode;
 	/**
 	 * @active_vp_mask: Bitmask of active video ports;
 	 */
@@ -1864,7 +1865,7 @@ static int vop2_get_cluster_lb_mode(struct vop2_win *win, struct vop2_plane_stat
 #define VOP2_COMMON_SCL_FAC_CHECK(src, dst, fac) \
 				(fac * (dst - 1) >> 16 < (src - 1))
 #define VOP3_COMMON_HOR_SCL_FAC_CHECK(src, dst, fac) \
-					(fac * (dst - 1) >> 16 <= (src - 1))
+					(fac * (dst - 1) >> 16 < (src - 1))
 
 static uint16_t vop2_scale_factor(enum scale_mode mode,
 				  int32_t filter_mode,
@@ -3084,6 +3085,13 @@ static void vop2_initial(struct drm_crtc *crtc)
 		if (is_vop3(vop2))
 			VOP_CTRL_SET(vop2, esmart_lb_mode, vop2->data->esmart_lb_mode);
 
+		/*
+		 * This is unused and error init value for rk3528 vp1, if less of this config,
+		 * vp1 can't display normally.
+		 */
+		if (vop2->version == VOP_VERSION_RK3528)
+			vop2_mask_write(vop2, 0x700, 0x3, 4, 0, 0, true);
+
 		VOP_CTRL_SET(vop2, cfg_done_en, 1);
 		/*
 		 * Disable auto gating, this is a workaround to
@@ -3638,7 +3646,7 @@ static void vop2_plane_atomic_update(struct drm_plane *plane, struct drm_plane_s
 	if (vop2->version != VOP_VERSION_RK3568)
 		rk3588_vop2_win_cfg_axi(win);
 
-	if (is_vop3(vop2) && !vop2_cluster_window(win))
+	if (is_vop3(vop2) && !vop2_cluster_window(win) && !win->parent)
 		VOP_WIN_SET(vop2, win, scale_engine_num, win->scale_engine_num);
 
 	if (vpstate->afbc_en) {
@@ -3770,6 +3778,7 @@ static void vop2_plane_atomic_update(struct drm_plane *plane, struct drm_plane_s
 	if (vop2_cluster_window(win)) {
 		lb_mode = vop2_get_cluster_lb_mode(win, vpstate);
 		VOP_CLUSTER_SET(vop2, win, lb_mode, lb_mode);
+		VOP_CLUSTER_SET(vop2, win, scl_lb_mode, lb_mode == 1 ? 3 : 0);
 		VOP_CLUSTER_SET(vop2, win, enable, 1);
 	}
 	if (vcstate->output_if & VOP_OUTPUT_IF_BT1120 ||
@@ -5110,7 +5119,15 @@ static void vop2_crtc_atomic_enable(struct drm_crtc *crtc, struct drm_crtc_state
 		VOP_MODULE_SET(vop2, vp, dclk_div2_phase_lock, 0);
 	}
 
-	clk_set_rate(vp->dclk, adjusted_mode->crtc_clock * 1000);
+	/*
+	 * For RK3528, the path of CVBS output is like:
+	 * VOP BT656 ENCODER -> CVBS BT656 DECODER -> CVBS ENCODER -> CVBS VDAC
+	 * The vop2 dclk should be four times crtc_clock for CVBS sampling clock needs.
+	 */
+	if (vop2->version == VOP_VERSION_RK3528 && vcstate->output_if & VOP_OUTPUT_IF_BT656)
+		clk_set_rate(vp->dclk, 4 * adjusted_mode->crtc_clock * 1000);
+	else
+		clk_set_rate(vp->dclk, adjusted_mode->crtc_clock * 1000);
 
 	vop2_post_config(crtc);
 
@@ -6789,6 +6806,39 @@ static int vop2_plane_create_feature_property(struct vop2 *vop2, struct vop2_win
 	return 0;
 }
 
+static bool vop3_ignore_plane(struct vop2 *vop2, struct vop2_win *win)
+{
+	if (!is_vop3(vop2))
+		return false;
+
+	if (vop2->esmart_lb_mode == VOP3_ESMART_8K_MODE &&
+	    win->phys_id != ROCKCHIP_VOP2_ESMART0)
+		return true;
+	else if (vop2->esmart_lb_mode == VOP3_ESMART_4K_4K_MODE &&
+		 (win->phys_id == ROCKCHIP_VOP2_ESMART1 || win->phys_id == ROCKCHIP_VOP2_ESMART3))
+		return true;
+	else if (vop2->esmart_lb_mode == VOP3_ESMART_4K_2K_2K_MODE &&
+		 win->phys_id == ROCKCHIP_VOP2_ESMART1)
+		return true;
+	else
+		return false;
+}
+
+static void vop3_init_esmart_scale_engine(struct vop2 *vop2)
+{
+	u8 scale_engine_num = 0;
+	struct drm_plane *plane = NULL;
+
+	drm_for_each_plane(plane, vop2->drm_dev) {
+		struct vop2_win *win = to_vop2_win(plane);
+
+		if (win->parent || vop2_cluster_window(win))
+			continue;
+
+		win->scale_engine_num = scale_engine_num++;
+	}
+}
+
 static int vop2_plane_init(struct vop2 *vop2, struct vop2_win *win, unsigned long possible_crtcs)
 {
 	struct rockchip_drm_private *private = vop2->drm_dev->dev_private;
@@ -6812,6 +6862,10 @@ static int vop2_plane_init(struct vop2 *vop2, struct vop2_win *win, unsigned lon
 		if (win->feature & WIN_FEATURE_CLUSTER_SUB)
 			return -EACCES;
 	}
+
+	/* ignore some plane register according vop3 esmart lb mode */
+	if (vop3_ignore_plane(vop2, win))
+		return -EACCES;
 
 	ret = drm_universal_plane_init(vop2->drm_dev, &win->base, possible_crtcs,
 				       &vop2_plane_funcs, win->formats, win->nformats,
@@ -6888,15 +6942,27 @@ static int vop2_plane_init(struct vop2 *vop2, struct vop2_win *win, unsigned lon
 	return 0;
 }
 
-static struct drm_plane *vop2_cursor_plane_init(struct vop2_video_port *vp,
-						unsigned long possible_crtcs)
+static struct drm_plane *vop2_cursor_plane_init(struct vop2_video_port *vp)
 {
 	struct vop2 *vop2 = vp->vop2;
 	struct drm_plane *cursor = NULL;
 	struct vop2_win *win;
+	unsigned long possible_crtcs = 0;
 
 	win = vop2_find_win_by_phys_id(vop2, vp->cursor_win_id);
 	if (win) {
+		if (vop2->disable_win_move) {
+			const struct vop2_data *vop2_data = vop2->data;
+			struct drm_crtc *crtc = vop2_find_crtc_by_plane_mask(vop2, win->phys_id);
+
+			if (crtc)
+				possible_crtcs = drm_crtc_mask(crtc);
+			else
+				possible_crtcs = (1 << vop2_data->nr_vps) - 1;
+		}
+
+		if (win->possible_crtcs)
+			possible_crtcs = win->possible_crtcs;
 		win->type = DRM_PLANE_TYPE_CURSOR;
 		win->zpos = vop2->registered_num_wins - 1;
 		if (!vop2_plane_init(vop2, win, possible_crtcs))
@@ -7026,7 +7092,7 @@ static int vop2_create_crtc(struct vop2 *vop2)
 	const struct vop2_data *vop2_data = vop2->data;
 	struct drm_device *drm_dev = vop2->drm_dev;
 	struct device *dev = vop2->dev;
-	struct drm_plane *plane;
+	struct drm_plane *primary;
 	struct drm_plane *cursor = NULL;
 	struct drm_crtc *crtc;
 	struct device_node *port;
@@ -7074,6 +7140,9 @@ static int vop2_create_crtc(struct vop2 *vop2)
 		vp->id = vp_data->id;
 		vp->regs = vp_data->regs;
 		vp->cursor_win_id = -1;
+		primary = NULL;
+		cursor = NULL;
+
 		if (vop2->disable_win_move)
 			possible_crtcs = BIT(registered_num_crtcs);
 
@@ -7121,6 +7190,7 @@ static int vop2_create_crtc(struct vop2 *vop2)
 				win->type = DRM_PLANE_TYPE_PRIMARY;
 			}
 		} else {
+			j = 0;
 			while (j < vop2->registered_num_wins) {
 				be_used_for_primary_plane = false;
 				win = &vop2->win[j];
@@ -7162,24 +7232,43 @@ static int vop2_create_crtc(struct vop2 *vop2)
 				DRM_DEV_ERROR(vop2->dev, "failed to init primary plane\n");
 				break;
 			}
-			plane = &win->base;
+			primary = &win->base;
 		}
 
 		/* some times we want a cursor window for some vp */
+		if (vp->cursor_win_id < 0) {
+			bool be_used_for_cursor_plane = false;
+
+			j = 0;
+			while (j < vop2->registered_num_wins) {
+				win = &vop2->win[j++];
+
+				if (win->parent || (win->feature & WIN_FEATURE_CLUSTER_SUB))
+					continue;
+
+				if (win->type != DRM_PLANE_TYPE_CURSOR)
+					continue;
+
+				for (k = 0; k < vop2_data->nr_vps; k++) {
+					if (vop2->vps[k].cursor_win_id == win->phys_id)
+						be_used_for_cursor_plane = true;
+				}
+				if (be_used_for_cursor_plane)
+					continue;
+				vp->cursor_win_id = win->phys_id;
+			}
+		}
+
 		if (vp->cursor_win_id >= 0) {
-			if (win->possible_crtcs)
-				possible_crtcs = win->possible_crtcs;
-			cursor = vop2_cursor_plane_init(vp, possible_crtcs);
+			cursor = vop2_cursor_plane_init(vp);
 			if (!cursor)
 				DRM_WARN("failed to init cursor plane for vp%d\n", vp->id);
 			else
 				DRM_DEV_INFO(vop2->dev, "%s as cursor plane for vp%d\n",
 					     cursor->name, vp->id);
-		} else {
-			cursor = NULL;
 		}
 
-		ret = drm_crtc_init_with_planes(drm_dev, crtc, plane, cursor, &vop2_crtc_funcs,
+		ret = drm_crtc_init_with_planes(drm_dev, crtc, primary, cursor, &vop2_crtc_funcs,
 						"video_port%d", vp->id);
 		if (ret) {
 			DRM_DEV_ERROR(vop2->dev, "crtc init for video_port%d failed\n", i);
@@ -7265,6 +7354,9 @@ static int vop2_create_crtc(struct vop2 *vop2)
 			DRM_WARN("failed to init overlay plane %s, ret:%d\n", win->name, ret);
 	}
 
+	if (is_vop3(vop2))
+		vop3_init_esmart_scale_engine(vop2);
+
 	return registered_num_crtcs;
 }
 
@@ -7327,7 +7419,6 @@ static int vop2_win_init(struct vop2 *vop2)
 		win->axi_id = win_data->axi_id;
 		win->axi_yrgb_id = win_data->axi_yrgb_id;
 		win->axi_uv_id = win_data->axi_uv_id;
-		win->scale_engine_num = win_data->scale_engine_num;
 		win->possible_crtcs = win_data->possible_crtcs;
 
 		num_wins++;
@@ -7356,6 +7447,7 @@ static int vop2_win_init(struct vop2 *vop2)
 			area->vsd_filter_mode = win_data->vsd_filter_mode;
 			area->hsd_pre_filter_mode = win_data->hsd_pre_filter_mode;
 			area->vsd_pre_filter_mode = win_data->vsd_pre_filter_mode;
+			area->possible_crtcs = win->possible_crtcs;
 
 			area->vop2 = vop2;
 			area->win_id = i;
@@ -7459,6 +7551,23 @@ static int vop2_bind(struct device *dev, struct device *master, void *data)
 	vop2->disable_afbc_win = of_property_read_bool(dev->of_node, "disable-afbc-win");
 	vop2->disable_win_move = of_property_read_bool(dev->of_node, "disable-win-move");
 	vop2->skip_ref_fb = of_property_read_bool(dev->of_node, "skip-ref-fb");
+
+	/*
+	 * esmart lb mode default config at vop2_reg.c vop2_data.esmart_lb_mode,
+	 * you can rewrite at dts vop node:
+	 *
+	 * VOP3_ESMART_8K_MODE = 0,
+	 * VOP3_ESMART_4K_4K_MODE = 1,
+	 * VOP3_ESMART_4K_2K_2K_MODE = 2,
+	 * VOP3_ESMART_2K_2K_2K_2K_MODE = 3,
+	 *
+	 * &vop {
+	 *	 esmart_lb_mode = /bits/ 8 <2>;
+	 * };
+	 */
+	ret = of_property_read_u8(dev->of_node, "esmart_lb_mode", &vop2->esmart_lb_mode);
+	if (ret < 0)
+		vop2->esmart_lb_mode = vop2->data->esmart_lb_mode;
 
 	ret = vop2_win_init(vop2);
 	if (ret)
