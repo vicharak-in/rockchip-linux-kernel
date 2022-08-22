@@ -793,6 +793,7 @@ static int rkvenc_isr(struct mpp_dev *mpp)
 		if (mpp_debug_unlikely(DEBUG_DUMP_ERR_REG))
 			mpp_task_dump_hw_reg(mpp, mpp_task);
 	}
+
 	mpp_task_finish(mpp_task->session, mpp_task);
 
 	mpp_debug_leave();
@@ -1031,6 +1032,10 @@ static int rkvenc_procfs_init(struct mpp_dev *mpp)
 		enc->procfs = NULL;
 		return -EIO;
 	}
+
+	/* for common mpp_dev options */
+	mpp_procfs_create_common(enc->procfs, mpp);
+
 	/* for debug */
 	mpp_procfs_create_u32("aclk", 0644,
 			      enc->procfs, &enc->aclk_info.debug_rate_hz);
