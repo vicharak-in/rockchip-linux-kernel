@@ -514,6 +514,7 @@ static int rkvdec_link_send_task_to_hw(struct rkvdec_link_dev *dev,
 	}
 
 	if (!resend) {
+		u32 timing_en = dev->mpp->srv->timing_en;
 		u32 i;
 
 		for (i = 0; i < task_to_run; i++) {
@@ -523,10 +524,8 @@ static int rkvdec_link_send_task_to_hw(struct rkvdec_link_dev *dev,
 			if (!task_ddr)
 				continue;
 
-			set_bit(TASK_STATE_START, &task_ddr->state);
-			schedule_delayed_work(&task_ddr->timeout_work,
-					      msecs_to_jiffies(200));
-			mpp_time_record(task_ddr);
+			mpp_task_run_begin(task_ddr, timing_en, MPP_WORK_TIMEOUT_DELAY);
+			mpp_task_run_end(task_ddr, timing_en);
 		}
 	} else {
 		if (task_total)
