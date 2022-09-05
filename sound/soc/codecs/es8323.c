@@ -820,6 +820,10 @@ static const struct snd_soc_component_driver soc_codec_dev_es8323 = {
 	.num_dapm_routes	= ARRAY_SIZE(audio_map),
 	.controls		= es8323_snd_controls,
 	.num_controls		= ARRAY_SIZE(es8323_snd_controls),
+	.idle_bias_on           = 1,
+	.use_pmdown_time        = 1,
+	.endianness             = 1,
+	.non_legacy_dai_naming  = 1,
 };
 
 static const struct regmap_config es8323_regmap_config = {
