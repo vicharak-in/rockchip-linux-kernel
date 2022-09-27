@@ -60,6 +60,7 @@ struct rkvdec_link_info {
 	/* interrupt read back in table buffer */
 	u32 tb_reg_int;
 	bool hack_setup;
+	u32 tb_reg_cycle;
 	struct rkvdec_link_status reg_status;
 };
 
@@ -113,6 +114,7 @@ struct rkvdec_link_info rkvdec_link_rk3568_hw_info = {
 	},
 	.tb_reg_int = 164,
 	.hack_setup = 1,
+	.tb_reg_cycle = 179,
 	.reg_status = {
 		.dec_num_mask = 0x3fffffff,
 		.err_flag_base = 0x010,
@@ -171,6 +173,7 @@ struct rkvdec_link_info rkvdec_link_v2_hw_info = {
 	},
 	.tb_reg_int = 180,
 	.hack_setup = 0,
+	.tb_reg_cycle = 197,
 	.reg_status = {
 		.dec_num_mask = 0x000fffff,
 		.err_flag_base = 0x024,
@@ -590,6 +593,7 @@ static int rkvdec_link_isr_recv_task(struct mpp_dev *mpp,
 	struct rkvdec_link_info *info = link_dec->info;
 	u32 *table_base = (u32 *)link_dec->table->vaddr;
 	int i;
+	struct rkvdec2_dev *dec = to_rkvdec2_dev(mpp);
 
 	for (i = 0; i < count; i++) {
 		int idx = rkvdec_link_get_task_read(link_dec);
@@ -604,9 +608,9 @@ static int rkvdec_link_isr_recv_task(struct mpp_dev *mpp,
 
 			link_dec->stuff_total++;
 			if (link_dec->statistic_count &&
-			    regs[RKVDEC_LINK_REG_CYCLE_CNT]) {
+			    regs[info->tb_reg_cycle]) {
 				link_dec->stuff_cycle_sum +=
-					regs[RKVDEC_LINK_REG_CYCLE_CNT];
+					regs[info->tb_reg_cycle];
 				link_dec->stuff_cnt++;
 				if (link_dec->stuff_cnt >=
 				    link_dec->statistic_count) {
@@ -647,10 +651,11 @@ static int rkvdec_link_isr_recv_task(struct mpp_dev *mpp,
 			continue;
 		}
 
-		mpp_time_diff(mpp_task);
 		task = to_rkvdec2_task(mpp_task);
 		regs = table_base + idx * link_dec->link_reg_count;
 		irq_status = regs[info->tb_reg_int];
+		mpp_task->hw_cycles = regs[info->tb_reg_cycle];
+		mpp_time_diff_with_hw_time(mpp_task, dec->aclk_info.real_rate_hz);
 		mpp_dbg_link_flow("slot %d rd task %d\n", idx,
 				  mpp_task->task_index);
 
@@ -660,9 +665,9 @@ static int rkvdec_link_isr_recv_task(struct mpp_dev *mpp,
 		set_bit(TASK_STATE_HANDLE, &mpp_task->state);
 
 		if (link_dec->statistic_count &&
-		    regs[RKVDEC_LINK_REG_CYCLE_CNT]) {
+		    regs[info->tb_reg_cycle]) {
 			link_dec->task_cycle_sum +=
-				regs[RKVDEC_LINK_REG_CYCLE_CNT];
+				regs[info->tb_reg_cycle];
 			link_dec->task_cnt++;
 			if (link_dec->task_cnt >= link_dec->statistic_count) {
 				dev_info(link_dec->dev, "hw cycle %u\n",
@@ -1301,7 +1306,6 @@ static int mpp_task_queue(struct mpp_dev *mpp, struct mpp_task *task)
 	}
 
 	rkvdec2_link_power_on(mpp);
-
 	mpp_debug_func(DEBUG_TASK_INFO,
 		       "%s session %d:%d task=%d state=0x%lx\n",
 		       dev_name(mpp->dev), session->device_type,

@@ -41,8 +41,6 @@
 
 #define RKVDEC_LINK_STA_BASE		0x024
 
-#define RKVDEC_LINK_REG_CYCLE_CNT	179
-
 struct rkvdec_link_dev {
 	struct device *dev;
 	struct mpp_dev *mpp;
