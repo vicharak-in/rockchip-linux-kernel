@@ -179,7 +179,8 @@ struct mpp_dma_buffer *mpp_dma_import_fd(struct mpp_iommu_info *iommu_info,
 	}
 
 	/* remove the oldest before add buffer */
-	mpp_dma_remove_extra_buffer(dma);
+	if (!IS_ENABLED(CONFIG_DMABUF_CACHE))
+		mpp_dma_remove_extra_buffer(dma);
 
 	/* Check whether in dma session */
 	buffer = mpp_dma_find_buffer_fd(dma, fd);
@@ -233,6 +234,8 @@ struct mpp_dma_buffer *mpp_dma_import_fd(struct mpp_iommu_info *iommu_info,
 	buffer->dma = dma;
 
 	kref_init(&buffer->ref);
+	if (!IS_ENABLED(CONFIG_DMABUF_CACHE))
+		kref_get(&buffer->ref);
 
 	mutex_lock(&dma->list_mutex);
 	dma->buffer_count++;
