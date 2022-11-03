@@ -47,8 +47,13 @@
 #define STMMAC_CHAN0	0	/* Always supported and default for all chips */
 
 /* These need to be power of two, and >= 4 */
+#if IS_ENABLED(CONFIG_STMMAC_UIO)
+#define DMA_TX_SIZE 1024
+#define DMA_RX_SIZE 1024
+#else
 #define DMA_TX_SIZE 512
 #define DMA_RX_SIZE 512
+#endif
 #define STMMAC_GET_ENTRY(x, size)	((x + 1) & (size - 1))
 
 #undef FRAME_FILTER_DEBUG
