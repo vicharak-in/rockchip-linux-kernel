@@ -269,6 +269,23 @@ static void tve_set_mode(struct rockchip_tve *tve)
 			tve_writel(TV_ACT_TIMING, 0x0694011D | (1 << 12) | (2 << 28));
 		}
 	}
+
+	if (tve->soc_type == SOC_RK3528) {
+		u32 upsample_mode = 0;
+		u32 mask = 0;
+		u32 val = 0;
+		bool upsample_en;
+
+		upsample_en = tve->upsample_mode ? 1 : 0;
+		if (upsample_en)
+			upsample_mode = tve->upsample_mode - 1;
+		mask = m_TVE_DCLK_POL | m_TVE_DCLK_EN | m_DCLK_UPSAMPLE_2X4X |
+		       m_DCLK_UPSAMPLE_EN | m_TVE_MODE | m_TVE_EN;
+		val = v_TVE_DCLK_POL(0) | v_TVE_DCLK_EN(1) | v_DCLK_UPSAMPLE_2X4X(upsample_mode) |
+		      v_DCLK_UPSAMPLE_EN(upsample_en) | v_TVE_MODE(tve->tv_format) | v_TVE_EN(1);
+
+		tve_dac_grf_writel(RK3528_VO_GRF_CVBS_CON, (mask << 16) | val);
+	}
 }
 
 static void dac_init(struct rockchip_tve *tve)
@@ -284,8 +301,7 @@ static void dac_enable(struct rockchip_tve *tve, bool enable)
 	u32 mask = 0;
 	u32 val = 0;
 	u32 grfreg = 0;
-	u32 upsample_mode = 0;
-	bool upsample_en;
+	u32 offset = 0;
 
 	if (enable) {
 		dev_dbg(tve->dev, "dac enable\n");
@@ -300,15 +316,17 @@ static void dac_enable(struct rockchip_tve *tve, bool enable)
 			grfreg = RK312X_GRF_TVE_CON;
 		} else if (tve->soc_type == SOC_RK322X || tve->soc_type == SOC_RK3328) {
 			val = v_CUR_REG(tve->dac1level) | v_DR_PWR_DOWN(0) | v_BG_PWR_DOWN(0);
+			offset = VDAC_VDAC1;
 		} else if (tve->soc_type == SOC_RK3528) {
-			upsample_en = tve->upsample_mode ? 1 : 0;
-			if (upsample_en)
-				upsample_mode = upsample_mode - 1;
-			mask = m_TVE_DCLK_POL | m_TVE_DCLK_EN | m_DCLK_UPSAMPLE_2X4X |
-			       m_DCLK_UPSAMPLE_EN | m_TVE_MODE | m_TVE_EN;
-			val = v_TVE_DCLK_POL(0) | v_TVE_DCLK_EN(1) | v_DCLK_UPSAMPLE_2X4X(upsample_mode) |
-			      v_DCLK_UPSAMPLE_EN(upsample_en) | v_TVE_MODE(tve->tv_format) | v_TVE_EN(1);
-			grfreg = RK3528_VO_GRF_CVBS_CON;
+			/*
+			 * Reset the vdac
+			 */
+			tve_dac_writel(VDAC_CLK_RST, v_ANALOG_RST(0) | v_DIGITAL_RST(0));
+			msleep(20);
+			tve_dac_writel(VDAC_CLK_RST, v_ANALOG_RST(1) | v_DIGITAL_RST(1));
+
+			val = v_REF_VOLTAGE(7) | v_DAC_PWN(1) | v_BIAS_PWN(1);
+			offset = VDAC_PWM_REF_CTRL;
 		}
 	} else {
 		dev_dbg(tve->dev, "dac disable\n");
@@ -321,16 +339,17 @@ static void dac_enable(struct rockchip_tve *tve, bool enable)
 			grfreg = RK3036_GRF_SOC_CON3;
 		} else if (tve->soc_type == SOC_RK322X || tve->soc_type == SOC_RK3328) {
 			val = v_CUR_REG(tve->dac1level) | m_DR_PWR_DOWN | m_BG_PWR_DOWN;
+			offset = VDAC_VDAC1;
 		} else if (tve->soc_type == SOC_RK3528) {
-			mask = m_TVE_DCLK_EN | m_TVE_EN;
-			grfreg = RK3528_VO_GRF_CVBS_CON;
+			val = v_DAC_PWN(0) | v_BIAS_PWN(0);
+			offset = VDAC_PWM_REF_CTRL;
 		}
 	}
 
 	if (grfreg)
 		tve_dac_grf_writel(grfreg, (mask << 16) | val);
 	else if (tve->vdacbase)
-		tve_dac_writel(VDAC_VDAC1, val);
+		tve_dac_writel(offset, val);
 }
 
 static int cvbs_set_disable(struct rockchip_tve *tve)
@@ -800,7 +819,8 @@ static int rockchip_tve_bind(struct device *dev, struct device *master,
 		return PTR_ERR(tve->regbase);
 	}
 
-	if (tve->soc_type == SOC_RK322X || tve->soc_type == SOC_RK3328) {
+	if (tve->soc_type == SOC_RK322X || tve->soc_type == SOC_RK3328 ||
+	    tve->soc_type == SOC_RK3528) {
 		res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
 		tve->len = resource_size(res);
 		tve->vdacbase = devm_ioremap(tve->dev, res->start, tve->len);

@@ -137,7 +137,7 @@
 	#define v_TVE_MODE(x)		(((x) & 1) << 1)
 	#define v_TVE_EN(x)		(((x) & 1) << 0)
 
-// RK3528 CVBS TVE
+// RK3528 CVBS BT656
 #define BT656_DECODER_CTRL		(0x3D00)
 #define BT656_DECODER_CROP		(0x3D04)
 #define BT656_DECODER_SIZE		(0x3D08)
@@ -146,6 +146,8 @@
 #define BT656_DECODER_VTOTAL_VS_END	(0x3D14)
 #define BT656_DECODER_VS_ST_END_F1	(0x3D18)
 #define BT656_DECODER_DBG_REG		(0x3D1C)
+
+// RK3528 CVBS TVE
 #define TVE_MODE_CTRL			(0x3E00)
 #define TVE_HOR_TIMING1			(0x3E04)
 #define TVE_HOR_TIMING2			(0x3E08)
@@ -173,6 +175,39 @@
 #define TVE_ID				(0x3E98)
 #define TVE_REVISION			(0x3E9C)
 #define TVE_CLAMP			(0x3EA0)
+
+// RK3528 CVBS VDAC
+#define VDAC_CLK_RST			(0x0000)
+	#define m_ANALOG_RST		BIT(7)
+	#define m_DIGITAL_RST		BIT(6)
+	#define m_INPUT_CLK_INV		BIT(0)
+
+	#define v_ANALOG_RST(x)		(((x) & 1) << 7)
+	#define v_DIGITAL_RST(x)	(((x) & 1) << 6)
+	#define v_INPUT_CLK_INV(x)	(((x) & 1) << 0)
+#define VDAC_SINE_CTRL			(0x0004)
+#define VDAC_SQUARE_CTRL		(0x0008)
+#define VDAC_LEVEL_CTRL0		(0x0018)
+#define VDAC_LEVEL_CTRL1		(0x001C)
+#define VDAC_PWM_REF_CTRL		(0x0280)
+	#define m_REF_VOLTAGE		(0xf << 4)
+	#define m_REF_RESISTOR		BIT(3)
+	#define m_SMP_CLK_INV		BIT(2)
+	#define m_DAC_PWN		BIT(1)
+	#define m_BIAS_PWN		BIT(0)
+
+	#define v_REF_VOLTAGE(x)	(((x) & 0xf) << 4)
+	#define v_SMP_CLK_INV(x)	(((x) & 1) << 2)
+	#define v_REF_RESISTOR(x)	(((x) & 1) << 3)
+	#define v_DAC_PWN(x)		(((x) & 1) << 1)
+	#define v_BIAS_PWN(x)		(((x) & 1) << 0)
+#define VDAC_CURRENT_CTRL		(0x0284)
+#define VDAC_CABLE_CTRL			(0x0288)
+#define VDAC_VOLTAGE_CTRL		(0x028C)
+#define VDAC_BIAS_CLK_CTRL0		(0x0290)
+#define VDAC_BIAS_CLK_CTRL1		(0x0294)
+#define VDAC_AUTO_CLK_CTRL0		(0x0298)
+#define VDAC_AUTO_CLK_CTRL1		(0x029C)
 
 enum {
 	TVOUT_CVBS_NTSC = 0,
