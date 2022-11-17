@@ -352,6 +352,18 @@ static int cvbs_set_disable(struct rockchip_tve *tve)
 	return 0;
 }
 
+/*
+ * RK3528 supports bt656 to cvbs, and the others support rgb to cvbs.
+ *
+ *  ┌──────────┐
+ *  │ rgb data ├─────────────────────────────────────┐
+ *  └──────────┘                                     │
+ *                                                   ▼
+ * ┌────────────┐    ┌───────────────┐    ┌───────────────────┐    ┌──────┐    ┌────────┐
+ * │ bt656 data ├───►│ bt656 decoder ├───►│ cvbs(tve) encoder ├───►│ vdac ├───►│ screen │
+ * └────────────┘    └───────────────┘    └───────────────────┘    └──────┘    └────────┘
+ *
+ */
 static int cvbs_set_enable(struct rockchip_tve *tve)
 {
 	int ret = 0;
@@ -365,8 +377,9 @@ static int cvbs_set_enable(struct rockchip_tve *tve)
 		dev_err(tve->dev, "failed to get pm runtime: %d\n", ret);
 		return ret;
 	}
-	dac_enable(tve, true);
 	tve_set_mode(tve);
+	msleep(1000);
+	dac_enable(tve, true);
 	tve->enable = 1;
 
 	return 0;
