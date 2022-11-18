@@ -27,6 +27,8 @@
 #define VDPP_DRIVER_NAME		"mpp_vdpp"
 
 #define	VDPP_SESSION_MAX_BUFFERS	15
+#define VDPP_REG_WORK_MODE			0x0008
+#define VDPP_REG_VDPP_MODE			BIT(1)
 
 #define to_vdpp_info(info)	\
 		container_of(info, struct vdpp_hw_info, hw)
@@ -546,7 +548,10 @@ static int vdpp_irq(struct mpp_dev *mpp)
 {
 	struct vdpp_dev *vdpp = to_vdpp_dev(mpp);
 	struct vdpp_hw_info *hw_info = vdpp->hw_info;
+	u32 work_mode = mpp_read(mpp, VDPP_REG_WORK_MODE);
 
+	if (!(work_mode & VDPP_REG_VDPP_MODE))
+		return IRQ_NONE;
 	mpp->irq_status = mpp_read(mpp, hw_info->int_sta_base);
 	if (!(mpp->irq_status & hw_info->int_mask))
 		return IRQ_NONE;
