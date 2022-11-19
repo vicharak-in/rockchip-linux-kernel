@@ -1943,10 +1943,22 @@ static void hdmi_config_AVI(struct dw_hdmi *hdmi, struct drm_display_mode *mode)
 					HDMI_EXTENDED_COLORIMETRY_XV_YCC_601;
 			break;
 		}
+		frame.ycc_quantization_range = HDMI_YCC_QUANTIZATION_RANGE_LIMITED;
 	} else {
-		frame.colorimetry = HDMI_COLORIMETRY_NONE;
-		frame.extended_colorimetry =
-			HDMI_EXTENDED_COLORIMETRY_XV_YCC_601;
+		if (hdmi->hdmi_data.enc_out_encoding == V4L2_YCBCR_ENC_BT2020) {
+			frame.colorimetry = HDMI_COLORIMETRY_EXTENDED;
+			frame.extended_colorimetry =
+				HDMI_EXTENDED_COLORIMETRY_BT2020;
+		} else {
+			frame.colorimetry = HDMI_COLORIMETRY_NONE;
+			frame.extended_colorimetry =
+				HDMI_EXTENDED_COLORIMETRY_XV_YCC_601;
+		}
+
+		if (is_hdmi2 && frame.quantization_range == HDMI_QUANTIZATION_RANGE_FULL)
+			frame.ycc_quantization_range = HDMI_YCC_QUANTIZATION_RANGE_FULL;
+		else
+			frame.ycc_quantization_range = HDMI_YCC_QUANTIZATION_RANGE_LIMITED;
 	}
 
 	frame.scan_mode = HDMI_SCAN_MODE_NONE;
