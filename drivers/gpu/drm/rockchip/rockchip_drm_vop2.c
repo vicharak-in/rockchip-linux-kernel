@@ -35,6 +35,8 @@
 #include <linux/swab.h>
 #include <linux/sort.h>
 #include <linux/rockchip/cpu.h>
+#include <linux/workqueue.h>
+#include <linux/types.h>
 #include <soc/rockchip/rockchip_dmc.h>
 #include <soc/rockchip/rockchip-system-status.h>
 #include <uapi/linux/videodev2.h>
@@ -478,6 +480,8 @@ struct vop2_video_port {
 	uint8_t id;
 	bool layer_sel_update;
 	bool xmirror_en;
+	bool need_reset_p2i_flag;
+	atomic_t post_buf_empty_flag;
 	const struct vop2_video_port_regs *regs;
 
 	struct completion dsp_hold_completion;
@@ -712,6 +716,8 @@ struct vop2 {
 	unsigned int enable_count;
 	struct clk *hclk;
 	struct clk *aclk;
+	struct work_struct post_buf_empty_work;
+	struct workqueue_struct *workqueue;
 
 	struct vop2_layer layers[ROCKCHIP_MAX_LAYER];
 	/* must put at the end of the struct */
@@ -7327,6 +7333,16 @@ static irqreturn_t vop2_isr(int irq, void *data)
 			ret = IRQ_HANDLED;
 		}
 
+		if (vop2->version == VOP_VERSION_RK3528 && vp->id == 1) {
+			if (active_irqs & POST_BUF_EMPTY_INTR)
+				atomic_inc(&vp->post_buf_empty_flag);
+
+			if (active_irqs & FS_FIELD_INTR &&
+			    (atomic_read(&vp->post_buf_empty_flag) > 0 ||
+			     vp->need_reset_p2i_flag == true))
+				queue_work(vop2->workqueue, &vop2->post_buf_empty_work);
+		}
+
 		if (active_irqs & FS_FIELD_INTR) {
 			vop2_wb_handler(vp);
 			if (likely(!vp->skip_vsync) || (vp->layer_sel_update == false)) {
@@ -8188,6 +8204,43 @@ static int vop2_win_init(struct vop2 *vop2)
 	return 0;
 }
 
+static void post_buf_empty_work_event(struct work_struct *work)
+{
+	struct vop2 *vop2 = container_of(work, struct vop2, post_buf_empty_work);
+	struct rockchip_drm_private *private = vop2->drm_dev->dev_private;
+	struct vop2_video_port *vp = &vop2->vps[1];
+
+	/*
+	 * For RK3528, VP1 only supports NTSC and PAL mode(both interlace). If
+	 * POST_BUF_EMPTY_INTR comes, it is needed to reset the p2i_en bit, in
+	 * order to update the line parity flag, which ensures the correct order
+	 * of odd and even lines.
+	 */
+	if (vop2->version == VOP_VERSION_RK3528) {
+		if (atomic_read(&vp->post_buf_empty_flag) > 0) {
+			atomic_set(&vp->post_buf_empty_flag, 0);
+
+			mutex_lock(&private->ovl_lock);
+			vop2_wait_for_fs_by_done_bit_status(vp);
+			VOP_MODULE_SET(vop2, vp, p2i_en, 0);
+			vop2_cfg_done(&vp->crtc);
+			vop2_wait_for_fs_by_done_bit_status(vp);
+			mutex_unlock(&private->ovl_lock);
+
+			vp->need_reset_p2i_flag = true;
+		} else if (vp->need_reset_p2i_flag == true) {
+			mutex_lock(&private->ovl_lock);
+			vop2_wait_for_fs_by_done_bit_status(vp);
+			VOP_MODULE_SET(vop2, vp, p2i_en, 1);
+			vop2_cfg_done(&vp->crtc);
+			vop2_wait_for_fs_by_done_bit_status(vp);
+			mutex_unlock(&private->ovl_lock);
+
+			vp->need_reset_p2i_flag = false;
+		}
+	}
+}
+
 static int vop2_bind(struct device *dev, struct device *master, void *data)
 {
 	struct platform_device *pdev = to_platform_device(dev);
@@ -8328,6 +8381,12 @@ static int vop2_bind(struct device *dev, struct device *master, void *data)
 	spin_lock_init(&vop2->reg_lock);
 	spin_lock_init(&vop2->irq_lock);
 	mutex_init(&vop2->vop2_lock);
+
+	if (vop2->version == VOP_VERSION_RK3528) {
+		atomic_set(&vop2->vps[1].post_buf_empty_flag, 0);
+		vop2->workqueue = create_workqueue("post_buf_empty_wq");
+		INIT_WORK(&vop2->post_buf_empty_work, post_buf_empty_work_event);
+	}
 
 	ret = devm_request_irq(dev, vop2->irq, vop2_isr, IRQF_SHARED, dev_name(dev), vop2);
 	if (ret)
