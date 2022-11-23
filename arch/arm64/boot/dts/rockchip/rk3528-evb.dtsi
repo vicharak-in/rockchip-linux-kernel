@@ -452,6 +452,11 @@
 	status = "okay";
 };
 
+&rockchip_suspend {
+	status = "okay";
+	rockchip,sleep-debug-en = <1>;
+};
+
 &sai2 {
 	status = "okay";
 };
