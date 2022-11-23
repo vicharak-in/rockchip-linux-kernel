@@ -4941,6 +4941,107 @@ static bool vop2_crtc_mode_update(struct drm_crtc *crtc)
 	return false;
 }
 
+/*
+ * For vop3 video port0, if hdr_vivid is not enable, the pipe delay time as follow:
+ * win_dly + config_win_dly + layer_mix_dly + sdr2hdr_dly + * hdr_mix_dly = config_bg_dly
+ *
+ * if hdr_vivid is enable, the hdr layer's pipe delay time as follow:
+ * win_dly + config_win_dly +hdrvivid_dly + hdr_mix_dly = config_bg_dly
+ *
+ * If hdrvivid and sdr2hdr bot enable, the time arrivr hdr_mix should be the same:
+ * win_dly + config_win_dly0 + hdrvivid_dly = win_dly + config_win_dly1 + laer_mix_dly +
+ * sdr2hdr_dly
+ *
+ * For vop3 video port1, the pipe delay time as follow:
+ * win_dly + config_win_dly + layer_mix_dly = config_bg_dly
+ *
+ * Here, win_dly, layer_mix_dly, sdr2hdr_dly, hdr_mix_dly, hdrvivid_dly is the hardware
+ * delay cycles. Config_win_dly and config_bg_dly is the register value that we can config.
+ * Different hdr vivid mode have different hdrvivid_dly. For sdr2hdr_dly, only sde2hdr
+ * enable, it will delay, otherwise, the sdr2hdr_dly is 0.
+ *
+ * For default, the config_win_dly will be 0, it just user to make the pipe to arrive
+ * hdr_mix at the same time.
+ */
+static void vop3_setup_pipe_dly(struct vop2_video_port *vp, const struct vop2_zpos *vop2_zpos)
+{
+	struct vop2 *vop2 = vp->vop2;
+	struct drm_crtc *crtc = &vp->crtc;
+	const struct vop2_zpos *zpos;
+	struct drm_plane *plane;
+	struct vop2_plane_state *vpstate;
+	struct vop2_win *win;
+	const struct vop2_data *vop2_data = vop2->data;
+	const struct vop2_video_port_data *vp_data = &vop2_data->vp[vp->id];
+	struct drm_display_mode *adjusted_mode = &crtc->state->adjusted_mode;
+	u16 hsync_len = adjusted_mode->crtc_hsync_end - adjusted_mode->crtc_hsync_start;
+	u16 hdisplay = adjusted_mode->crtc_hdisplay;
+	int bg_dly = 0x0;
+	int dly = 0x0;
+	int hdr_win_dly;
+	int sdr_win_dly;
+	int sdr2hdr_dly;
+	int pre_scan_dly;
+	int i;
+
+	/**
+	 * config bg dly, select the max delay num of hdrvivid and sdr2hdr module
+	 * as the increase value of bg delay num. If hdrvivid and sdr2hdr is not
+	 * work, the default bg_dly is 0x10. and the default win delay num is 0.
+	 */
+	if ((vp->hdr_en || vp->sdr2hdr_en) &&
+	    (vp->hdrvivid_mode >= 0 && vp->hdrvivid_mode <= SDR2HLG)) {
+		/* set sdr2hdr_dly to 0 if sdr2hdr is disable */
+		sdr2hdr_dly = vp->sdr2hdr_en ? vp_data->sdr2hdr_dly : 0;
+
+		/* set the max delay pipe's config_win_dly as 0 */
+		if (vp_data->hdrvivid_dly[vp->hdrvivid_mode] >=
+		    sdr2hdr_dly + vp_data->layer_mix_dly) {
+			bg_dly = vp_data->win_dly + vp_data->hdrvivid_dly[vp->hdrvivid_mode] +
+				 vp_data->hdr_mix_dly;
+			hdr_win_dly = 0;
+			sdr_win_dly = vp_data->hdrvivid_dly[vp->hdrvivid_mode] -
+				      vp_data->layer_mix_dly - sdr2hdr_dly;
+		} else {
+			bg_dly = vp_data->win_dly + vp_data->layer_mix_dly + sdr2hdr_dly +
+				 vp_data->hdr_mix_dly;
+			hdr_win_dly = sdr2hdr_dly + vp_data->layer_mix_dly -
+				      vp_data->hdrvivid_dly[vp->hdrvivid_mode];
+			sdr_win_dly = 0;
+		}
+	} else {
+		bg_dly = vp_data->win_dly + vp_data->layer_mix_dly + vp_data->hdr_mix_dly;
+		sdr_win_dly = 0;
+	}
+
+	pre_scan_dly = bg_dly + (hdisplay >> 1) - 1;
+	pre_scan_dly = (pre_scan_dly << 16) | hsync_len;
+	VOP_MODULE_SET(vop2, vp, bg_dly, bg_dly);
+	VOP_MODULE_SET(vop2, vp, pre_scan_htiming, pre_scan_dly);
+
+	/**
+	 * config win dly
+	 */
+	if (!vop2_zpos)
+		return;
+
+	for (i = 0; i < vp->nr_layers; i++) {
+		zpos = &vop2_zpos[i];
+		win = vop2_find_win_by_phys_id(vop2, zpos->win_phys_id);
+		plane = &win->base;
+		vpstate = to_vop2_plane_state(plane->state);
+
+		if ((vp->hdr_en || vp->sdr2hdr_en) &&
+		    (vp->hdrvivid_mode >= 0 && vp->hdrvivid_mode <= SDR2HLG)) {
+			dly = vpstate->hdr_in ? hdr_win_dly : sdr_win_dly;
+		}
+		if (vop2_cluster_window(win))
+			dly |= dly << 8;
+
+		VOP_CTRL_SET(vop2, win_dly[win->phys_id], dly);
+	}
+}
+
 static void vop2_crtc_atomic_enable(struct drm_crtc *crtc, struct drm_crtc_state *old_state)
 {
 	struct vop2_video_port *vp = to_vop2_video_port(crtc);
@@ -5186,6 +5287,9 @@ static void vop2_crtc_atomic_enable(struct drm_crtc *crtc, struct drm_crtc_state
 		clk_set_rate(vp->dclk, adjusted_mode->crtc_clock * 1000);
 
 	vop2_post_config(crtc);
+
+	if (is_vop3(vop2))
+		vop3_setup_pipe_dly(vp, NULL);
 
 	vop2_cfg_done(crtc);
 
@@ -6200,107 +6304,6 @@ static void vop2_setup_dly_for_window(struct vop2_video_port *vp, const struct v
 			dly -= vp->bg_ovl_dly;
 		} else {
 			dly = win->dly[VOP2_DLY_MODE_DEFAULT];
-		}
-		if (vop2_cluster_window(win))
-			dly |= dly << 8;
-
-		VOP_CTRL_SET(vop2, win_dly[win->phys_id], dly);
-	}
-}
-
-/*
- * For vop3 video port0, if hdr_vivid is not enable, the pipe delay time as follow:
- * win_dly + config_win_dly + layer_mix_dly + sdr2hdr_dly + * hdr_mix_dly = config_bg_dly
- *
- * if hdr_vivid is enable, the hdr layer's pipe delay time as follow:
- * win_dly + config_win_dly +hdrvivid_dly + hdr_mix_dly = config_bg_dly
- *
- * If hdrvivid and sdr2hdr bot enable, the time arrivr hdr_mix should be the same:
- * win_dly + config_win_dly0 + hdrvivid_dly = win_dly + config_win_dly1 + laer_mix_dly +
- * sdr2hdr_dly
- *
- * For vop3 video port1, the pipe delay time as follow:
- * win_dly + config_win_dly + layer_mix_dly = config_bg_dly
- *
- * Here, win_dly, layer_mix_dly, sdr2hdr_dly, hdr_mix_dly, hdrvivid_dly is the hardware
- * delay cycles. Config_win_dly and config_bg_dly is the register value that we can config.
- * Different hdr vivid mode have different hdrvivid_dly. For sdr2hdr_dly, only sde2hdr
- * enable, it will delay, otherwise, the sdr2hdr_dly is 0.
- *
- * For default, the config_win_dly will be 0, it just user to make the pipe to arrive
- * hdr_mix at the same time.
- */
-static void vop3_setup_pipe_dly(struct vop2_video_port *vp, const struct vop2_zpos *vop2_zpos)
-{
-	struct vop2 *vop2 = vp->vop2;
-	struct drm_crtc *crtc = &vp->crtc;
-	const struct vop2_zpos *zpos;
-	struct drm_plane *plane;
-	struct vop2_plane_state *vpstate;
-	struct vop2_win *win;
-	const struct vop2_data *vop2_data = vop2->data;
-	const struct vop2_video_port_data *vp_data = &vop2_data->vp[vp->id];
-	struct drm_display_mode *adjusted_mode = &crtc->state->adjusted_mode;
-	u16 hsync_len = adjusted_mode->crtc_hsync_end - adjusted_mode->crtc_hsync_start;
-	u16 hdisplay = adjusted_mode->crtc_hdisplay;
-	int bg_dly = 0x0;
-	int dly = 0x0;
-	int hdr_win_dly;
-	int sdr_win_dly;
-	int sdr2hdr_dly;
-	int pre_scan_dly;
-	int i;
-
-	/**
-	 * config bg dly, select the max delay num of hdrvivid and sdr2hdr module
-	 * as the increase value of bg delay num. If hdrvivid and sdr2hdr is not
-	 * work, the default bg_dly is 0x10. and the default win delay num is 0.
-	 */
-	if ((vp->hdr_en || vp->sdr2hdr_en) &&
-	    (vp->hdrvivid_mode >= 0 && vp->hdrvivid_mode <= SDR2HLG)) {
-		/* set sdr2hdr_dly to 0 if sdr2hdr is disable */
-		sdr2hdr_dly = vp->sdr2hdr_en ? vp_data->sdr2hdr_dly : 0;
-
-		/* set the max delay pipe's config_win_dly as 0 */
-		if (vp_data->hdrvivid_dly[vp->hdrvivid_mode] >=
-		    sdr2hdr_dly + vp_data->layer_mix_dly) {
-			bg_dly = vp_data->win_dly + vp_data->hdrvivid_dly[vp->hdrvivid_mode] +
-				 vp_data->hdr_mix_dly;
-			hdr_win_dly = 0;
-			sdr_win_dly = vp_data->hdrvivid_dly[vp->hdrvivid_mode] -
-				      vp_data->layer_mix_dly - sdr2hdr_dly;
-		} else {
-			bg_dly = vp_data->win_dly + vp_data->layer_mix_dly + sdr2hdr_dly +
-				 vp_data->hdr_mix_dly;
-			hdr_win_dly = sdr2hdr_dly + vp_data->layer_mix_dly -
-				      vp_data->hdrvivid_dly[vp->hdrvivid_mode];
-			sdr_win_dly = 0;
-		}
-	} else {
-		bg_dly = vp_data->win_dly + vp_data->layer_mix_dly + vp_data->hdr_mix_dly;
-		sdr_win_dly = 0;
-	}
-
-	pre_scan_dly = bg_dly + (hdisplay >> 1) - 1;
-	pre_scan_dly = (pre_scan_dly << 16) | hsync_len;
-	VOP_MODULE_SET(vop2, vp, bg_dly, bg_dly);
-	VOP_MODULE_SET(vop2, vp, pre_scan_htiming, pre_scan_dly);
-
-	/**
-	 * config win dly
-	 */
-	if (!vop2_zpos)
-		return;
-
-	for (i = 0; i < vp->nr_layers; i++) {
-		zpos = &vop2_zpos[i];
-		win = vop2_find_win_by_phys_id(vop2, zpos->win_phys_id);
-		plane = &win->base;
-		vpstate = to_vop2_plane_state(plane->state);
-
-		if ((vp->hdr_en || vp->sdr2hdr_en) &&
-		    (vp->hdrvivid_mode >= 0 && vp->hdrvivid_mode <= SDR2HLG)) {
-			dly = vpstate->hdr_in ? hdr_win_dly : sdr_win_dly;
 		}
 		if (vop2_cluster_window(win))
 			dly |= dly << 8;
