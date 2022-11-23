@@ -670,7 +670,7 @@ static const struct rk_csc_mode_coef g_mode_csc_coef[] = {
 		&rk_csc_table_rgb_to_xv_yccsdy_cb_cr_full,
 		&rk_dc_csc_table_rgb_to_xv_yccsdy_cb_cr_full,
 		{
-			OPTM_CS_E_XV_YCC_601, OPTM_CS_E_RGB, true, true
+			OPTM_CS_E_RGB, OPTM_CS_E_XV_YCC_601, true, true
 		}
 	},
 	{
@@ -782,7 +782,7 @@ static const struct rk_csc_mode_coef g_mode_csc_coef[] = {
 		&rk_csc_table_rgb_limit_to_hdy_cb_cr,
 		&rk_dc_csc_table_rgb_limit_to_hdy_cb_cr,
 		{
-			OPTM_CS_E_RGB, OPTM_CS_E_XV_YCC_601, false, false
+			OPTM_CS_E_RGB, OPTM_CS_E_ITU_R_BT_709, false, false
 		}
 	},
 	{
