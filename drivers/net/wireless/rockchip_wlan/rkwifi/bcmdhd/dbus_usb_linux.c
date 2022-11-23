@@ -476,7 +476,7 @@ MODULE_DEVICE_TABLE(usb, devid_table);
 
 /** functions called by the Linux kernel USB subsystem */
 static struct usb_driver dbus_usbdev = {
-	name:           "dbus_usbdev",
+	name:           "dbus_usbdev"BUS_TYPE,
 	probe:          dbus_usbos_probe,
 	disconnect:     dbus_usbos_disconnect,
 	id_table:       devid_table,
@@ -1332,6 +1332,7 @@ DBUS_USBOS_PROBE()
 		usb->portnum, WIFI_STATUS_POWER_ON);
 	if (adapter == NULL) {
 		DBUSERR(("%s: can't find adapter info for this chip\n", __FUNCTION__));
+		ret = -ENOMEM;
 		goto fail;
 	}
 
@@ -2648,8 +2649,13 @@ dbus_usbos_intf_attach(dbus_pub_t *pub, void *cbarg, dbus_intf_callbacks_t *cbs)
 	}
 
 	if (usbos_info->tx_pipe)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0))
+		usbos_info->maxps = usb_maxpacket(usbos_info->usb,
+			usbos_info->tx_pipe);
+#else
 		usbos_info->maxps = usb_maxpacket(usbos_info->usb,
 			usbos_info->tx_pipe, usb_pipeout(usbos_info->tx_pipe));
+#endif  /* #if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)) */
 
 	INIT_LIST_HEAD(&usbos_info->req_rxfreeq);
 	INIT_LIST_HEAD(&usbos_info->req_txfreeq);

@@ -886,8 +886,7 @@ wl_escan_set_scan(struct net_device *dev, wl_scan_info_t *scan_info)
 	u8 *scan_params = NULL, *params = NULL;
 	s32 params_size;
 	u32 n_channels = 0;
-	wl_uint32_list_t *list;
-	u8 valid_chan_list[sizeof(u32)*(MAX_CTRL_CHANSPECS + 1)];
+	wl_uint32_list_t *list = NULL;
 
 	mutex_lock(&escan->usr_sync);
 	if (escan->escan_state == ESCAN_STATE_DOWN) {
@@ -920,8 +919,12 @@ wl_escan_set_scan(struct net_device *dev, wl_scan_info_t *scan_info)
 	}
 
 	/* if scan request is not empty parse scan request paramters */
-	memset(valid_chan_list, 0, sizeof(valid_chan_list));
-	list = (wl_uint32_list_t *)(void *) valid_chan_list;
+	list = kzalloc(sizeof(u32)*(MAX_CTRL_CHANSPECS + 1), GFP_KERNEL);
+	if (list == NULL) {
+		ESCAN_ERROR(dev->name, "kzalloc failed\n");
+		err = -ENOMEM;
+		goto exit;
+	}
 
 	if (scan_info->channels.count) {
 		memcpy(list, &scan_info->channels, sizeof(wl_channel_list_t));
@@ -984,6 +987,8 @@ wl_escan_set_scan(struct net_device *dev, wl_scan_info_t *scan_info)
 	}
 	kfree(params);
 exit:
+	if (list)
+		kfree(list);
 	if (unlikely(err)) {
 		wl_escan_reset(escan);
 	}

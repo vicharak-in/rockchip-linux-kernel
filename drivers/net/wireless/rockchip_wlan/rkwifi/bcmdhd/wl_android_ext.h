@@ -189,4 +189,6 @@ int wl_ext_get_best_channel(struct net_device *net,
 #define WLCBAND2STR(band) ((band == WLC_BAND_2G) ? "2g" : (band == WLC_BAND_5G) ? \
 	"5g" : "0g")
 #endif /* WL_6G_BAND */
+#define WLCWIDTH2STR(width) ((width == WL_CHANSPEC_BW_20) ? "20" : (width == WL_CHANSPEC_BW_40) ? \
+	"40" : (width == WL_CHANSPEC_BW_80) ? "80" : (width == WL_CHANSPEC_BW_160) ? "160" : "0")
 #endif

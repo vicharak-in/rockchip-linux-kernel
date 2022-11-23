@@ -83,8 +83,18 @@ static void IRQHandlerF2(struct sdio_func *func);
 #endif /* !defined(OOB_INTR_ONLY) */
 static int sdioh_sdmmc_get_cisaddr(sdioh_info_t *sd, uint32 regaddr);
 #if defined(ENABLE_INSMOD_NO_FW_LOAD) && !defined(BUS_POWER_RESTORE)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0) && defined(MMC_SW_RESET)
+#if defined(MMC_SW_RESET) && LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0)
+extern int mmc_sw_reset(struct mmc_card *card);
+#else
 extern int mmc_sw_reset(struct mmc_host *host);
+#endif
+#elif defined(MMC_HW_RESET) && LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
+extern int mmc_hw_reset(struct mmc_card *card);
+#else
+extern int mmc_hw_reset(struct mmc_host *host);
+#endif
 #else
 extern int sdio_reset_comm(struct mmc_card *card);
 #endif
@@ -184,7 +194,7 @@ sdioh_sdmmc_card_enablefuncs(sdioh_info_t *sd)
 	err_ret = sdio_enable_func(sd->func[1]);
 	sdio_release_host(sd->func[1]);
 	if (err_ret) {
-		sd_err(("bcmsdh_sdmmc: Failed to enable F1 Err: 0x%08x\n", err_ret));
+		sd_err(("bcmsdh_sdmmc: Failed to enable F1 Err: %d\n", err_ret));
 	}
 
 	return FALSE;
@@ -1222,7 +1232,7 @@ sdioh_request_word(sdioh_info_t *sd, uint cmd_type, uint rw, uint func, uint add
 		if (err_ret)
 #endif /* MMC_SDIO_ABORT */
 		{
-			sd_err(("bcmsdh_sdmmc: Failed to %s word F%d:@0x%05x=%02x, Err: 0x%08x\n",
+			sd_err(("bcmsdh_sdmmc: Failed to %s word F%d:@0x%05x=%02x, Err: %d\n",
 				rw ? "Write" : "Read", func, addr, *word, err_ret));
 		}
 	}
@@ -1772,18 +1782,37 @@ sdioh_sdmmc_card_regwrite(sdioh_info_t *sd, int func, uint32 regaddr, int regsiz
 #if defined(ENABLE_INSMOD_NO_FW_LOAD) && !defined(BUS_POWER_RESTORE)
 static int sdio_sw_reset(sdioh_info_t *sd)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0) && defined(MMC_SW_RESET)
-	struct mmc_host *host = sd->func[0]->card->host;
-#endif
+	struct mmc_card *card = sd->func[0]->card;
 	int err = 0;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0) && defined(MMC_SW_RESET)
-	printf("%s: Enter\n", __FUNCTION__);
+#if defined(MMC_SW_RESET) && LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+	/* MMC_SW_RESET */
+	printf("%s: call mmc_sw_reset\n", __FUNCTION__);
 	sdio_claim_host(sd->func[0]);
-	err = mmc_sw_reset(host);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0)
+	err = mmc_sw_reset(card);
+#else
+	err = mmc_sw_reset(card->host);
+#endif
+	sdio_release_host(sd->func[0]);
+#elif defined(MMC_HW_RESET) && LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0)
+	/* MMC_HW_RESET */
+	printf("%s: call mmc_hw_reset\n", __FUNCTION__);
+	sdio_claim_host(sd->func[0]);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
+	while (atomic_read(&card->sdio_funcs_probed) > 1) {
+		atomic_dec(&card->sdio_funcs_probed);
+	}
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
+	err = mmc_hw_reset(card);
+#else
+	err = mmc_hw_reset(card->host);
+#endif
 	sdio_release_host(sd->func[0]);
 #else
-	err = sdio_reset_comm(sd->func[0]->card);
+	/* sdio_reset_comm */
+	err = sdio_reset_comm(card);
 #endif
 
 	if (err)

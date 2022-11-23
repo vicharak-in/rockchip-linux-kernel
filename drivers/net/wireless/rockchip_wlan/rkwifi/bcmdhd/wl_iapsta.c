@@ -154,6 +154,12 @@ typedef enum ENCMODE {
 	ENC_TKIPAES
 } encmode_t;
 
+typedef enum MAPSTA_MODE {
+	MCHAN_APSTA_NOT_ALLOW = 0,
+	MCHAN_APSTA_SBSC,
+	MCHAN_APSTA_NO_RESTRICT
+} mapsta_mode_t;
+
 #ifdef STA_MGMT
 typedef struct wl_sta_info {
 	int ifidx;
@@ -270,12 +276,13 @@ typedef struct wl_if_info {
 #endif /* WL_EXT_RECONNECT && WL_CFG80211 */
 } wl_if_info_t;
 
+u8 *g_ioctl_buf = NULL;
+
 typedef struct wl_apsta_params {
 	struct wl_if_info if_info[MAX_IF_NUM];
 #ifdef WLDWDS
 	struct wl_dwds_info dwds_info[MAX_DWDS_IF_NUM];
 #endif /* WLDWDS */
-	u8 *ioctl_buf;
 	bool init;
 	int rsdb;
 	bool vsdb;
@@ -1933,6 +1940,7 @@ wl_ext_move_cur_dfs_channel(struct wl_apsta_params *apsta_params,
 			if (!auto_chan) {
 				auto_chan = wl_ext_autochannel(cur_if->dev, ACS_FW_BIT|ACS_DRV_BIT,
 					cur_chan_info->band);
+				auto_chan = wf_chspec_ctlchan(auto_chan);
 			}
 			if (auto_chan)
 				cur_chan_info->chan = auto_chan;
@@ -1954,6 +1962,7 @@ wl_ext_move_cur_dfs_channel(struct wl_apsta_params *apsta_params,
 			if (!auto_chan) {
 				auto_chan = wl_ext_autochannel(cur_if->dev, ACS_FW_BIT|ACS_DRV_BIT,
 					cur_chan_info->band);
+				auto_chan = wf_chspec_ctlchan(auto_chan);
 			}
 			if (auto_chan) {
 				cur_chan_info->chan = auto_chan;
@@ -1967,6 +1976,7 @@ wl_ext_move_cur_dfs_channel(struct wl_apsta_params *apsta_params,
 			} else {
 				auto_chan = wl_ext_autochannel(cur_if->dev, ACS_FW_BIT|ACS_DRV_BIT,
 					cur_chan_info->band);
+				auto_chan = wf_chspec_ctlchan(auto_chan);
 				if (auto_chan) {
 					cur_chan_info->chan = auto_chan;
 				}
@@ -2005,6 +2015,7 @@ wl_ext_move_other_dfs_channel(struct wl_apsta_params *apsta_params,
 			if (!auto_chan) {
 				auto_chan = wl_ext_autochannel(tgt_if->dev, ACS_FW_BIT|ACS_DRV_BIT,
 					tgt_chan_info->band);
+				auto_chan = wf_chspec_ctlchan(auto_chan);
 			}
 			if (auto_chan) {
 				tgt_chan_info->chan = auto_chan;
@@ -2017,6 +2028,7 @@ wl_ext_move_other_dfs_channel(struct wl_apsta_params *apsta_params,
 				if (!auto_chan) {
 					auto_chan = wl_ext_autochannel(tgt_if->dev, ACS_FW_BIT|ACS_DRV_BIT,
 						tgt_chan_info->band);
+					auto_chan = wf_chspec_ctlchan(auto_chan);
 				}
 			} else {
 				tgt_chan_info->chan = 0;
@@ -2488,6 +2500,7 @@ wl_ext_iapsta_update_channel(struct net_device *dev, u32 chanspec)
 		if (wl_ext_master_if(cur_if) && apsta_params->acs) {
 			chan_info->chan = wl_ext_autochannel(cur_if->dev, apsta_params->acs,
 				chan_info->band);
+			chan_info->chan = wf_chspec_ctlchan(chan_info->chan);
 		}
 		chan_info->chan = wl_ext_move_cur_channel(apsta_params, cur_if);
 		if (chan_info->chan) {
@@ -4289,7 +4302,8 @@ wl_ext_update_extsae_4way(struct net_device *dev,
 			}
 		}
 	} else {
-		WL_ERR(("Unknown auth_alg=%d or auth_seq=%d\n", auth_alg, auth_seq));
+		IAPSTA_ERROR(dev->name, "Unknown auth_alg=%d or auth_seq=%d\n",
+			auth_alg, auth_seq);
 	}
 
 	return;
@@ -4395,16 +4409,11 @@ dev_wlc_ioctl(struct net_device *dev, int cmd, void *arg, int len)
 static void
 wl_ampdu_dump(struct net_device *dev)
 {
-	struct dhd_pub *dhd = dhd_get_pub(dev);
-	struct wl_apsta_params *apsta_params = dhd->iapsta_params;
-	char *ioctl_buf = apsta_params->ioctl_buf, *buf = NULL;
+	char *ioctl_buf = g_ioctl_buf, *buf = NULL;
 	char *tx_pch_start, *tx_pch_end, *rx_pch_start, *rx_pch_end;
 	int ret = 0, max_len, tx_len, rx_len;
 
 	if (!(android_msg_level & ANDROID_AMPDU_LEVEL))
-		return;
-
-	if (!ioctl_buf)
 		return;
 
 	memset(ioctl_buf, 0, WL_DUMP_BUF_LEN);
@@ -4470,11 +4479,9 @@ wl_btc_dump(struct net_device *dev)
 static void
 wl_tvpm_dump(struct net_device *dev)
 {
-	struct dhd_pub *dhd = dhd_get_pub(dev);
-	struct wl_apsta_params *apsta_params = dhd->iapsta_params;
 	wl_tvpm_req_t* tvpm_req = NULL;
 	size_t reqlen = sizeof(wl_tvpm_req_t) + sizeof(wl_tvpm_status_t);
-	uint8 *outbuf = apsta_params->ioctl_buf;
+	uint8 *outbuf = g_ioctl_buf;
 	size_t outlen = WLC_IOCTL_MEDLEN;
 	wl_tvpm_status_t* status;
 	int ret, phy_temp = 0;
@@ -4545,6 +4552,8 @@ wl_phy_rssi_ant(struct net_device *dev, struct ether_addr *mac,
 			wldev_ioctl(dev, WLC_GET_RSSI, &scb_val, sizeof(scb_val_t), 0);
 			rssi_ant_p->count = 1;
 			rssi_ant_p->rssi_ant[0] = dtoh32(scb_val.val);
+		} else {
+			rssi_ant_p->count = 0;
 		}
 	}
 	for (i=0; i<rssi_ant_p->count && rssi_ant_p->rssi_ant[i]; i++) {
@@ -4570,9 +4579,7 @@ wl_tput_dump(struct wl_apsta_params *apsta_params,
 static void
 wl_sta_info_dump(struct net_device *dev, struct ether_addr *mac)
 {
-	struct dhd_pub *dhd = dhd_get_pub(dev);
-	struct wl_apsta_params *apsta_params = dhd->iapsta_params;
-	void *buf = apsta_params->ioctl_buf;
+	void *buf = g_ioctl_buf;
 	sta_info_v4_t *sta = NULL;
 	char rssi_buf[16];
 	int ret;
@@ -4723,7 +4730,7 @@ wl_tput_monitor_handler(struct wl_if_info *cur_if,
 			tmp_if = &apsta_params->if_info[i];
 			if (tmp_if->dev &&
 					(tmp_if->ifmode == ISTA_MODE || tmp_if->ifmode == IGC_MODE) &&
-					wl_ext_associated(tmp_if->dev)) {
+					wl_get_isam_status(tmp_if, STA_CONNECTED)) {
 				wl_tput_monitor(dhd, tmp_if->ifidx, &tmp_if->tput_info);
 				monitor_if[i] = TRUE;
 			}
@@ -5112,7 +5119,7 @@ wl_ext_counters_update(struct wl_if_info *cur_if, int war_reason)
 {
 	struct dhd_pub *dhd = dhd_get_pub(cur_if->dev);
 	struct wl_apsta_params *apsta_params = dhd->iapsta_params;
-	char *iovar_buf = apsta_params->ioctl_buf;
+	char *iovar_buf = g_ioctl_buf;
 	uint32 corerev = 0;
 	wl_cnt_info_t *cntinfo;
 	uint16 ver;
@@ -5971,6 +5978,7 @@ wl_ext_enable_iface(struct net_device *dev, char *ifname, int wait_up, bool lock
 				(chan_5g && cur_if->chan_info.band == WLC_BAND_5G)) {
 			cur_if->chan_info.chan = wl_ext_autochannel(cur_if->dev, apsta_params->acs,
 				cur_if->chan_info.band);
+			cur_if->chan_info.chan = wf_chspec_ctlchan(cur_if->chan_info.chan);
 		} else {
 			IAPSTA_ERROR(ifname, "invalid channel\n");
 			ret = -1;
@@ -6688,6 +6696,28 @@ wl_ext_iapsta_get_rsdb(struct net_device *net, struct dhd_pub *dhd)
 }
 
 static void
+wl_ext_iapsta_get_mapsta_mode(struct net_device *net)
+{
+	struct dhd_pub *dhd = dhd_get_pub(net);
+	struct wl_apsta_params *apsta_params = dhd->iapsta_params;
+	int ret, mapsta_mode;
+
+	ret = wldev_iovar_getint(net, "mapsta_mode", &mapsta_mode);
+	if (ret) {
+		IAPSTA_INFO(net->name, "not supported %d\n", ret);
+		mapsta_mode = MCHAN_APSTA_NOT_ALLOW;
+	}
+
+	if (mapsta_mode == MCHAN_APSTA_SBSC)
+		apsta_params->rsdb = 1;
+	else if (mapsta_mode == MCHAN_APSTA_NO_RESTRICT)
+		apsta_params->vsdb = TRUE;
+
+	IAPSTA_INFO(net->name, "mapsta_mode=%d(rsdb=%d, vsdb=%d)\n",
+		mapsta_mode, apsta_params->rsdb, apsta_params->vsdb);
+}
+
+static void
 wl_ext_iapsta_postinit(struct net_device *net, struct wl_if_info *cur_if)
 {
 	struct dhd_pub *dhd = dhd_get_pub(net);
@@ -6698,6 +6728,7 @@ wl_ext_iapsta_postinit(struct net_device *net, struct wl_if_info *cur_if)
 	if (cur_if->ifidx == 0) {
 		apsta_params->rsdb = wl_ext_iapsta_get_rsdb(net, dhd);
 		apsta_params->vsdb = FALSE;
+		wl_ext_iapsta_get_mapsta_mode(net);
 		apsta_params->csa = 0;
 		apsta_params->acs = 0;
 		apsta_params->radar = wl_ext_radar_detect(net);
@@ -6873,12 +6904,6 @@ wl_ext_iapsta_init_priv(struct net_device *net)
 	struct dhd_pub *dhd = dhd_get_pub(net);
 	struct wl_apsta_params *apsta_params = dhd->iapsta_params;
 
-	if (!apsta_params->ioctl_buf) {
-		apsta_params->ioctl_buf = kmalloc(WL_DUMP_BUF_LEN, GFP_KERNEL);
-		if (unlikely(!apsta_params->ioctl_buf)) {
-			IAPSTA_ERROR(net->name, "Can not allocate ioctl_buf\n");
-		}
-	}
 	init_waitqueue_head(&apsta_params->netif_change_event);
 	mutex_init(&apsta_params->usr_sync);
 	mutex_init(&apsta_params->in4way_sync);
@@ -6896,10 +6921,6 @@ wl_ext_iapsta_deinit_priv(struct net_device *net)
 	struct dhd_pub *dhd = dhd_get_pub(net);
 	struct wl_apsta_params *apsta_params = dhd->iapsta_params;
 
-	if (apsta_params->ioctl_buf) {
-		kfree(apsta_params->ioctl_buf);
-		apsta_params->ioctl_buf = NULL;
-	}
 	memset(apsta_params, 0, sizeof(struct wl_apsta_params));
 }
 
@@ -7028,24 +7049,6 @@ wl_ext_iapsta_dettach_netdev(struct net_device *net, int ifidx)
 	return 0;
 }
 
-int
-wl_ext_iapsta_attach(struct net_device *net)
-{
-	struct dhd_pub *dhd = dhd_get_pub(net);
-	struct wl_apsta_params *iapsta_params;
-
-	IAPSTA_TRACE(net->name, "Enter\n");
-
-	iapsta_params = kzalloc(sizeof(struct wl_apsta_params), GFP_KERNEL);
-	if (unlikely(!iapsta_params)) {
-		IAPSTA_ERROR(net->name, "Can not allocate apsta_params\n");
-		return -ENOMEM;
-	}
-	dhd->iapsta_params = (void *)iapsta_params;
-
-	return 0;
-}
-
 void
 wl_ext_iapsta_dettach(struct net_device *net)
 {
@@ -7053,10 +7056,47 @@ wl_ext_iapsta_dettach(struct net_device *net)
 
 	IAPSTA_TRACE(net->name, "Enter\n");
 
+	if (g_ioctl_buf) {
+		kfree(g_ioctl_buf);
+		g_ioctl_buf = NULL;
+	}
+
 	if (dhd->iapsta_params) {
 		wl_ext_iapsta_deinit_priv(net);
 		kfree(dhd->iapsta_params);
 		dhd->iapsta_params = NULL;
 	}
+}
+
+int
+wl_ext_iapsta_attach(struct net_device *net)
+{
+	struct dhd_pub *dhd = dhd_get_pub(net);
+	struct wl_apsta_params *iapsta_params;
+	int ret = 0;
+
+	IAPSTA_TRACE(net->name, "Enter\n");
+
+	iapsta_params = kzalloc(sizeof(struct wl_apsta_params), GFP_KERNEL);
+	if (unlikely(!iapsta_params)) {
+		IAPSTA_ERROR(net->name, "Can not allocate apsta_params\n");
+		ret = -ENOMEM;
+		goto exit;
+	}
+	dhd->iapsta_params = (void *)iapsta_params;
+
+	if (!g_ioctl_buf) {
+		g_ioctl_buf = kmalloc(WL_DUMP_BUF_LEN, GFP_KERNEL);
+		if (unlikely(!g_ioctl_buf)) {
+			IAPSTA_ERROR(net->name, "Can not allocate g_ioctl_buf\n");
+			ret = -ENOMEM;
+			goto exit;
+		}
+	}
+
+exit:
+	if (ret)
+		wl_ext_iapsta_dettach(net);
+	return ret;
 }
 #endif /* WL_EXT_IAPSTA */

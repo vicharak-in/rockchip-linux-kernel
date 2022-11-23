@@ -2213,7 +2213,7 @@ inline static void MUTEX_UNLOCK_SOFTAP_SET(dhd_pub_t * dhdp)
 	} while (0)
 #define DHD_TXFL_WAKE_LOCK_TIMEOUT(pub, val) \
 	do { \
-		printf("call pm_wake_timeout enable\n"); \
+		printf("call txfl_wake_timeout enable\n"); \
 		dhd_txfl_wake_lock_timeout(pub, val); \
 	} while (0)
 #define DHD_TXFL_WAKE_UNLOCK(pub) \
@@ -2366,10 +2366,14 @@ extern void dhd_os_oob_irq_wake_unlock(dhd_pub_t *pub);
 #define DHD_OS_OOB_IRQ_WAKE_UNLOCK(pub)			dhd_os_oob_irq_wake_unlock(pub)
 #endif /* BCMPCIE_OOB_HOST_WAKE */
 
+#ifndef DHD_PACKET_TIMEOUT_MS
 #define DHD_PACKET_TIMEOUT_MS	500
+#endif
 #define DHD_EVENT_TIMEOUT_MS	1500
 #define SCAN_WAKE_LOCK_TIMEOUT	10000
+#ifndef MAX_TX_TIMEOUT
 #define MAX_TX_TIMEOUT			500
+#endif
 
 /* Enum for IOCTL recieved status */
 typedef enum dhd_ioctl_recieved_status
@@ -3703,8 +3707,8 @@ extern void dhd_os_general_spin_unlock(dhd_pub_t *pub, unsigned long flags);
 
 #ifdef DBG_PKT_MON
 /* Enable DHD PKT MON spin lock/unlock */
-#define DHD_PKT_MON_LOCK(lock, flags)     (flags) = osl_mutex_lock(lock)
-#define DHD_PKT_MON_UNLOCK(lock, flags)   osl_mutex_unlock(lock, (flags))
+#define DHD_PKT_MON_LOCK(lock, flags)     (flags) = osl_spin_lock(lock)
+#define DHD_PKT_MON_UNLOCK(lock, flags)   osl_spin_unlock(lock, (flags))
 #endif /* DBG_PKT_MON */
 
 #ifdef DHD_PKT_LOGGING
@@ -4723,7 +4727,7 @@ static INLINE int dhd_kern_path(char *name, int flags, struct path *file_path)
 #define DHD_VFS_UNLINK(dir, b, c) 0
 
 static INLINE struct file *dhd_filp_open(const char *filename, int flags, int mode)
-	{ return NULL; }
+	{ printf("%s: DHD_SUPPORT_VFS_CALL not defined\n", __FUNCTION__); return NULL; }
 static INLINE int dhd_filp_close(void *image, void *id)
 	{ return 0; }
 static INLINE int dhd_i_size_read(const struct inode *inode)

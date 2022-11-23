@@ -299,6 +299,8 @@ typedef struct dhd_conf {
 	int d2h_intr_method;
 	int d2h_intr_control;
 	int enq_hdr_pkt;
+	int aspm;
+	int l1ss;
 #endif
 	int dpc_cpucore;
 	int rxf_cpucore;
@@ -347,6 +349,9 @@ typedef struct dhd_conf {
 	uint war;
 #ifdef WL_EXT_WOWL
 	uint wowl;
+#ifdef BCMDBUS
+	uint wowl_dngldown;
+#endif
 #endif
 #ifdef GET_CUSTOM_MAC_FROM_CONFIG
 	char hw_ether[62];
@@ -458,7 +463,10 @@ int wl_pattern_atoh(char *src, char *dst);
 int dhd_conf_suspend_resume_sta(dhd_pub_t *dhd, int ifidx, int suspend);
 /* Add to adjust 802.1x priority */
 extern void pktset8021xprio(void *pkt, int prio);
-#ifdef BCMSDIO
+#if defined(BCMSDIO) || defined(BCMPCIE) || defined(BCMDBUS)
 extern int dhd_bus_sleep(dhd_pub_t *dhdp, bool sleep, uint32 *intstatus);
+#endif
+#ifdef WL_EXT_WOWL
+int dhd_conf_wowl_dngldown(dhd_pub_t *dhd);
 #endif
 #endif /* _dhd_config_ */

@@ -141,7 +141,7 @@ const chip_name_map_t chip_name_map[] = {
 	{BCM43751_CHIP_ID,	1,	DONT_CARE,	"bcm43751a1_pcie_ag",	""},
 	{BCM43751_CHIP_ID,	2,	DONT_CARE,	"bcm43751a2_pcie_ag",	""},
 	{BCM43752_CHIP_ID,	1,	DONT_CARE,	"bcm43752a1_pcie_ag",	""},
-	{BCM43752_CHIP_ID,	2,	DONT_CARE,	"bcm43752a2_pcie_ag",	"AP6275P"},
+	{BCM43752_CHIP_ID,	2,	DONT_CARE,	"bcm43752a2_pcie_ag",	"ap6275p"},
 	{BCM4375_CHIP_ID,	5,	DONT_CARE,	"bcm4375b4_pcie_ag",	""},
 #endif
 #ifdef BCMDBUS
@@ -271,7 +271,6 @@ dhd_conf_extsae_chip(dhd_pub_t *dhd)
 			chip == BCM4334_CHIP_ID || chip == BCM43340_CHIP_ID ||
 			chip == BCM43341_CHIP_ID || chip == BCM4324_CHIP_ID ||
 			chip == BCM4335_CHIP_ID || chip == BCM4339_CHIP_ID ||
-			chip == BCM4354_CHIP_ID || chip == BCM4356_CHIP_ID ||
 			chip == BCM43143_CHIP_ID || chip == BCM43242_CHIP_ID ||
 			chip == BCM43569_CHIP_ID) {
 		return false;
@@ -282,7 +281,7 @@ dhd_conf_extsae_chip(dhd_pub_t *dhd)
 #endif
 
 #ifdef BCMSDIO
-bool
+static void
 dhd_conf_disable_slpauto(dhd_pub_t *dhd)
 {
 	uint chip = dhd->conf->chip;
@@ -296,10 +295,9 @@ dhd_conf_disable_slpauto(dhd_pub_t *dhd)
 			chip == BCM43430_CHIP_ID ||
 			chip == BCM4345_CHIP_ID || chip == BCM43454_CHIP_ID ||
 			chip == BCM4359_CHIP_ID) {
-		return false;
+		dhd_slpauto = FALSE;
 	}
-
-	return true;
+	CONFIG_MSG("dhd_slpauto = %d\n", dhd_slpauto);
 }
 #endif
 
@@ -1377,7 +1375,6 @@ dhd_conf_add_filepath(dhd_pub_t *dhd, char *pFilename)
 
 	return;
 }
-
 #endif /* DHD_LINUX_STD_FW_API */
 
 void
@@ -1415,7 +1412,6 @@ dhd_conf_set_path_params(dhd_pub_t *dhd, char *fw_path, char *nv_path)
 #endif
 
 #ifdef DHD_LINUX_STD_FW_API
-	// preprocess the filename to only left 'name'
 	dhd_conf_add_filepath(dhd, fw_path);
 	dhd_conf_add_filepath(dhd, nv_path);
 	dhd_conf_add_filepath(dhd, dhd->clm_path);
@@ -2464,12 +2460,24 @@ dhd_conf_check_hostsleep(dhd_pub_t *dhd, int cmd, void *buf, int len,
 	int *hostsleep_set, int *hostsleep_val, int *ret)
 {
 	if (dhd->conf->insuspend & (NO_TXCTL_IN_SUSPEND | WOWL_IN_SUSPEND)) {
+		int wowl_dngldown = 0;
+#ifdef WL_EXT_WOWL
+		wowl_dngldown = dhd_conf_wowl_dngldown(dhd);
+#endif
 		if (cmd == WLC_SET_VAR) {
 			char *psleep = NULL;
-			psleep = strstr(buf, "hostsleep");
-			if (psleep) {
-				*hostsleep_set = 1;
-				memcpy(hostsleep_val, psleep+strlen("hostsleep")+1, sizeof(int));
+			if (wowl_dngldown) {
+				psleep = strstr(buf, "wowl_activate");
+				if (psleep) {
+					*hostsleep_set = 1;
+					memcpy(hostsleep_val, psleep+strlen("wowl_activate")+1, sizeof(int));
+				}
+			} else {
+				psleep = strstr(buf, "hostsleep");
+				if (psleep) {
+					*hostsleep_set = 1;
+					memcpy(hostsleep_val, psleep+strlen("hostsleep")+1, sizeof(int));
+				}
 			}
 		}
 		if (dhd->hostsleep && (!*hostsleep_set || *hostsleep_val)) {
@@ -2710,6 +2718,21 @@ dhd_conf_wowl_wakeind(dhd_pub_t *dhd, int ifidx, bool clear)
 	}
 
 	return ret;
+}
+
+int
+dhd_conf_wowl_dngldown(dhd_pub_t *dhd)
+{
+	int wowl_dngldown = 0;
+#ifdef BCMDBUS
+	uint insuspend = 0;
+	insuspend = dhd_conf_get_insuspend(dhd, ALL_IN_SUSPEND);
+	if ((insuspend & WOWL_IN_SUSPEND) && dhd_master_mode) {
+		wowl_dngldown = dhd->conf->wowl_dngldown;
+	}
+#endif
+
+	return wowl_dngldown;
 }
 #endif
 
@@ -2971,8 +2994,12 @@ dhd_conf_suspend_resume_sta(dhd_pub_t *dhd, int ifidx, int suspend)
 			for(i=0; i<conf->pkt_filter_add.count; i++) {
 				dhd_conf_wowl_pattern(dhd, ifidx, TRUE, conf->pkt_filter_add.filter[i]);
 			}
+			CONFIG_MSG("wowl = 0x%x\n", conf->wowl);
 			dhd_conf_set_intiovar(dhd, ifidx, WLC_SET_VAR, "wowl", conf->wowl, 0, FALSE);
-			dhd_conf_set_intiovar(dhd, ifidx, WLC_SET_VAR, "wowl_activate", 1, 0, FALSE);
+#ifdef BCMDBUS
+			CONFIG_MSG("wowl_dngldown = %d\n", conf->wowl_dngldown);
+			dhd_conf_set_intiovar(dhd, ifidx, WLC_SET_VAR, "wowl_dngldown", conf->wowl_dngldown, 1, FALSE);
+#endif
 			dhd_conf_wowl_wakeind(dhd, ifidx, TRUE);
 		}
 #endif
@@ -2988,7 +3015,7 @@ dhd_conf_suspend_resume_sta(dhd_pub_t *dhd, int ifidx, int suspend)
 #ifdef WL_EXT_WOWL
 		if (insuspend & WOWL_IN_SUSPEND) {
 			dhd_conf_wowl_wakeind(dhd, ifidx, FALSE);
-			dhd_conf_set_intiovar(dhd, ifidx, WLC_SET_VAR, "wowl_activate", 0, 0, FALSE);
+//			dhd_conf_set_intiovar(dhd, ifidx, WLC_SET_VAR, "wowl_activate", 0, 0, FALSE);
 			dhd_conf_set_intiovar(dhd, ifidx, WLC_SET_VAR, "wowl", 0, 0, FALSE);
 			dhd_conf_wowl_pattern(dhd, ifidx, FALSE, "clr");
 		}
@@ -3038,19 +3065,32 @@ dhd_conf_suspend_resume_bus(dhd_pub_t *dhd, int suspend)
 
 	if (suspend) {
 		if (insuspend & (WOWL_IN_SUSPEND | NO_TXCTL_IN_SUSPEND)) {
-#ifdef BCMSDIO
 			uint32 intstatus = 0;
-			int ret = 0;
-#endif
-			int hostsleep = 2;
+			int ret = 0, hostsleep = 2, wowl_dngldown = 0;
 #ifdef WL_EXT_WOWL
 			hostsleep = 1;
+			if ((insuspend & WOWL_IN_SUSPEND) && dhd_master_mode) {
+				dhd_conf_set_intiovar(dhd, 0, WLC_SET_VAR, "wowl_activate", 1, 0, FALSE);
+#ifdef BCMDBUS
+				wowl_dngldown = dhd->conf->wowl_dngldown;
 #endif
-			dhd_conf_set_intiovar(dhd, 0, WLC_SET_VAR, "hostsleep", hostsleep, 0, FALSE);
+			}
+#endif
+			if (!wowl_dngldown) {
+				dhd_conf_set_intiovar(dhd, 0, WLC_SET_VAR, "hostsleep", hostsleep, 0, FALSE);
+			}
 #ifdef BCMSDIO
 			ret = dhd_bus_sleep(dhd, TRUE, &intstatus);
-			CONFIG_TRACE("ret = %d, intstatus = 0x%x\n", ret, intstatus);
 #endif
+#ifdef BCMPCIE
+			ret = dhd_bus_sleep(dhd, TRUE, NULL);
+#endif
+#ifdef BCMDBUS
+			if (wowl_dngldown) {
+				ret = dhd_bus_sleep(dhd, TRUE, NULL);
+			}
+#endif
+			CONFIG_MSG("ret = %d, intstatus = 0x%x\n", ret, intstatus);
 		}
 	} else {
 		if (insuspend & (WOWL_IN_SUSPEND | NO_TXCTL_IN_SUSPEND)) {
@@ -3976,9 +4016,9 @@ dhd_conf_read_sdio_params(dhd_pub_t *dhd, char *full_param, uint len_param)
 		CONFIG_MSG("dhd_doflow = %d\n", dhd_doflow);
 	}
 	else if (!strncmp("dhd_slpauto=", full_param, len_param)) {
-		if (!strncmp(data, "0", 1))
-			dhd_slpauto = FALSE;
-		else if (dhd_conf_disable_slpauto(dhd))
+		if (!strncmp(data, "0", 1)) {
+			dhd_conf_disable_slpauto(dhd);
+		} else
 			dhd_slpauto = TRUE;
 		CONFIG_MSG("dhd_slpauto = %d\n", dhd_slpauto);
 	}
@@ -4150,6 +4190,14 @@ dhd_conf_read_pcie_params(dhd_pub_t *dhd, char *full_param, uint len_param)
 		conf->enq_hdr_pkt = (int)simple_strtol(data, NULL, 0);
 		CONFIG_MSG("enq_hdr_pkt = 0x%x\n", conf->enq_hdr_pkt);
 	}
+	else if (!strncmp("aspm=", full_param, len_param)) {
+		conf->aspm = (int)simple_strtol(data, NULL, 0);
+		CONFIG_MSG("aspm = %d\n", conf->aspm);
+	}
+	else if (!strncmp("l1ss=", full_param, len_param)) {
+		conf->l1ss = (int)simple_strtol(data, NULL, 0);
+		CONFIG_MSG("l1ss = %d\n", conf->l1ss);
+	}
 	else
 		return false;
 
@@ -4208,6 +4256,12 @@ dhd_conf_read_pm_params(dhd_pub_t *dhd, char *full_param, uint len_param)
 		conf->wowl = (int)simple_strtol(data, NULL, 0);
 		CONFIG_MSG("wowl = 0x%x\n", conf->wowl);
 	}
+#ifdef BCMDBUS
+	else if (!strncmp("wowl_dngldown=", full_param, len_param)) {
+		conf->wowl_dngldown = (int)simple_strtol(data, NULL, 0);
+		CONFIG_MSG("wowl_dngldown = 0x%x\n", conf->wowl_dngldown);
+	}
+#endif
 #endif
 	else if (!strncmp("rekey_offload=", full_param, len_param)) {
 		if (!strncmp(data, "1", 1))
@@ -4819,7 +4873,108 @@ dhd_conf_set_txglom_params(dhd_pub_t *dhd, bool enable)
 	}
 
 }
+
+static void
+dhd_conf_set_ampdu_mpdu(dhd_pub_t *dhd)
+{
+	uint chip = dhd->conf->chip;
+	char ampdu_mpdu[32] = "ampdu_mpdu=";
+	int val = -1;
+
+	if (chip == BCM43362_CHIP_ID || chip == BCM4330_CHIP_ID ||
+			chip == BCM4334_CHIP_ID || chip == BCM43340_CHIP_ID ||
+			chip == BCM43341_CHIP_ID || chip == BCM4324_CHIP_ID ||
+			chip == BCM4335_CHIP_ID || chip == BCM4339_CHIP_ID ||
+			chip == BCM4354_CHIP_ID || chip == BCM4356_CHIP_ID ||
+			chip == BCM4371_CHIP_ID ||
+			chip == BCM43430_CHIP_ID ||
+			chip == BCM4345_CHIP_ID || chip == BCM43454_CHIP_ID ||
+			chip == BCM4359_CHIP_ID || chip == BCM43012_CHIP_ID) {
+		val = 16;
+	} else if (chip == BCM43751_CHIP_ID || chip == BCM43752_CHIP_ID) {
+		val = 32;
+	}
+
+	if (val > 0) {
+		snprintf(ampdu_mpdu+strlen(ampdu_mpdu), sizeof(ampdu_mpdu), "%d", val);
+		dhd_conf_set_wl_cmd(dhd, ampdu_mpdu, TRUE);
+	}
+}
+
+#if defined(SDIO_ISR_THREAD)
+static void
+dhd_conf_set_intr_extn(dhd_pub_t *dhd)
+{
+	uint chip = dhd->conf->chip;
+
+	if (chip == BCM43012_CHIP_ID ||
+			chip == BCM4335_CHIP_ID || chip == BCM4339_CHIP_ID ||
+			chip == BCM43454_CHIP_ID || chip == BCM4345_CHIP_ID ||
+			chip == BCM4354_CHIP_ID || chip == BCM4356_CHIP_ID ||
+			chip == BCM4345_CHIP_ID || chip == BCM4371_CHIP_ID ||
+			chip == BCM4359_CHIP_ID ||
+			chip == BCM43751_CHIP_ID || chip == BCM43752_CHIP_ID ||
+			chip == BCM4375_CHIP_ID) {
+		CONFIG_TRACE("enable intr_extn\n");
+		dhd->conf->intr_extn = TRUE;
+	}
+}
+#endif /* SDIO_ISR_THREAD */
 #endif
+
+static void
+dhd_conf_set_txbf(dhd_pub_t *dhd)
+{
+	uint chip = dhd->conf->chip;
+
+	if (chip == BCM4354_CHIP_ID || chip == BCM4356_CHIP_ID ||
+			chip == BCM4371_CHIP_ID || chip == BCM4359_CHIP_ID ||
+			chip == BCM43569_CHIP_ID ||
+			chip == BCM43751_CHIP_ID || chip == BCM43752_CHIP_ID ||
+			chip == BCM4375_CHIP_ID) {
+		CONFIG_TRACE("enable txbf\n");
+		dhd_conf_set_intiovar(dhd, 0, WLC_SET_VAR, "txbf", 1, 0, FALSE);
+	}
+}
+
+static void
+dhd_conf_tput_improve(dhd_pub_t *dhd)
+{
+	struct dhd_conf *conf = dhd->conf;
+	uint chip = conf->chip;
+	uint chiprev = conf->chiprev;
+
+	if ((chip == BCM43430_CHIP_ID && chiprev == 2) ||
+			chip == BCM43012_CHIP_ID ||
+			chip == BCM4335_CHIP_ID || chip == BCM4339_CHIP_ID ||
+			chip == BCM43454_CHIP_ID || chip == BCM4345_CHIP_ID ||
+			chip == BCM4354_CHIP_ID || chip == BCM4356_CHIP_ID ||
+			chip == BCM4345_CHIP_ID || chip == BCM4371_CHIP_ID ||
+			chip == BCM43569_CHIP_ID || chip == BCM4359_CHIP_ID ||
+			chip == BCM43751_CHIP_ID || chip == BCM43752_CHIP_ID ||
+			chip == BCM4375_CHIP_ID) {
+		CONFIG_TRACE("enable tput parameters\n");
+#ifdef DHDTCPACK_SUPPRESS
+#ifdef BCMSDIO
+		conf->tcpack_sup_mode = TCPACK_SUP_REPLACE;
+#endif
+#endif
+#if defined(BCMSDIO) || defined(BCMPCIE)
+		dhd_rxbound = 128;
+		dhd_txbound = 64;
+#endif
+		conf->frameburst = 1;
+#ifdef BCMSDIO
+		conf->dhd_txminmax = -1;
+		conf->txinrx_thres = 128;
+#endif
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0))
+		conf->orphan_move = 1;
+#else
+		conf->orphan_move = 0;
+#endif
+	}
+}
 
 #ifdef UPDATE_MODULE_NAME
 #if defined(BCMSDIO) || defined(BCMPCIE)
@@ -4915,26 +5070,14 @@ dhd_conf_postinit_ioctls(dhd_pub_t *dhd)
 	dhd_conf_preinit_ioctls_sta(dhd, 0);
 	dhd_conf_set_wl_cmd(dhd, wl_preinit, TRUE);
 #if defined(BCMSDIO)
-	if (conf->chip == BCM43751_CHIP_ID || conf->chip == BCM43752_CHIP_ID) {
-		char ampdu_mpdu[] = "ampdu_mpdu=32";
-		dhd_conf_set_wl_cmd(dhd, ampdu_mpdu, TRUE);
-	} else {
-		char ampdu_mpdu[] = "ampdu_mpdu=16";
-		dhd_conf_set_wl_cmd(dhd, ampdu_mpdu, TRUE);
-	}
+	dhd_conf_set_ampdu_mpdu(dhd);
 #endif
 
 #ifdef DHD_TPUT_PATCH
 	if (dhd->conf->mtu)
 		dhd_change_mtu(dhd, dhd->conf->mtu, 0);
 #endif
-	if (conf->chip == BCM4354_CHIP_ID || conf->chip == BCM4356_CHIP_ID ||
-			conf->chip == BCM4371_CHIP_ID || conf->chip == BCM4359_CHIP_ID ||
-			conf->chip == BCM43569_CHIP_ID ||
-			conf->chip == BCM43751_CHIP_ID || conf->chip == BCM43752_CHIP_ID ||
-			conf->chip == BCM4375_CHIP_ID) {
-		dhd_conf_set_intiovar(dhd, 0, WLC_SET_VAR, "txbf", 1, 0, FALSE);
-	}
+	dhd_conf_set_txbf(dhd);
 	if (conf->chip == BCM4375_CHIP_ID) {
 		char he_cmd[] = "110=1, nmode=1, vhtmode=1, he=enab 1";
 		dhd_conf_set_wl_cmd(dhd, he_cmd, TRUE);
@@ -5115,10 +5258,12 @@ dhd_conf_preinit(dhd_pub_t *dhd)
 #endif
 #endif
 #ifdef BCMPCIE
-	conf->bus_deepsleep_disable = 1;
+	conf->bus_deepsleep_disable = -1;
 	conf->flow_ring_queue_threshold = FLOW_RING_QUEUE_THRESHOLD;
 	conf->d2h_intr_method = -1;
 	conf->d2h_intr_control = -1;
+	conf->aspm = -1;
+	conf->l1ss = -1;
 	conf->enq_hdr_pkt = 0;
 #endif
 	conf->dpc_cpucore = -1;
@@ -5135,6 +5280,9 @@ dhd_conf_preinit(dhd_pub_t *dhd)
 #ifdef WL_EXT_WOWL
 	dhd_master_mode = TRUE;
 	conf->wowl = WL_WOWL_NET|WL_WOWL_DIS|WL_WOWL_BCN;
+#ifdef BCMDBUS
+	conf->wowl_dngldown = 0;
+#endif
 	conf->insuspend |= (WOWL_IN_SUSPEND | NO_TXDATA_IN_SUSPEND);
 #endif
 	if (conf->suspend_mode == PM_NOTIFIER || conf->suspend_mode == SUSPEND_MODE_2)
@@ -5226,46 +5374,9 @@ dhd_conf_preinit(dhd_pub_t *dhd)
 	memset(conf->isam_enable, 0, sizeof(conf->isam_enable));
 #endif
 #if defined(SDIO_ISR_THREAD)
-	if (conf->chip == BCM43012_CHIP_ID ||
-			conf->chip == BCM4335_CHIP_ID || conf->chip == BCM4339_CHIP_ID ||
-			conf->chip == BCM43454_CHIP_ID || conf->chip == BCM4345_CHIP_ID ||
-			conf->chip == BCM4354_CHIP_ID || conf->chip == BCM4356_CHIP_ID ||
-			conf->chip == BCM4345_CHIP_ID || conf->chip == BCM4371_CHIP_ID ||
-			conf->chip == BCM4359_CHIP_ID ||
-			conf->chip == BCM43751_CHIP_ID || conf->chip == BCM43752_CHIP_ID ||
-			conf->chip == BCM4375_CHIP_ID) {
-		conf->intr_extn = TRUE;
-	}
+	dhd_conf_set_intr_extn(dhd);
 #endif
-	if ((conf->chip == BCM43430_CHIP_ID && conf->chiprev == 2) ||
-			conf->chip == BCM43012_CHIP_ID ||
-			conf->chip == BCM4335_CHIP_ID || conf->chip == BCM4339_CHIP_ID ||
-			conf->chip == BCM43454_CHIP_ID || conf->chip == BCM4345_CHIP_ID ||
-			conf->chip == BCM4354_CHIP_ID || conf->chip == BCM4356_CHIP_ID ||
-			conf->chip == BCM4345_CHIP_ID || conf->chip == BCM4371_CHIP_ID ||
-			conf->chip == BCM43569_CHIP_ID || conf->chip == BCM4359_CHIP_ID ||
-			conf->chip == BCM43751_CHIP_ID || conf->chip == BCM43752_CHIP_ID ||
-			conf->chip == BCM4375_CHIP_ID) {
-#ifdef DHDTCPACK_SUPPRESS
-#ifdef BCMSDIO
-		conf->tcpack_sup_mode = TCPACK_SUP_REPLACE;
-#endif
-#endif
-#if defined(BCMSDIO) || defined(BCMPCIE)
-		dhd_rxbound = 128;
-		dhd_txbound = 64;
-#endif
-		conf->frameburst = 1;
-#ifdef BCMSDIO
-		conf->dhd_txminmax = -1;
-		conf->txinrx_thres = 128;
-#endif
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0))
-		conf->orphan_move = 1;
-#else
-		conf->orphan_move = 0;
-#endif
-	}
+	dhd_conf_tput_improve(dhd);
 #ifdef DHD_TPUT_PATCH
 	if (conf->chip == BCM43751_CHIP_ID || conf->chip == BCM43752_CHIP_ID ||
 			conf->chip == BCM4375_CHIP_ID) {

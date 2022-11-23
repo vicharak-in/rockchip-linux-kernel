@@ -2452,14 +2452,19 @@ dhd_dbus_state_change(void *handle, int state)
 	dhd_pub_t *dhd = (dhd_pub_t *)handle;
 	unsigned long flags;
 	wifi_adapter_info_t *adapter;
+	int wowl_dngldown = 0;
 
 	if (dhd == NULL) {
 		DBUSERR(("%s: dhd is NULL\n", __FUNCTION__));
 		return;
 	}
 	adapter = (wifi_adapter_info_t *)dhd->adapter;
+#ifdef WL_EXT_WOWL
+	wowl_dngldown = dhd_conf_wowl_dngldown(dhd);
+#endif
 
-	if (dhd->busstate == DHD_BUS_SUSPEND && state == DBUS_STATE_DOWN) {
+	if ((dhd->busstate == DHD_BUS_SUSPEND && state == DBUS_STATE_DOWN) ||
+			(dhd->hostsleep && wowl_dngldown)) {
 		DBUSERR(("%s: switch state %d to %d\n", __FUNCTION__, state, DBUS_STATE_SLEEP));
 		state = DBUS_STATE_SLEEP;
 	}
@@ -3059,6 +3064,7 @@ dhd_dbus_probe_cb(uint16 bus_no, uint16 slot, uint32 hdrlen)
 	}
 
 	DBUSTRACE(("%s: Exit\n", __FUNCTION__));
+	wifi_clr_adapter_status(adapter, WIFI_STATUS_BUS_DISCONNECTED);
 	if (net_attached) {
 		wifi_set_adapter_status(adapter, WIFI_STATUS_NET_ATTACHED);
 		wake_up_interruptible(&adapter->status_event);
@@ -3112,6 +3118,7 @@ dhd_dbus_disconnect_cb(void *arg)
 		dhd_dbus_advertise_bus_remove(bus->dhd);
 		dbus_detach(pub->bus);
 		pub->bus = NULL;
+		wifi_set_adapter_status(adapter, WIFI_STATUS_BUS_DISCONNECTED);
 		wake_up_interruptible(&adapter->status_event);
 	} else {
 		osh = pub->osh;
@@ -3131,6 +3138,24 @@ dhd_dbus_disconnect_cb(void *arg)
 	}
 
 	DBUSTRACE(("%s: Exit\n", __FUNCTION__));
+}
+
+int
+dhd_bus_sleep(dhd_pub_t *dhdp, bool sleep, uint32 *intstatus)
+{
+	wifi_adapter_info_t *adapter = (wifi_adapter_info_t *)dhdp->adapter;
+	s32 timeout = -1;
+	int err = 0;
+
+	timeout = wait_event_interruptible_timeout(adapter->status_event,
+		wifi_get_adapter_status(adapter, WIFI_STATUS_BUS_DISCONNECTED),
+		msecs_to_jiffies(12000));
+	if (timeout <= 0) {
+		err = -1;
+		DBUSERR(("%s: bus disconnected timeout\n", __FUNCTION__));
+	}
+
+	return err;
 }
 
 #ifdef LINUX_EXTERNAL_MODULE_DBUS

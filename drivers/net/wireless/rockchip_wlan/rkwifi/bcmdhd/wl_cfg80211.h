@@ -3045,6 +3045,15 @@ do {	\
 	}	\
 } while (0)
 
+#define WL_CHANNEL_COPY_FLAG(band_chan_arr)    \
+do {   \
+	u32 arr_size, k;        \
+	arr_size = ARRAYSIZE(band_chan_arr);    \
+	for (k = 0; k < arr_size; k++) {        \
+		band_chan_arr[k].orig_flags = band_chan_arr[k].flags;   \
+	}       \
+} while (0)
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0))
 #define CFG80211_PUT_BSS(wiphy, bss) cfg80211_put_bss(wiphy, bss);
 #else
