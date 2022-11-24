@@ -558,6 +558,9 @@ static int vdpp_irq(struct mpp_dev *mpp)
 	mpp_write(mpp, hw_info->int_en_base, 0);
 	mpp_write(mpp, hw_info->int_clr_base, mpp->irq_status);
 
+	/* ensure hardware is being off status */
+	mpp_write(mpp, hw_info->start_base, 0);
+
 	return IRQ_WAKE_THREAD;
 }
 
@@ -622,14 +625,18 @@ static int vdpp_reset(struct mpp_dev *mpp)
 	mpp_write(mpp, hw_info->cfg_base, hw_info->bit_rst_en);
 	ret = readl_relaxed_poll_timeout(mpp->reg_base + hw_info->rst_sta_base,
 					 rst_status,
-					 !(rst_status & hw_info->bit_rst_done),
-					 0, 2);
+					 rst_status & hw_info->bit_rst_done,
+					 0, 5);
 	if (ret) {
 		mpp_err("soft reset timeout, use cru reset\n");
 		return _vdpp_reset(mpp, vdpp);
 	}
 
 	mpp_write(mpp, hw_info->rst_sta_base, 0);
+
+	/* ensure hardware is being off status */
+	mpp_write(mpp, hw_info->start_base, 0);
+
 
 	return 0;
 }

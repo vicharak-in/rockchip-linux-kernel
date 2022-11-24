@@ -11,6 +11,7 @@
 #define __ROCKCHIP_IEP2_REGS_H__
 
 #define IEP2_REG_FRM_START			0x0000
+#define     IEP2_REG_FRM_EN                             BIT(0)
 #define IEP2_REG_IEP_CONFIG0			0x0004
 #define     IEP2_REG_CCLK_SRESET_P			BIT(22)
 #define     IEP2_REG_ACLK_SRESET_P			BIT(21)
@@ -37,6 +38,7 @@
 #define     IEP2_REG_MD_CLK_ON				BIT(1)
 #define     IEP2_REG_CLK_ON				BIT(0)
 #define IEP2_REG_STATUS				0x0014
+#define     IEP2_REG_ARST_FINISH_DONE                   BIT(0)
 #define IEP2_REG_INT_EN				0x0020
 #define     IEP2_REG_BUS_ERROR_EN			BIT(4)
 #define     IEP2_REG_OSD_MAX_EN				BIT(1)
