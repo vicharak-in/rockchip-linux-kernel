@@ -65,6 +65,7 @@ Optional properties:
 		is always powered on.
  - rockchip,low-power-mode: when set, the port will enter low power
 		state when suspend.
+ - rockchip,dis-u2-susphy: when set, disable otg suspend phy.
 
 Example:
 
