@@ -5075,7 +5075,6 @@ static void vop2_crtc_atomic_enable(struct drm_crtc *crtc, struct drm_crtc_state
 	u16 vact_st = adjusted_mode->crtc_vtotal - adjusted_mode->crtc_vsync_start;
 	u16 vact_end = vact_st + vdisplay;
 	bool interlaced = !!(adjusted_mode->flags & DRM_MODE_FLAG_INTERLACE);
-	uint8_t out_mode;
 	bool dclk_inv, yc_swap = false;
 	int act_end;
 	uint32_t val;
@@ -5212,21 +5211,6 @@ static void vop2_crtc_atomic_enable(struct drm_crtc *crtc, struct drm_crtc_state
 		VOP_CTRL_SET(vop2, hdmi_pin_pol, val);
 		VOP_CTRL_SET(vop2, hdmi_dclk_pol, 1);
 	}
-
-	if ((vcstate->output_mode == ROCKCHIP_OUT_MODE_AAAA &&
-	     !(vp_data->feature & VOP_FEATURE_OUTPUT_10BIT)) ||
-	    vcstate->output_if & VOP_OUTPUT_IF_BT656)
-		out_mode = ROCKCHIP_OUT_MODE_P888;
-	else
-		out_mode = vcstate->output_mode;
-	VOP_MODULE_SET(vop2, vp, out_mode, out_mode);
-
-	if (vop2_output_uv_swap(vcstate->bus_format, vcstate->output_mode))
-		VOP_MODULE_SET(vop2, vp, dsp_data_swap, DSP_RB_SWAP);
-	else
-		VOP_MODULE_SET(vop2, vp, dsp_data_swap, 0);
-
-	vop2_dither_setup(crtc);
 
 	VOP_MODULE_SET(vop2, vp, htotal_pw, (htotal << 16) | hsync_len);
 	val = hact_st << 16;
@@ -6687,8 +6671,24 @@ static void vop2_cfg_update(struct drm_crtc *crtc,
 	const struct vop2_video_port_data *vp_data = &vop2_data->vp[vp->id];
 	uint32_t val;
 	uint32_t r, g, b;
+	uint8_t out_mode;
 
 	spin_lock(&vop2->reg_lock);
+
+	if ((vcstate->output_mode == ROCKCHIP_OUT_MODE_AAAA &&
+	     !(vp_data->feature & VOP_FEATURE_OUTPUT_10BIT)) ||
+	    vcstate->output_if & VOP_OUTPUT_IF_BT656)
+		out_mode = ROCKCHIP_OUT_MODE_P888;
+	else
+		out_mode = vcstate->output_mode;
+	VOP_MODULE_SET(vop2, vp, out_mode, out_mode);
+
+	if (vop2_output_uv_swap(vcstate->bus_format, vcstate->output_mode))
+		VOP_MODULE_SET(vop2, vp, dsp_data_swap, DSP_RB_SWAP);
+	else
+		VOP_MODULE_SET(vop2, vp, dsp_data_swap, 0);
+
+	vop2_dither_setup(crtc);
 
 	VOP_MODULE_SET(vop2, vp, overlay_mode, vcstate->yuv_overlay);
 
