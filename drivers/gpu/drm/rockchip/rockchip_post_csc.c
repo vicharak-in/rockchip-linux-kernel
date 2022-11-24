@@ -991,8 +991,8 @@ struct csc_mapping {
 	enum vop_csc_format csc_format;
 	enum color_space_type rgb_color_space;
 	enum color_space_type yuv_color_space;
-	bool yuv_full_range;
 	bool rgb_full_range;
+	bool yuv_full_range;
 };
 
 static const struct csc_mapping csc_mapping_table[] = {
@@ -1000,14 +1000,14 @@ static const struct csc_mapping csc_mapping_table[] = {
 		CSC_BT601L,
 		OPTM_CS_E_RGB,
 		OPTM_CS_E_XV_YCC_601,
-		false,
+		true,
 		false,
 	},
 	{
 		CSC_BT709L,
 		OPTM_CS_E_RGB,
 		OPTM_CS_E_XV_YCC_709,
-		false,
+		true,
 		false,
 	},
 	{
@@ -1028,7 +1028,7 @@ static const struct csc_mapping csc_mapping_table[] = {
 		CSC_BT709L_13BIT,
 		OPTM_CS_E_RGB,
 		OPTM_CS_E_XV_YCC_709,
-		false,
+		true,
 		false,
 	},
 	{
@@ -1042,7 +1042,7 @@ static const struct csc_mapping csc_mapping_table[] = {
 		CSC_BT2020L_13BIT,
 		OPTM_CS_E_RGB_2020,
 		OPTM_CS_E_XV_YCC_2020,
-		false,
+		true,
 		false,
 	},
 	{
