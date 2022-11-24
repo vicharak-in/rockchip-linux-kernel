@@ -1295,6 +1295,7 @@
 		clock-names = "aclk", "iface";
 		#iommu-cells = <0>;
 		rockchip,shootdown-entire;
+		rockchip,disable-mmu-reset;
 		status = "disabled";
 	};
 
