@@ -792,8 +792,11 @@
 				  "Mali_PP0_MMU_IRQ",
 				  "Mali_PP1_IRQ",
 				  "Mali_PP1_MMU_IRQ";
-		clocks = <&cru ACLK_GPU_MALI>;
-		clock-names = "clk_mali";
+		clocks = <&scmi_clk SCMI_CLK_GPU>, <&cru ACLK_GPU_MALI>,
+			 <&cru PCLK_GPU_ROOT>;
+		clock-names = "clk_mali", "aclk_gpu_mali", "pclk_gpu";
+		assigned-clocks = <&scmi_clk SCMI_CLK_GPU>;
+		assigned-clock-rates = <300000000>;
 		power-domains = <&power RK3528_PD_GPU>;
 		operating-points-v2 = <&gpu_opp_table>;
 		status = "disabled";
@@ -812,6 +815,27 @@
 	gpu_opp_table: gpu-opp-table {
 		compatible = "operating-points-v2";
 
+		nvmem-cells = <&gpu_leakage>;
+		nvmem-cell-names = "leakage";
+
+		rockchip,pvtm-voltage-sel = <
+			0	820	0
+			821	840	1
+			841	860	2
+			861	880	3
+			881	900	4
+			901	9999	5
+		>;
+		rockchip,pvtm-pvtpll;
+		rockchip,pvtm-offset = <0x10018>;
+		rockchip,pvtm-sample-time = <1100>;
+		rockchip,pvtm-freq = <700000>;
+		rockchip,pvtm-volt = <900000>;
+		rockchip,pvtm-ref-temp = <40>;
+		rockchip,pvtm-temp-prop = <0 0>;
+		rockchip,pvtm-thermal-zone = "soc-thermal";
+		rockchip,grf = <&grf>;
+
 		opp-300000000 {
 			opp-hz = /bits/ 64 <300000000>;
 			opp-microvolt = <825000 825000 1000000>;
@@ -819,6 +843,27 @@
 		opp-500000000 {
 			opp-hz = /bits/ 64 <500000000>;
 			opp-microvolt = <825000 825000 1000000>;
+		};
+		opp-600000000 {
+			opp-hz = /bits/ 64 <600000000>;
+			opp-microvolt = <825000 825000 1000000>;
+		};
+		opp-700000000 {
+			opp-hz = /bits/ 64 <700000000>;
+			opp-microvolt = <825000 825000 1000000>;
+			opp-microvolt-L0 = <850000 850000 1000000>;
+			opp-microvolt-L1 = <837500 837500 1000000>;
+			clock-latency-ns = <40000>;
+		};
+		opp-800000000 {
+			opp-hz = /bits/ 64 <800000000>;
+			opp-microvolt = <900000 900000 1000000>;
+			opp-microvolt-L1 = <887500 887500 1000000>;
+			opp-microvolt-L2 = <875000 875000 1000000>;
+			opp-microvolt-L3 = <862500 862500 1000000>;
+			opp-microvolt-L4 = <850000 850000 1000000>;
+			opp-microvolt-L5 = <837500 837500 1000000>;
+			clock-latency-ns = <40000>;
 		};
 	};
 
