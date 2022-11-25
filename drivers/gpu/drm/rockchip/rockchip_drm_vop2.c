@@ -4860,6 +4860,8 @@ static void vop2_post_config(struct drm_crtc *crtc)
 			to_rockchip_crtc_state(crtc->state);
 	struct vop2_video_port *vp = to_vop2_video_port(crtc);
 	struct vop2 *vop2 = vp->vop2;
+	const struct vop2_data *vop2_data = vop2->data;
+	const struct vop2_video_port_data *vp_data = &vop2_data->vp[vp->id];
 	struct drm_display_mode *mode = &crtc->state->adjusted_mode;
 	u16 vtotal = mode->crtc_vtotal;
 	u16 hdisplay = mode->crtc_hdisplay;
@@ -4899,8 +4901,16 @@ static void vop2_post_config(struct drm_crtc *crtc)
 		val = vact_st_f1 << 16 | vact_end_f1;
 		VOP_MODULE_SET(vop2, vp, vpost_st_end_f1, val);
 	}
-	VOP_MODULE_SET(vop2, vp, post_dsp_out_r2y,
-		       is_yuv_output(vcstate->bus_format));
+
+	/*
+	 * BCSH[R2Y] -> POST Linebuffer[post scale] -> the background R2Y will be deal by post_dsp_out_r2y
+	 *
+	 * POST Linebuffer[post scale] -> ACM[R2Y] -> the background R2Y will be deal by ACM[R2Y]
+	 */
+	if (vp_data->feature & VOP_FEATURE_POST_ACM)
+		VOP_MODULE_SET(vop2, vp, post_dsp_out_r2y, vcstate->yuv_overlay);
+	else
+		VOP_MODULE_SET(vop2, vp, post_dsp_out_r2y, is_yuv_output(vcstate->bus_format));
 }
 
 /*
