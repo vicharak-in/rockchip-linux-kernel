@@ -136,6 +136,7 @@ struct rockchip_hdmi {
 	bool unsupported_deep_color;
 	bool skip_check_420_mode;
 	bool mode_changed;
+	bool hpd_wake_en;
 	u8 force_output;
 	u8 id;
 
@@ -512,10 +513,13 @@ static irqreturn_t rockchip_hdmi_hpd_irq_handler(int irq, void *arg)
 	struct rockchip_hdmi *hdmi = arg;
 
 	val = gpiod_get_value(hdmi->hpd_gpiod);
-	if (val)
+	if (val) {
 		val = HIWORD_UPDATE(RK3528_HDMI_SNKDET, RK3528_HDMI_SNKDET);
-	else
+		if (hdmi->hdmi && hdmi->hpd_wake_en && hdmi->hpd_gpiod)
+			dw_hdmi_set_hpd_wake(hdmi->hdmi);
+	} else {
 		val = HIWORD_UPDATE(0, RK3528_HDMI_SNKDET);
+	}
 	regmap_write(hdmi->regmap, RK3528_VO_GRF_HDMI_MASK, val);
 
 	return IRQ_HANDLED;
@@ -642,6 +646,10 @@ static int rockchip_hdmi_parse_dt(struct rockchip_hdmi *hdmi)
 			dev_err(hdmi->dev, "failed to request hpd IRQ: %d\n", ret);
 			return ret;
 		}
+
+		hdmi->hpd_wake_en = device_property_read_bool(hdmi->dev, "hpd-wake-up");
+		if (hdmi->hpd_wake_en)
+			enable_irq_wake(hdmi->hpd_irq);
 
 		res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
 		if (!res) {
@@ -1915,7 +1923,6 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
 	platform_set_drvdata(pdev, hdmi);
 
 	hdmi->hdmi = dw_hdmi_bind(pdev, encoder, plat_data);
-
 	/*
 	 * If dw_hdmi_bind() fails we'll never call dw_hdmi_unbind(),
 	 * which would have called the encoder cleanup.  Do it manually.
@@ -1968,8 +1975,11 @@ static void dw_hdmi_rockchip_shutdown(struct platform_device *pdev)
 	if (!hdmi)
 		return;
 
-	if (hdmi->hpd_gpiod)
+	if (hdmi->hpd_gpiod) {
 		disable_irq(hdmi->hpd_irq);
+		if (hdmi->hpd_wake_en)
+			disable_irq_wake(hdmi->hpd_irq);
+	}
 	dw_hdmi_suspend(&pdev->dev, hdmi->hdmi);
 	pm_runtime_put_sync(&pdev->dev);
 }
