@@ -6602,23 +6602,6 @@ static void vop3_post_csc_config(struct drm_crtc *crtc, struct post_acm *acm, st
 		range_type = csc_coef.range_type ? 0 : 1;
 		range_type <<= is_input_yuv ? 0 : 1;
 		VOP_MODULE_SET(vop2, vp, csc_mode, range_type);
-
-		/* rgb input rgb output for csc need rg swap and bg swap */
-		if (!is_input_yuv && !is_output_yuv)
-			VOP_MODULE_SET(vop2, vp, dsp_data_swap, DSP_RG_SWAP | DSP_BG_SWAP);
-
-		/* rgb input yuv output for csc need rg swap */
-		if (!is_input_yuv && is_output_yuv)
-			VOP_MODULE_SET(vop2, vp, dsp_data_swap, DSP_RG_SWAP);
-
-		/* yuv input yuv output for csc need rg swap */
-		if (is_input_yuv && is_output_yuv)
-			VOP_MODULE_SET(vop2, vp, dsp_data_swap, DSP_RG_SWAP);
-	} else {
-		if (vop2_output_uv_swap(vcstate->bus_format, vcstate->output_mode))
-			VOP_MODULE_SET(vop2, vp, dsp_data_swap, DSP_RB_SWAP);
-		else
-			VOP_MODULE_SET(vop2, vp, dsp_data_swap, 0);
 	}
 
 	VOP_MODULE_SET(vop2, vp, acm_r2y_en, post_r2y_en ? 1 : 0);
