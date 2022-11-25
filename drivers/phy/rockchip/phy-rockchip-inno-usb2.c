@@ -196,7 +196,9 @@ struct rockchip_usb2phy_port_cfg {
  * @num_ports: specify how many ports that the phy has.
  * @phy_tuning: phy default parameters tunning.
  * @vbus_detect: vbus voltage level detection function.
- * @clkout_ctl: keep on/turn off output clk of phy.
+ * @clkout_ctl: keep on/turn off output clk of phy via commonon bit.
+ * @clkout_ctl_phy: keep on/turn off output clk of phy via phy inner
+ *		    debug register.
  * @ls_filter_con: set linestate filter time.
  * @chg_det: charger detection registers.
  */
@@ -208,6 +210,7 @@ struct rockchip_usb2phy_cfg {
 			   const struct usb2phy_reg *vbus_det_en,
 			   bool en);
 	struct usb2phy_reg	clkout_ctl;
+	struct usb2phy_reg	clkout_ctl_phy;
 	struct usb2phy_reg	ls_filter_con;
 	const struct rockchip_usb2phy_port_cfg	port_cfgs[USB2PHY_NUM_PORTS];
 	const struct rockchip_chg_det_reg	chg_det;
@@ -349,6 +352,29 @@ static inline bool property_enabled(struct regmap *base,
 	return tmp == reg->enable;
 }
 
+static inline void phy_property_enable(void __iomem *base,
+				    const struct usb2phy_reg *reg, bool en)
+{
+	unsigned int val, tmp;
+
+	val = readl(base + reg->offset);
+	tmp = en ? reg->enable : reg->disable;
+	val &= ~GENMASK(reg->bitend, reg->bitstart);
+	val |= tmp << reg->bitstart;
+	writel(val, base + reg->offset);
+}
+
+static inline bool phy_property_enabled(void __iomem *base,
+				    const struct usb2phy_reg *reg)
+{
+	unsigned int orig, tmp;
+	unsigned int mask = GENMASK(reg->bitend, reg->bitstart);
+
+	orig = readl(base + reg->offset);
+	tmp = (orig & mask) >> reg->bitstart;
+	return tmp == reg->enable;
+}
+
 static int rockchip_usb2phy_clk480m_prepare(struct clk_hw *hw)
 {
 	struct rockchip_usb2phy *rphy =
@@ -357,7 +383,14 @@ static int rockchip_usb2phy_clk480m_prepare(struct clk_hw *hw)
 	int ret;
 
 	/* turn on 480m clk output if it is off */
-	if (!property_enabled(base, &rphy->phy_cfg->clkout_ctl)) {
+	if (rphy->phy_cfg->clkout_ctl_phy.enable) {
+		if (!phy_property_enabled(rphy->phy_base, &rphy->phy_cfg->clkout_ctl_phy)) {
+			phy_property_enable(rphy->phy_base, &rphy->phy_cfg->clkout_ctl_phy, true);
+
+			/* waiting for the clk become stable */
+			usleep_range(1200, 1300);
+		}
+	} else if (!property_enabled(base, &rphy->phy_cfg->clkout_ctl)) {
 		ret = property_enable(base, &rphy->phy_cfg->clkout_ctl, true);
 		if (ret)
 			return ret;
@@ -376,7 +409,10 @@ static void rockchip_usb2phy_clk480m_unprepare(struct clk_hw *hw)
 	struct regmap *base = get_reg_base(rphy);
 
 	/* turn off 480m clk output */
-	property_enable(base, &rphy->phy_cfg->clkout_ctl, false);
+	if (rphy->phy_cfg->clkout_ctl_phy.enable)
+		phy_property_enable(rphy->phy_base, &rphy->phy_cfg->clkout_ctl_phy, false);
+	else
+		property_enable(base, &rphy->phy_cfg->clkout_ctl, false);
 }
 
 static int rockchip_usb2phy_clk480m_prepared(struct clk_hw *hw)
@@ -385,7 +421,10 @@ static int rockchip_usb2phy_clk480m_prepared(struct clk_hw *hw)
 		container_of(hw, struct rockchip_usb2phy, clk480m_hw);
 	struct regmap *base = get_reg_base(rphy);
 
-	return property_enabled(base, &rphy->phy_cfg->clkout_ctl);
+	if (rphy->phy_cfg->clkout_ctl_phy.enable)
+		return phy_property_enabled(rphy->phy_base, &rphy->phy_cfg->clkout_ctl_phy);
+	else
+		return property_enabled(base, &rphy->phy_cfg->clkout_ctl);
 }
 
 static unsigned long
@@ -2047,17 +2086,10 @@ next_child:
 		goto put_child;
 	}
 
-	/*
-	 * rk3528 doesn't has commonon control bit, the disable variable of
-	 * clkout_ctl will be init as 0, use it to distinguish whether
-	 * clk480m registration is required.
-	 */
-	if (rphy->phy_cfg->clkout_ctl.disable) {
-		ret = rockchip_usb2phy_clk480m_register(rphy);
-		if (ret) {
-			dev_err(dev, "failed to register 480m output clock\n");
-			goto put_child;
-		}
+	ret = rockchip_usb2phy_clk480m_register(rphy);
+	if (ret) {
+		dev_err(dev, "failed to register 480m output clock\n");
+		goto put_child;
 	}
 
 	if (rphy->irq > 0) {
@@ -3043,6 +3075,7 @@ static const struct rockchip_usb2phy_cfg rk3528_phy_cfgs[] = {
 		.num_ports	= 2,
 		.phy_tuning	= rk3528_usb2phy_tuning,
 		.vbus_detect	= rockchip_usb2phy_vbus_det_control,
+		.clkout_ctl_phy	= { 0x041c, 7, 2, 0, 0x27 },
 		.port_cfgs	= {
 			[USB2PHY_PORT_OTG] = {
 				.phy_sus	= { 0x6004c, 8, 0, 0, 0x1d1 },
@@ -3068,7 +3101,7 @@ static const struct rockchip_usb2phy_cfg rk3528_phy_cfgs[] = {
 				.vbus_det_en	= { 0x003c, 7, 7, 0, 1 },
 			},
 			[USB2PHY_PORT_HOST] = {
-				.phy_sus	= { 0x6005c, 8, 0, 0x1d2, 0x1d2 },
+				.phy_sus	= { 0x6005c, 8, 0, 0x1d2, 0x1d1 },
 				.ls_det_en	= { 0x60090, 0, 0, 0, 1 },
 				.ls_det_st	= { 0x60094, 0, 0, 0, 1 },
 				.ls_det_clr	= { 0x60098, 0, 0, 0, 1 },
