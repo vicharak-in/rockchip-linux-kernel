@@ -456,6 +456,8 @@
 #define SCMI_HCLK_TSP                  18
 #define SCMI_PCLK_DCF                  19
 #define SCMI_CLK_DDR                   20
+#define SCMI_CLK_CPU                   21
+#define SCMI_CLK_GPU                   22
 
 // CRU_SOFTRST_CON03(Offset:0xA0C)
 #define SRST_NCOREPORESET0             0x00000030
