@@ -107,7 +107,7 @@
 		};
 
 		wifi_32k: wifi-32k {
-			rockchip,pins = <1 RK_PC3 RK_FUNC_1 &pcfg_pull_none>;
+			rockchip,pins = <1 RK_PC3 1 &pcfg_pull_none>;
 		};
 	};
 
