@@ -2048,9 +2048,9 @@
 		compatible = "rockchip,rk3528-naneng-combphy";
 		reg = <0x0 0xffdc0000 0x0 0x10000>;
 		#phy-cells = <1>;
-		clocks = <&cru CLK_REF_PCIE_100M_PHY>, <&cru PCLK_PCIE_PHY>, <&cru PCLK_PIPE_GRF>;
+		clocks = <&cru CLK_REF_PCIE_INNER_PHY>, <&cru PCLK_PCIE_PHY>, <&cru PCLK_PIPE_GRF>;
 		clock-names = "refclk", "apbclk", "pipe_clk";
-		assigned-clocks = <&cru CLK_REF_PCIE_100M_PHY>;
+		assigned-clocks = <&cru CLK_REF_PCIE_INNER_PHY>;
 		assigned-clock-rates = <100000000>;
 		resets = <&cru SRST_PRESETN_PCIE_PHY>, <&cru SRST_RESETN_PCIE_PIPE_PHY>;
 		reset-names = "combphy-apb", "combphy";
