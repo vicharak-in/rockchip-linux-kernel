@@ -488,6 +488,11 @@ static int rk3528_combphy_cfg(struct rockchip_combphy_priv *priv)
 			val &= ~GENMASK(10, 0);
 			val |= 0x17d;
 			writel(val, priv->mmio + 0x100);
+		} else if (priv->mode == PHY_TYPE_PCIE) {
+			/* tx_trim[14]=1, Enable the counting clock of the rterm detect */
+			val = readl(priv->mmio + 0x218);
+			val |= (1 << 14);
+			writel(val, priv->mmio + 0x218);
 		}
 		break;
 	case 100000000:
