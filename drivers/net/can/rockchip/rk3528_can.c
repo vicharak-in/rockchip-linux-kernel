@@ -98,7 +98,6 @@ enum rk3528_can_reg {
 	CAN_RXDAT15 = 0x348,
 	CAN_RXFRD = 0x400,
 	CAN_TXEFRD = 0x500,
-	CAN_FIFO_INFO = 0x704,
 };
 
 enum {
@@ -146,6 +145,7 @@ enum {
 #define TXE_FIFO_OV_INT		BIT(12)
 #define TXE_FIFO_FULL_INT	BIT(13)
 #define WAKEUP_INT		BIT(14)
+#define TIMEOUT_INT		BIT(15)
 
 #define ERR_TYPE_MASK		GENMASK(28, 26)
 #define ERR_TYPE_SHIFT		26
@@ -398,7 +398,7 @@ static int rk3528_can_start(struct net_device *ndev)
 	/* we need to enter the reset mode */
 	set_reset_mode(ndev);
 
-	rk3528_can_write(rcan, CAN_INT_MASK, 0);
+	rk3528_can_write(rcan, CAN_INT_MASK, TIMEOUT_INT);
 
 	/* RECEIVING FILTER, accept all */
 	rk3528_can_write(rcan, CAN_IDCODE, 0);
@@ -632,14 +632,9 @@ static int rk3528_can_rx_poll(struct napi_struct *napi, int quota)
 	struct net_device *ndev = napi->dev;
 	struct rk3528_can *rcan = netdev_priv(ndev);
 	int work_done = 0;
-	u32 cnt;
 
 	quota = (rk3528_can_read(rcan, CAN_RXFC) & rcan->rx_fifo_mask) >>
 		rcan->rx_fifo_shift;
-	cnt = rk3528_can_read(rcan, CAN_FIFO_INFO) & CAN_FIFO_INFO_CNT_MASK;
-	cnt = cnt / rcan->rx_max_data;
-	if (cnt != quota)
-		quota = cnt;
 
 	while (work_done < quota)
 		work_done += rk3528_can_rx(ndev);
@@ -649,7 +644,7 @@ static int rk3528_can_rx_poll(struct napi_struct *napi, int quota)
 
 	if (work_done < rcan->rx_fifo_depth) {
 		napi_complete_done(napi, work_done);
-		rk3528_can_write(rcan, CAN_INT_MASK, 0);
+		rk3528_can_write(rcan, CAN_INT_MASK, TIMEOUT_INT);
 	}
 
 	return work_done;
@@ -726,7 +721,9 @@ static irqreturn_t rk3528_can_interrupt(int irq, void *dev_id)
 
 	isr = rk3528_can_read(rcan, CAN_INT);
 	if (isr & RX_FINISH_INT) {
-		rk3528_can_write(rcan, CAN_INT_MASK, RX_FINISH_INT);
+		rk3528_can_write(rcan,
+				 CAN_INT_MASK,
+				 RX_FINISH_INT | TIMEOUT_INT);
 		napi_schedule(&rcan->napi);
 	}
 	if (isr & TX_FINISH_INT) {
