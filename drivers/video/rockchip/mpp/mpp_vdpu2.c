@@ -69,6 +69,9 @@
 #define VDPU2_DEC_CLOCK_GATE_EN			BIT(4)
 #define VDPU2_DEC_START				BIT(0)
 
+#define VDPU2_REG_SOFT_RESET			0x0e8
+#define VDPU2_REG_SOFT_RESET_INDEX		(58)
+
 #define VDPU2_REG_DIR_MV_BASE			0x0f8
 #define VDPU2_REG_DIR_MV_BASE_INDEX		(62)
 
@@ -606,14 +609,30 @@ static int vdpu_isr(struct mpp_dev *mpp)
 	return IRQ_HANDLED;
 }
 
+static int vdpu_soft_reset(struct mpp_dev *mpp)
+{
+	u32 val;
+
+	mpp_write(mpp, VDPU2_REG_SOFT_RESET, 1);
+	udelay(2);
+	val = mpp_read(mpp, VDPU2_REG_SOFT_RESET);
+
+	return val;
+}
+
 static int vdpu_reset(struct mpp_dev *mpp)
 {
 	struct vdpu_dev *dec = to_vdpu_dev(mpp);
+	u32 ret = 0;
 
 	mpp_write(mpp, VDPU2_REG_DEC_EN, 0);
 	mpp_write(mpp, VDPU2_REG_DEC_INT, 0);
-	if (dec->rst_a && dec->rst_h) {
+
+	/* soft reset first */
+	ret = vdpu_soft_reset(mpp);
+	if (ret && dec->rst_a && dec->rst_h) {
 		/* Don't skip this or iommu won't work after reset */
+		mpp_debug(DEBUG_RESET, "reset in\n");
 		mpp_pmu_idle_request(mpp, true);
 		mpp_safe_reset(dec->rst_a);
 		mpp_safe_reset(dec->rst_h);
@@ -621,6 +640,7 @@ static int vdpu_reset(struct mpp_dev *mpp)
 		mpp_safe_unreset(dec->rst_a);
 		mpp_safe_unreset(dec->rst_h);
 		mpp_pmu_idle_request(mpp, false);
+		mpp_debug(DEBUG_RESET, "reset out\n");
 	}
 
 	return 0;

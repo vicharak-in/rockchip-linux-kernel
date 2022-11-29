@@ -58,6 +58,9 @@
 #define VDPU1_REG_DEC_EN		0x008
 #define	VDPU1_CLOCK_GATE_EN		BIT(10)
 
+#define VDPU1_REG_SOFT_RESET		0x194
+#define VDPU1_REG_SOFT_RESET_INDEX	(101)
+
 #define VDPU1_REG_SYS_CTRL		0x00c
 #define VDPU1_REG_SYS_CTRL_INDEX	(3)
 #define VDPU1_RGE_WIDTH_INDEX		(4)
@@ -673,11 +676,25 @@ static int vdpu_isr(struct mpp_dev *mpp)
 	return IRQ_HANDLED;
 }
 
+static int vdpu_soft_reset(struct mpp_dev *mpp)
+{
+	u32 val;
+
+	mpp_write(mpp, VDPU1_REG_SOFT_RESET, 1);
+	udelay(2);
+	val = mpp_read(mpp, VDPU1_REG_SOFT_RESET);
+
+	return val;
+}
+
 static int vdpu_reset(struct mpp_dev *mpp)
 {
 	struct vdpu_dev *dec = to_vdpu_dev(mpp);
+	u32 ret = 0;
 
-	if (dec->rst_a && dec->rst_h) {
+	/* soft reset first */
+	ret = vdpu_soft_reset(mpp);
+	if (ret && dec->rst_a && dec->rst_h) {
 		mpp_debug(DEBUG_RESET, "reset in\n");
 
 		/* Don't skip this or iommu won't work after reset */
