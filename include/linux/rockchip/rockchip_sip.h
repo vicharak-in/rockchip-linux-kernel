@@ -153,6 +153,9 @@ typedef enum {
 	SHARE_PAGE_TYPE_MAX,
 } share_page_type_t;
 
+struct pt_regs;
+typedef void (*sip_fiq_debugger_uart_irq_tf_cb_t)(struct pt_regs *_pt_regs, unsigned long cpu);
+
 /*
  * Rules: struct arm_smccc_res contains result and data, details:
  *
@@ -184,7 +187,7 @@ struct dram_addrmap_info *sip_smc_get_dram_map(void);
 /***************************fiq debugger **************************************/
 void sip_fiq_debugger_enable_fiq(bool enable, uint32_t tgt_cpu);
 void sip_fiq_debugger_enable_debug(bool enable);
-int sip_fiq_debugger_uart_irq_tf_init(u32 irq_id, void *callback_fn);
+int sip_fiq_debugger_uart_irq_tf_init(u32 irq_id, sip_fiq_debugger_uart_irq_tf_cb_t callback_fn);
 int sip_fiq_debugger_set_print_port(u32 port_phyaddr, u32 baudrate);
 int sip_fiq_debugger_request_share_memory(void);
 int sip_fiq_debugger_get_target_cpu(void);
@@ -283,7 +286,7 @@ static inline void sip_fiq_debugger_enable_fiq
 
 static inline void sip_fiq_debugger_enable_debug(bool enable) { return; }
 static inline int sip_fiq_debugger_uart_irq_tf_init(u32 irq_id,
-						    void *callback_fn)
+						    sip_fiq_debugger_uart_irq_tf_cb_t callback_fn)
 {
 	return 0;
 }
