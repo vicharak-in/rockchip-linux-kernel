@@ -891,7 +891,6 @@
 		resets = <&cru SRST_ARESETN_RKVDEC>, <&cru SRST_HRESETN_RKVDEC>,
 			 <&cru SRST_RESETN_HEVC_CA_RKVDEC>;
 		reset-names = "video_a", "video_h", "video_hevc_cabac";
-		power-domains = <&power RK3528_PD_RKVDEC>;
 		iommus = <&rkvdec_mmu>;
 		rockchip,srv = <&mpp_srv>;
 		rockchip,taskqueue-node = <0>;
@@ -907,7 +906,6 @@
 		interrupt-names = "rkvdec_mmu";
 		clocks = <&cru ACLK_RKVDEC>, <&cru HCLK_RKVDEC>, <&cru CLK_HEVC_CA_RKVDEC>;
 		clock-names = "aclk", "iface", "clk_hevc_cabac";
-		power-domains = <&power RK3528_PD_RKVDEC>;
 		#iommu-cells = <0>;
 		status = "disabled";
 	};
@@ -925,7 +923,6 @@
 		reset-names = "video_a", "video_h", "video_core";
 		assigned-clocks = <&cru ACLK_RKVENC>, <&cru CLK_CORE_RKVENC>;
 		assigned-clock-rates = <300000000>, <300000000>;
-		power-domains = <&power RK3528_PD_RKVENC>;
 		iommus = <&rkvenc_mmu>;
 		rockchip,srv = <&mpp_srv>;
 		rockchip,taskqueue-node = <1>;
@@ -940,7 +937,6 @@
 		interrupt-names = "rkvenc_mmu";
 		clocks = <&cru ACLK_RKVENC>, <&cru HCLK_RKVENC>;
 		clock-names = "aclk", "iface";
-		power-domains = <&power RK3528_PD_RKVENC>;
 		#iommu-cells = <0>;
 		status = "disabled";
 	};
@@ -954,7 +950,6 @@
 		clock-names = "aclk_vcodec", "hclk_vcodec";
 		resets = <&cru SRST_ARESETN_VPU>, <&cru SRST_HRESETN_VPU>;
 		reset-names = "shared_video_a", "shared_video_h";
-		power-domains = <&power RK3528_PD_VPU>;
 		iommus = <&vdpu_mmu>;
 		rockchip,srv = <&mpp_srv>;
 		rockchip,taskqueue-node = <2>;
@@ -969,7 +964,6 @@
 		interrupt-names = "vdpu_mmu";
 		clock-names = "aclk", "iface";
 		clocks = <&cru ACLK_VPU>, <&cru HCLK_VPU>;
-		power-domains = <&power RK3528_PD_VPU>;
 		#iommu-cells = <0>;
 		status = "disabled";
 	};
@@ -984,7 +978,6 @@
 		resets = <&cru SRST_ARESETN_VPU>, <&cru SRST_HRESETN_VPU>;
 		reset-names = "shared_video_a", "shared_video_h";
 		iommus = <&vdpu_mmu>;
-		power-domains = <&power RK3528_PD_VPU>;
 		rockchip,srv = <&mpp_srv>;
 		rockchip,taskqueue-node = <2>;
 		rockchip,resetgroup-node = <2>;
@@ -1092,7 +1085,6 @@
 		rockchip,srv = <&mpp_srv>;
 		rockchip,taskqueue-node = <3>;
 		rockchip,resetgroup-node = <3>;
-		power-domains = <&power RK3528_PD_VO>;
 		iommus = <&iep_mmu>;
 		status = "disabled";
 	};
@@ -1105,7 +1097,6 @@
 		clocks = <&cru ACLK_VDPP>, <&cru HCLK_VDPP>;
 		clock-names = "aclk", "iface";
 		#iommu-cells = <0>;
-		power-domains = <&power RK3528_PD_VO>;
 		status = "disabled";
 	};
 
@@ -1125,7 +1116,6 @@
 		rockchip,srv = <&mpp_srv>;
 		rockchip,taskqueue-node = <3>;
 		rockchip,resetgroup-node = <3>;
-		power-domains = <&power RK3528_PD_VO>;
 		iommus = <&iep_mmu>;
 		status = "disabled";
 	};
@@ -1139,7 +1129,6 @@
 		rockchip,disable-auto-freq;
 		resets = <&cru SRST_ARESETN_JPEG_DECODER>, <&cru SRST_HRESETN_JPEG_DECODER>;
 		reset-names = "video_a", "video_h";
-		power-domains = <&power RK3528_PD_VO>;
 		iommus = <&jpegd_mmu>;
 		rockchip,srv = <&mpp_srv>;
 		rockchip,taskqueue-node = <4>;
@@ -1154,7 +1143,6 @@
 		interrupt-names = "jpegd_mmu";
 		clock-names = "aclk", "iface";
 		clocks = <&cru ACLK_JPEG_DECODER>, <&cru HCLK_JPEG_DECODER>;
-		power-domains = <&power RK3528_PD_VO>;
 		#iommu-cells = <0>;
 		status = "disabled";
 	};
