@@ -301,7 +301,7 @@ static int fiq_target_cpu;
 static phys_addr_t ft_fiq_mem_phy;
 static void __iomem *ft_fiq_mem_base;
 static void (*sip_fiq_debugger_uart_irq_tf)(struct pt_regs *_pt_regs,
-					    unsigned long cpu);
+					    uint32_t cpu);
 static struct pt_regs fiq_pt_regs;
 
 int sip_fiq_debugger_is_enabled(void)
@@ -388,7 +388,7 @@ static void sip_fiq_debugger_get_pt_regs(void *reg_base,
 
 static void sip_fiq_debugger_uart_irq_tf_cb(unsigned long sp_el1,
 					    unsigned long offset,
-					    unsigned long cpu)
+					    uint32_t cpu)
 {
 	char *cpu_context;
 
