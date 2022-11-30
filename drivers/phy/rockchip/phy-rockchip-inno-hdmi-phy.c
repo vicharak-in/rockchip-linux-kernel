@@ -662,10 +662,17 @@ static int inno_hdmi_phy_clk_register(struct inno_hdmi_phy *inno)
 {
 	struct device *dev = inno->dev;
 	struct device_node *np = dev->of_node;
+	struct device_node *clk_np = NULL;
 	struct clk_init_data init = {};
 	struct clk *refclk;
 	const char *parent_name;
 	int ret;
+
+	if (inno->plat_data->dev_type == INNO_HDMI_PHY_RK3528)
+		clk_np = of_get_child_by_name(np, "clk-port");
+
+	if (!clk_np)
+		clk_np = np;
 
 	refclk = devm_clk_get(dev, "refclk");
 	if (IS_ERR(refclk)) {
@@ -682,7 +689,7 @@ static int inno_hdmi_phy_clk_register(struct inno_hdmi_phy *inno)
 	init.ops = &inno_hdmi_phy_clk_ops;
 
 	/* optional override of the clock name */
-	of_property_read_string(np, "clock-output-names", &init.name);
+	of_property_read_string(clk_np, "clock-output-names", &init.name);
 
 	inno->hw.init = &init;
 
@@ -693,7 +700,7 @@ static int inno_hdmi_phy_clk_register(struct inno_hdmi_phy *inno)
 		return ret;
 	}
 
-	ret = of_clk_add_provider(np, of_clk_src_simple_get, inno->pclk);
+	ret = of_clk_add_provider(clk_np, of_clk_src_simple_get, inno->pclk);
 	if (ret) {
 		dev_err(dev, "failed to register OF clock provider: %d\n", ret);
 		return ret;
