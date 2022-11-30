@@ -1776,9 +1776,6 @@ static int __maybe_unused rockchip_dw_pcie_suspend(struct device *dev)
 	gpiod_set_value_cansleep(rk_pcie->rst_gpio, 0);
 	ret = rk_pcie_disable_power(rk_pcie);
 
-	if (rk_pcie->pci->pp.msi_irq > 0)
-		dw_pcie_free_msi(&rk_pcie->pci->pp);
-
 	return ret;
 }
 
@@ -1836,9 +1833,6 @@ static int __maybe_unused rockchip_dw_pcie_resume(struct device *dev)
 		dev_err(dev, "failed to establish pcie link\n");
 		goto err;
 	}
-
-	if (rk_pcie->pci->pp.msi_irq > 0)
-		dw_pcie_msi_init(&rk_pcie->pci->pp);
 
 	if (std_rc)
 		goto std_rc_done;
