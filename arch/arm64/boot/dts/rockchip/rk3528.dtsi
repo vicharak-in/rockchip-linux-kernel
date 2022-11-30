@@ -1002,7 +1002,7 @@
 			      "dclk_vp0",
 			      "dclk_vp1";
 		assigned-clocks = <&cru DCLK_VOP0>;
-		assigned-clock-parents = <&hdmiphy>;
+		assigned-clock-parents = <&inno_hdmiphy_clk>;
 		iommus = <&vop_mmu>;
 		rockchip,grf = <&grf>;
 		status = "disabled";
@@ -2082,9 +2082,13 @@
 		#phy-cells = <0>;
 		clocks = <&cru PCLK_HDMIPHY>, <&xin24m>;
 		clock-names = "sysclk", "refclk";
-		#clock-cells = <0>;
-		clock-output-names = "clk_hdmiphy_pixel_io";
 		status = "disabled";
+
+		inno_hdmiphy_clk: clk-port {
+			#clock-cells = <0>;
+			clock-output-names = "clk_hdmiphy_pixel_io";
+			status = "okay";
+		};
 	};
 
 	acodec: acodec@ffe10000 {
