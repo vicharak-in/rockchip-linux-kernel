@@ -501,6 +501,7 @@ static void mpp_task_timeout_work(struct work_struct *work_s)
 	/* remove task from taskqueue running list */
 	set_bit(TASK_STATE_TIMEOUT, &task->state);
 	mpp_taskqueue_pop_running(mpp->queue, task);
+	mpp_taskqueue_trigger_work(mpp);
 }
 
 static int mpp_process_task_default(struct mpp_session *session,
@@ -709,6 +710,7 @@ static void mpp_task_worker_default(struct kthread_work *work_s)
 
 	mpp_debug_enter();
 
+get_task:
 	task = mpp_taskqueue_get_pending_task(queue);
 	if (!task)
 		goto done;
@@ -716,7 +718,7 @@ static void mpp_task_worker_default(struct kthread_work *work_s)
 	/* if task timeout and aborted, remove it */
 	if (atomic_read(&task->abort_request) > 0) {
 		mpp_taskqueue_pop_pending(queue, task);
-		goto done;
+		goto get_task;
 	}
 
 	/* get device for current task */
