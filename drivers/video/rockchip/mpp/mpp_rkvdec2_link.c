@@ -656,7 +656,7 @@ static int rkvdec_link_isr_recv_task(struct mpp_dev *mpp,
 				  mpp_task->task_index);
 
 		task->irq_status = irq_status ? irq_status : mpp->irq_status;
-
+		mpp_debug(DEBUG_IRQ_STATUS, "irq_status: %08x\n", task->irq_status);
 		cancel_delayed_work_sync(&mpp_task->timeout_work);
 		set_bit(TASK_STATE_HANDLE, &mpp_task->state);
 
@@ -775,9 +775,6 @@ static int rkvdec2_link_irq(struct mpp_dev *mpp)
 
 	irq_status = readl(link_dec->reg_base + RKVDEC_LINK_IRQ_BASE);
 
-	mpp_debug(DEBUG_IRQ_STATUS, "irq_status: %08x\n", irq_status);
-	mpp_dbg_link_flow("link irq %08x\n", irq_status);
-
 	if (irq_status & RKVDEC_LINK_BIT_IRQ_RAW) {
 		u32 enabled = readl(link_dec->reg_base + RKVDEC_LINK_EN_BASE);
 
@@ -795,7 +792,8 @@ static int rkvdec2_link_irq(struct mpp_dev *mpp)
 
 		writel_relaxed(0, link_dec->reg_base + RKVDEC_LINK_IRQ_BASE);
 	}
-
+	mpp_debug((DEBUG_IRQ_STATUS | DEBUG_LINK_TABLE), "irq_status: %08x : %08x\n",
+		  irq_status, mpp->irq_status);
 	return 0;
 }
 
@@ -1060,8 +1058,10 @@ static void rkvdec2_link_free_task(struct kref *ref)
 	}
 	session = task->session;
 
-	mpp_debug_func(DEBUG_TASK_INFO, "task %d:%d state 0x%lx\n",
-		       session->index, task->task_index, task->state);
+	mpp_debug_func(DEBUG_TASK_INFO,
+		       "session %d:%d task %d state 0x%lx abort_request %d\n",
+		       session->device_type, session->index, task->task_index,
+		       task->state, atomic_read(&task->abort_request));
 	if (!session->mpp) {
 		mpp_err("session %d session->mpp is null.\n", session->index);
 		return;
@@ -1287,6 +1287,7 @@ static int mpp_task_queue(struct mpp_dev *mpp, struct mpp_task *task)
 	u32 task_to_run = 0;
 	int slot_idx = 0;
 	int ret;
+	struct mpp_session *session = task->session;
 
 	mpp_debug_enter();
 
@@ -1301,8 +1302,11 @@ static int mpp_task_queue(struct mpp_dev *mpp, struct mpp_task *task)
 	}
 
 	rkvdec2_link_power_on(mpp);
-	mpp_debug(DEBUG_TASK_INFO, "pid %d, start hw %s\n",
-		  task->session->pid, dev_name(mpp->dev));
+
+	mpp_debug_func(DEBUG_TASK_INFO,
+		       "%s session %d:%d task=%d state=0x%lx\n",
+		       dev_name(mpp->dev), session->device_type,
+		       session->index, task->task_index, task->state);
 
 	/* prepare the task for running */
 	if (test_and_set_bit(TASK_STATE_PREPARE, &task->state))

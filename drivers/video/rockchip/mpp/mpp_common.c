@@ -438,9 +438,9 @@ static void mpp_free_task(struct kref *ref)
 	session = task->session;
 
 	mpp_debug_func(DEBUG_TASK_INFO,
-		       "session=%p, task=%p, state=0x%lx, abort_request=%d\n",
-		       session, task, task->state,
-		       atomic_read(&task->abort_request));
+		       "session %d:%d task %d state 0x%lx abort_request %d\n",
+		       session->device_type, session->index, task->task_index,
+		       task->state, atomic_read(&task->abort_request));
 	if (!session->mpp) {
 		mpp_err("session %p, session->mpp is null.\n", session);
 		return;
@@ -469,13 +469,15 @@ static void mpp_task_timeout_work(struct work_struct *work_s)
 		return;
 	}
 
-	mpp_err("task %p processing time out!\n", task);
 	if (!task->session) {
 		mpp_err("task %p, task->session is null.\n", task);
 		return;
 	}
+
 	session = task->session;
 
+	mpp_err("session %d:%d task %d processing time out!\n",
+		session->device_type, session->index, task->task_index);
 	if (!session->mpp) {
 		mpp_err("session %p, session->mpp is null.\n", session);
 		return;
@@ -545,7 +547,10 @@ static int mpp_process_task_default(struct mpp_session *session,
 	/* trigger current queue to run task */
 	mpp_taskqueue_trigger_work(mpp);
 	kref_put(&task->ref, mpp_free_task);
-
+	mpp_debug_func(DEBUG_TASK_INFO,
+		       "session %d:%d task %d state 0x%lx\n",
+		       session->device_type, session->index,
+		       task->task_index, task->state);
 	return 0;
 }
 
@@ -652,6 +657,7 @@ static int mpp_task_run(struct mpp_dev *mpp,
 			struct mpp_task *task)
 {
 	int ret;
+	struct mpp_session *session = task->session;
 
 	mpp_debug_enter();
 
@@ -680,8 +686,10 @@ static int mpp_task_run(struct mpp_dev *mpp,
 
 	mpp_power_on(mpp);
 	mpp_time_record(task);
-	mpp_debug(DEBUG_TASK_INFO, "pid %d, start hw %s\n",
-		  task->session->pid, dev_name(mpp->dev));
+	mpp_debug_func(DEBUG_TASK_INFO,
+		       "%s session %d:%d task=%d state=0x%lx\n",
+		       dev_name(mpp->dev), session->device_type,
+		       session->index, task->task_index, task->state);
 
 	if (mpp->auto_freq_en && mpp->hw_ops->set_freq)
 		mpp->hw_ops->set_freq(mpp, task);
@@ -826,10 +834,9 @@ static int mpp_wait_result_default(struct mpp_session *session,
 		}
 	} else {
 		atomic_inc(&task->abort_request);
-		mpp_err("timeout, pid %d session %p:%d count %d cur_task %p index %d.\n",
-			session->pid, session, session->index,
-			atomic_read(&session->task_count), task,
-			task->task_index);
+		mpp_err("timeout, pid %d session %d:%d count %d cur_task %d state %lx\n",
+			session->pid, session->device_type, session->index,
+			atomic_read(&session->task_count), task->task_index, task->state);
 		/* if twice and return timeout, otherwise, re-wait */
 		if (atomic_read(&task->abort_request) > 1) {
 			mpp_err("session %p:%d, task %p index %d abort wait twice!\n",
@@ -842,7 +849,10 @@ static int mpp_wait_result_default(struct mpp_session *session,
 	}
 
 	mpp_debug_func(DEBUG_TASK_INFO,
-		       "kref_read=%d, ret=%d\n", kref_read(&task->ref), ret);
+		       "session %d:%d task %d state 0x%lx kref_read %d ret %d\n",
+		       session->device_type,
+		       session->index, task->task_index, task->state,
+		       kref_read(&task->ref), ret);
 	mpp_session_pop_pending(session, task);
 
 	return ret;
