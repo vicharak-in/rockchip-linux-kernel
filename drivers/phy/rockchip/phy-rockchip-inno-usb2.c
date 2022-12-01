@@ -2372,6 +2372,18 @@ static int rk3528_usb2phy_tuning(struct rockchip_usb2phy *rphy)
 	reg = readl(rphy->phy_base + 0x0430);
 	writel(reg & ~BIT(2), rphy->phy_base + 0x0430);
 
+	/* Set otg port HS eye height to 400mv(default is 450mv) */
+	reg = readl(rphy->phy_base + 0x30);
+	reg &= ~GENMASK(6, 4);
+	reg |= (0x00 << 4);
+	writel(reg, rphy->phy_base + 0x30);
+
+	/* Set host port HS eye height to 400mv(default is 450mv) */
+	reg = readl(rphy->phy_base + 0x430);
+	reg &= ~GENMASK(6, 4);
+	reg |= (0x00 << 4);
+	writel(reg, rphy->phy_base + 0x430);
+
 	/* Choose the Tx fs/ls data as linestate from TX driver for otg port */
 	reg = readl(rphy->phy_base + 0x94);
 	reg &= ~GENMASK(6, 3);
