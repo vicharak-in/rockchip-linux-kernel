@@ -471,6 +471,13 @@ static int rk3528_combphy_cfg(struct rockchip_combphy_priv *priv)
 	switch (rate) {
 	case 24000000:
 		param_write(priv->phy_grf, &cfg->pipe_clk_24m, true);
+		if (priv->mode == PHY_TYPE_USB3) {
+			/* Set ssc_cnt[10:0]=00101111101 & 31.5KHz */
+			val = readl(priv->mmio + 0x100);
+			val &= ~GENMASK(10, 0);
+			val |= 0x17d;
+			writel(val, priv->mmio + 0x100);
+		}
 		break;
 	case 100000000:
 		param_write(priv->phy_grf, &cfg->pipe_clk_100m, true);
