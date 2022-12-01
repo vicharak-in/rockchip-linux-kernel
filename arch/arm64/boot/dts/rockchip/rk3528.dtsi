@@ -382,6 +382,20 @@
 		reg = <0x0 0x0010f000 0x0 0x100>;
 	};
 
+	sram: sram@fe480000 {
+		compatible = "mmio-sram";
+		reg = <0x0 0xfe480000 0x0 0xc000>;
+
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges = <0x0 0x0 0xfe480000 0xc000>;
+
+		/* start address and size should be 4k algin */
+		rkvdec_sram: rkvdec-sram@0 {
+			reg = <0x0 0xc000>;
+		};
+	};
+
 	pcie2x1: pcie@fe4f0000 {
 		compatible = "rockchip,rk3528-pcie", "snps,dw-pcie";
 		#address-cells = <3>;
@@ -927,6 +941,10 @@
 		rockchip,taskqueue-node = <0>;
 		rockchip,resetgroup-node = <0>;
 		rockchip,task-capacity = <16>;
+		rockchip,sram = <&rkvdec_sram>;
+		/* rcb_iova: start and size */
+		rockchip,rcb-iova = <0x10000000 65536>;
+		rockchip,rcb-min-width = <512>;
 		status = "disabled";
 	};
 
