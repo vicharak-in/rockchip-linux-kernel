@@ -1953,9 +1953,13 @@ static void rk_iommu_shutdown(struct platform_device *pdev)
 	struct rk_iommu *iommu = platform_get_drvdata(pdev);
 	int i = 0, irq;
 
+	if (iommu->skip_read)
+		goto skip_free_irq;
+
 	while ((irq = platform_get_irq(pdev, i++)) != -ENXIO)
 		devm_free_irq(iommu->dev, irq, iommu);
 
+skip_free_irq:
 	pm_runtime_force_suspend(&pdev->dev);
 }
 
