@@ -274,6 +274,9 @@
 			scmi_clk: protocol@14 {
 				reg = <0x14>;
 				#clock-cells = <1>;
+
+				assigned-clocks = <&scmi_clk SCMI_CLK_CPU>;
+				assigned-clock-rates = <1200000000>;
 			};
 		};
 	};
@@ -695,7 +698,6 @@
 			<&cru PLL_GPLL>,
 			<&cru PLL_PPLL>,
 			<&cru PLL_CPLL>,
-			<&cru ARMCLK>,
 			<&cru CLK_MATRIX_250M_SRC>,
 			<&cru CLK_MATRIX_500M_SRC>,
 			<&cru CLK_MATRIX_50M_SRC>,
@@ -716,7 +718,6 @@
 			<1188000000>,
 			<1000000000>,
 			<996000000>,
-			<408000000>,
 			<250000000>,
 			<500000000>,
 			<50000000>,
