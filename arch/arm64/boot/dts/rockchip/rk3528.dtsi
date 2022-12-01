@@ -1191,14 +1191,14 @@
 			      "pclk_vdac",
 			      "dclk",
 			      "dclk_4x";
-		rockchip,lumafilter0 = <0x000a0ffa>;
-		rockchip,lumafilter1 = <0x0ff4001a>;
-		rockchip,lumafilter2 = <0x00110fd2>;
-		rockchip,lumafilter3 = <0x0fe80051>;
-		rockchip,lumafilter4 = <0x001a0f74>;
-		rockchip,lumafilter5 = <0x0fe600ec>;
-		rockchip,lumafilter6 = <0x0ffa0e43>;
-		rockchip,lumafilter7 = <0x08200527>;
+		rockchip,lumafilter0 = <0x0ff80006>;
+		rockchip,lumafilter1 = <0x00090010>;
+		rockchip,lumafilter2 = <0x0ffb0fd8>;
+		rockchip,lumafilter3 = <0x00080057>;
+		rockchip,lumafilter4 = <0x0fef0f64>;
+		rockchip,lumafilter5 = <0x0016010a>;
+		rockchip,lumafilter6 = <0x0f830df7>;
+		rockchip,lumafilter7 = <0x08de055f>;
 		rockchip,tve-upsample = <DCLK_UPSAMPLEx4>;
 		rockchip,grf = <&grf>;
 		status = "disabled";
