@@ -6128,27 +6128,6 @@ void rkcif_irq_pingpong(struct rkcif_device *cif_dev)
 				 __func__);
 		}
 
-		if (intstat & CSI_FRAME0_START_ID0) {
-			if (mbus->type == V4L2_MBUS_CSI2)
-				rkcif_csi2_event_inc_sof();
-			else if (mbus->type == V4L2_MBUS_CCP2)
-				rkcif_lvds_event_inc_sof(cif_dev);
-			detect_stream->fs_cnt_in_single_frame++;
-			spin_lock_irqsave(&detect_stream->fps_lock, flags);
-			detect_stream->readout.fs_timestamp = ktime_get_ns();
-			spin_unlock_irqrestore(&detect_stream->fps_lock, flags);
-		}
-
-		if (intstat & CSI_FRAME1_START_ID0) {
-			if (mbus->type == V4L2_MBUS_CSI2)
-				rkcif_csi2_event_inc_sof();
-			else if (mbus->type == V4L2_MBUS_CCP2)
-				rkcif_lvds_event_inc_sof(cif_dev);
-			detect_stream->fs_cnt_in_single_frame++;
-			spin_lock_irqsave(&detect_stream->fps_lock, flags);
-			detect_stream->readout.fs_timestamp = ktime_get_ns();
-			spin_unlock_irqrestore(&detect_stream->fps_lock, flags);
-		}
 		for (i = 0; i < RKCIF_MAX_STREAM_MIPI; i++) {
 			if (intstat & CSI_LINE_INTSTAT(i)) {
 				stream = &cif_dev->stream[i];
@@ -6162,11 +6141,6 @@ void rkcif_irq_pingpong(struct rkcif_device *cif_dev)
 					 "%s: id0 cur line:%d\n", __func__, lastline & 0x3fff);
 			}
 		}
-
-		/* if do not reach frame dma end, return irq */
-		mipi_id = rkcif_csi_g_mipi_id(&cif_dev->v4l2_dev, intstat);
-		if (mipi_id < 0)
-			return;
 
 		for (i = 0; i < RKCIF_MAX_STREAM_MIPI; i++) {
 			mipi_id = rkcif_csi_g_mipi_id(&cif_dev->v4l2_dev,
@@ -6223,8 +6197,30 @@ void rkcif_irq_pingpong(struct rkcif_device *cif_dev)
 					detect_stream->fs_cnt_in_single_frame--;
 				}
 			}
+			cif_dev->irq_stats.all_frm_end_cnt++;
 		}
-		cif_dev->irq_stats.all_frm_end_cnt++;
+		if (intstat & CSI_FRAME0_START_ID0) {
+			if (mbus->type == V4L2_MBUS_CSI2)
+				rkcif_csi2_event_inc_sof();
+			else if (mbus->type == V4L2_MBUS_CCP2)
+				rkcif_lvds_event_inc_sof(cif_dev);
+			detect_stream->fs_cnt_in_single_frame++;
+			spin_lock_irqsave(&detect_stream->fps_lock, flags);
+			detect_stream->readout.fs_timestamp = ktime_get_ns();
+			spin_unlock_irqrestore(&detect_stream->fps_lock, flags);
+		}
+
+		if (intstat & CSI_FRAME1_START_ID0) {
+			if (mbus->type == V4L2_MBUS_CSI2)
+				rkcif_csi2_event_inc_sof();
+			else if (mbus->type == V4L2_MBUS_CCP2)
+				rkcif_lvds_event_inc_sof(cif_dev);
+			detect_stream->fs_cnt_in_single_frame++;
+			spin_lock_irqsave(&detect_stream->fps_lock, flags);
+			detect_stream->readout.fs_timestamp = ktime_get_ns();
+			spin_unlock_irqrestore(&detect_stream->fps_lock, flags);
+		}
+
 	} else {
 		u32 lastline, lastpix, ctl;
 		u32 cif_frmst, frmid, int_en;
