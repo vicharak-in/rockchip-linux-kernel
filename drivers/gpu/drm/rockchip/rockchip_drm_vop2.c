@@ -3212,6 +3212,7 @@ static void vop2_crtc_atomic_disable(struct drm_crtc *crtc,
 {
 	struct vop2_video_port *vp = to_vop2_video_port(crtc);
 	struct vop2 *vop2 = vp->vop2;
+	const struct vop2_video_port_data *vp_data = &vop2->data->vp[vp->id];
 	int ret;
 
 	WARN_ON(vp->event);
@@ -3224,6 +3225,8 @@ static void vop2_crtc_atomic_disable(struct drm_crtc *crtc,
 		VOP_MODULE_SET(vop2, vp, cubic_lut_en, 0);
 	}
 
+	if (vp_data->feature & VOP_FEATURE_VIVID_HDR)
+		VOP_MODULE_SET(vop2, vp, hdr_lut_update_en, 0);
 	vop2_disable_all_planes_for_crtc(crtc);
 
 	/*
@@ -5365,6 +5368,7 @@ static void vop3_disable_dynamic_hdr(struct vop2_video_port *vp, uint8_t win_phy
 	VOP_MODULE_SET(vop2, vp, hdr10_en, 0);
 	VOP_MODULE_SET(vop2, vp, hdr_vivid_en, 0);
 	VOP_MODULE_SET(vop2, vp, hdr_vivid_bypass_en, 0);
+	VOP_MODULE_SET(vop2, vp, hdr_lut_update_en, 0);
 	VOP_MODULE_SET(vop2, vp, sdr2hdr_en, 0);
 	VOP_MODULE_SET(vop2, vp, sdr2hdr_path_en, 0);
 	VOP_MODULE_SET(vop2, vp, sdr2hdr_auto_gating_en, 1);
@@ -6338,6 +6342,7 @@ static void vop2_crtc_atomic_begin(struct drm_crtc *crtc, struct drm_crtc_state 
 	struct vop2_cluster cluster;
 	uint8_t nr_layers = 0;
 	struct rockchip_crtc_state *vcstate = to_rockchip_crtc_state(crtc->state);
+	const struct vop2_video_port_data *vp_data = &vop2->data->vp[vp->id];
 
 	vcstate->yuv_overlay = is_yuv_output(vcstate->bus_format);
 	vop2_zpos = kmalloc_array(vop2->data->win_size, sizeof(*vop2_zpos), GFP_KERNEL);
@@ -6399,7 +6404,8 @@ static void vop2_crtc_atomic_begin(struct drm_crtc *crtc, struct drm_crtc_state 
 
 		if (is_vop3(vop2)) {
 			vop3_setup_layer_sel_for_vp(vp, vop2_zpos);
-			vop3_setup_dynamic_hdr(vp, vop2_zpos[0].win_phys_id);
+			if (vp_data->feature & VOP_FEATURE_VIVID_HDR)
+				vop3_setup_dynamic_hdr(vp, vop2_zpos[0].win_phys_id);
 			vop3_setup_alpha(vp, vop2_zpos);
 			vop3_setup_pipe_dly(vp, vop2_zpos);
 		} else {
