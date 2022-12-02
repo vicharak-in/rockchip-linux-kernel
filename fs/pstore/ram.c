@@ -301,13 +301,13 @@ static ssize_t ramoops_pstore_read(struct pstore_record *record)
 		}
 	}
 
-#ifdef CONFIG_PSTORE_MCU_LOG
+#ifdef CONFIG_PSTORE_BOOT_LOG
 	if (!prz_ok(prz)) {
-		while (cxt->mcu_log_read_cnt < cxt->max_mcu_log_cnt && !prz) {
-			prz = ramoops_get_next_prz(cxt->mcu_przs, &cxt->mcu_log_read_cnt,
-						cxt->max_mcu_log_cnt, &record->id,
+		while (cxt->boot_log_read_cnt < cxt->max_boot_log_cnt && !prz) {
+			prz = ramoops_get_next_prz(cxt->boot_przs, &cxt->boot_log_read_cnt,
+						cxt->max_boot_log_cnt, &record->id,
 						&record->type,
-						PSTORE_TYPE_MCU_LOG, 0);
+						PSTORE_TYPE_BOOT_LOG, 0);
 			if (!prz_ok(prz))
 				continue;
 		}
@@ -320,9 +320,9 @@ static ssize_t ramoops_pstore_read(struct pstore_record *record)
 	}
 
 	size = persistent_ram_old_size(prz) - header_length;
-#ifdef CONFIG_PSTORE_MCU_LOG
-	/* don't copy mcu log */
-	if (record->type == PSTORE_TYPE_MCU_LOG)
+#ifdef CONFIG_PSTORE_BOOT_LOG
+	/* don't copy boot log */
+	if (record->type == PSTORE_TYPE_BOOT_LOG)
 		goto out;
 #endif
 	/* ECC correction notice */
@@ -529,13 +529,13 @@ static void ramoops_free_przs(struct ramoops_context *cxt)
 		kfree(cxt->fprzs);
 		cxt->max_ftrace_cnt = 0;
 	}
-#ifdef CONFIG_PSTORE_MCU_LOG
-	/* Free mcu log PRZs */
-	if (cxt->mcu_przs) {
-		for (i = 0; i < cxt->max_mcu_log_cnt; i++)
-			persistent_ram_free(cxt->mcu_przs[i]);
-		kfree(cxt->mcu_przs);
-		cxt->max_mcu_log_cnt = 0;
+#ifdef CONFIG_PSTORE_BOOT_LOG
+	/* Free boot log PRZs */
+	if (cxt->boot_przs) {
+		for (i = 0; i < cxt->max_boot_log_cnt; i++)
+			persistent_ram_free(cxt->boot_przs[i]);
+		kfree(cxt->boot_przs);
+		cxt->max_boot_log_cnt = 0;
 	}
 #endif
 }
@@ -716,9 +716,9 @@ static int ramoops_parse_dt(struct platform_device *pdev,
 	parse_size("pmsg-size", pdata->pmsg_size);
 	parse_size("ecc-size", pdata->ecc_info.ecc_size);
 	parse_size("flags", pdata->flags);
-#ifdef CONFIG_PSTORE_MCU_LOG
-	parse_size("mcu-log-size", pdata->mcu_log_size);
-	parse_size("mcu-log-count", pdata->max_mcu_log_cnt);
+#ifdef CONFIG_PSTORE_BOOT_LOG
+	parse_size("boot-log-size", pdata->boot_log_size);
+	parse_size("boot-log-count", pdata->max_boot_log_cnt);
 #endif
 #undef parse_size
 
@@ -760,9 +760,9 @@ static int ramoops_probe(struct platform_device *pdev)
 		goto fail_out;
 	}
 
-#ifdef CONFIG_PSTORE_MCU_LOG
+#ifdef CONFIG_PSTORE_BOOT_LOG
 	if (!pdata->mem_size || (!pdata->record_size && !pdata->console_size &&
-			!pdata->ftrace_size && !pdata->pmsg_size && !pdata->mcu_log_size)) {
+			!pdata->ftrace_size && !pdata->pmsg_size && !pdata->boot_log_size)) {
 		pr_err("The memory size and the record/console size must be "
 			"non-zero\n");
 		goto fail_out;
@@ -797,17 +797,28 @@ static int ramoops_probe(struct platform_device *pdev)
 	cxt->dump_oops = pdata->dump_oops;
 	cxt->flags = pdata->flags;
 	cxt->ecc_info = pdata->ecc_info;
-#ifdef CONFIG_PSTORE_MCU_LOG
-	cxt->mcu_log_size = pdata->mcu_log_size;
-	cxt->max_mcu_log_cnt = pdata->max_mcu_log_cnt;
+#ifdef CONFIG_PSTORE_BOOT_LOG
+	cxt->boot_log_size = pdata->boot_log_size;
+	cxt->max_boot_log_cnt = pdata->max_boot_log_cnt;
 #endif
 
 	paddr = cxt->phys_addr;
 
 	dump_mem_sz = cxt->size - cxt->console_size - cxt->ftrace_size
 			- cxt->pmsg_size;
-#ifdef CONFIG_PSTORE_MCU_LOG
-	dump_mem_sz -= cxt->mcu_log_size;
+#ifdef CONFIG_PSTORE_BOOT_LOG
+	dump_mem_sz -= cxt->boot_log_size;
+#endif
+
+#ifdef CONFIG_PSTORE_BOOT_LOG
+	err = ramoops_init_przs("boot_log", dev, cxt, &cxt->boot_przs, &paddr,
+				cxt->boot_log_size, -1,
+				&cxt->max_boot_log_cnt, 0, 0);
+	if (err)
+		goto fail_clear;
+	if (cxt->boot_log_size > 0)
+		for (i = 0; i < cxt->max_boot_log_cnt; i++)
+			pr_info("boot-log-%d\t0x%zx@%pa\n", i, cxt->boot_przs[i]->size, &cxt->boot_przs[i]->paddr);
 #endif
 
 	err = ramoops_init_przs("dump", dev, cxt, &cxt->dprzs, &paddr,
@@ -848,17 +859,6 @@ static int ramoops_probe(struct platform_device *pdev)
 	if (cxt->pmsg_size > 0)
 		pr_info("pmsg\t0x%zx@%pa\n", cxt->mprz->size, &cxt->mprz->paddr);
 
-#ifdef CONFIG_PSTORE_MCU_LOG
-	err = ramoops_init_przs("mcu_log", dev, cxt, &cxt->mcu_przs, &paddr,
-				cxt->mcu_log_size, -1,
-				&cxt->max_mcu_log_cnt, 0, 0);
-	if (err)
-		goto fail_clear;
-	if (cxt->mcu_log_size > 0)
-		for (i = 0; i < cxt->max_mcu_log_cnt; i++)
-			pr_info("mcu-log-%d\t0x%zx@%pa\n", i, cxt->mcu_przs[i]->size, &cxt->mcu_przs[i]->paddr);
-#endif
-
 	cxt->pstore.data = cxt;
 	/*
 	 * Prepare frontend flags based on which areas are initialized.
@@ -875,9 +875,9 @@ static int ramoops_probe(struct platform_device *pdev)
 		cxt->pstore.flags |= PSTORE_FLAGS_FTRACE;
 	if (cxt->pmsg_size)
 		cxt->pstore.flags |= PSTORE_FLAGS_PMSG;
-#ifdef CONFIG_PSTORE_MCU_LOG
-	if (cxt->mcu_log_size)
-		cxt->pstore.flags |= PSTORE_FLAGS_MCU_LOG;
+#ifdef CONFIG_PSTORE_BOOT_LOG
+	if (cxt->boot_log_size)
+		cxt->pstore.flags |= PSTORE_FLAGS_BOOT_LOG;
 #endif
 
 	/*
