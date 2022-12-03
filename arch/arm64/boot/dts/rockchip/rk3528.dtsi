@@ -816,6 +816,7 @@
 	qos_vdpp: qos@ff270480 {
 		compatible = "syscon";
 		reg = <0x0 0xff270480 0x0 0x20>;
+		priority-init = <0x202>;
 	};
 
 	qos_vop: qos@ff270500 {
@@ -992,6 +993,7 @@
 			};
 			pd_vo@RK3528_PD_VO {
 				reg = <RK3528_PD_VO>;
+				pm_qos = <&qos_vdpp>;
 			};
 			pd_vpu@RK3528_PD_VPU {
 				reg = <RK3528_PD_VPU>;
