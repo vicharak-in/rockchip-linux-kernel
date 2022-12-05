@@ -37,6 +37,14 @@
 		     &pdm_sdi2>;
 };
 
+&pdmics {
+	status = "okay";
+};
+
+&pdm_mic_array {
+	status = "okay";
+};
+
 &sdmmc {
 	status = "okay";
 };
