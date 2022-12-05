@@ -1495,6 +1495,9 @@ static int mmc_select_hs400es(struct mmc_card *card)
 	if (host->ops->hs400_enhanced_strobe)
 		host->ops->hs400_enhanced_strobe(host, &host->ios);
 
+	/* some emmc device need a delay before read status */
+	usleep_range(100, 200);
+
 	err = mmc_switch_status(card);
 	if (err)
 		goto out_err;
