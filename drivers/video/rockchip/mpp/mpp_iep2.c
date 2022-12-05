@@ -438,6 +438,9 @@ static void iep2_config(struct mpp_dev *mpp, struct iep_task *task)
 		mpp_write_relaxed(mpp, IEP2_REG_SRC_ADDR_NXTV, bot->cr);
 	}
 
+	reg = IEP2_REG_TIMEOUT_CFG_EN | 0x7fffff;
+	mpp_write_relaxed(mpp, IEP2_REG_TIMEOUT_CFG, reg);
+
 	mpp_write_relaxed(mpp, IEP2_REG_SRC_ADDR_PREY, cfg->src[2].y);
 	mpp_write_relaxed(mpp, IEP2_REG_SRC_ADDR_PREUV, cfg->src[2].cbcr);
 	mpp_write_relaxed(mpp, IEP2_REG_SRC_ADDR_PREV, cfg->src[2].cr);
@@ -598,7 +601,8 @@ static int iep2_run(struct mpp_dev *mpp,
 	mpp_write_relaxed(mpp, IEP2_REG_INT_EN,
 			  IEP2_REG_FRM_DONE_EN
 			  | IEP2_REG_OSD_MAX_EN
-			  | IEP2_REG_BUS_ERROR_EN);
+			  | IEP2_REG_BUS_ERROR_EN
+			  | IEP2_REG_TIMEOUT_EN);
 
 	/* Last, flush the registers */
 	wmb();
@@ -644,7 +648,8 @@ static int iep2_isr(struct mpp_dev *mpp)
 	mpp_debug(DEBUG_IRQ_STATUS, "irq_status: %08x\n",
 		  task->irq_status);
 
-	if (IEP2_REG_RO_BUS_ERROR_STS(task->irq_status))
+	if (IEP2_REG_RO_BUS_ERROR_STS(task->irq_status) ||
+	    IEP2_REG_RO_TIMEOUT_STS(task->irq_status))
 		atomic_inc(&mpp->reset_request);
 
 	mpp_task_finish(mpp_task->session, mpp_task);
