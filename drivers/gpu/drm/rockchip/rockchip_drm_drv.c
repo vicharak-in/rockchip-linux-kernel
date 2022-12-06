@@ -63,6 +63,7 @@ static bool is_support_iommu = false;
 #else
 static bool is_support_iommu = true;
 #endif
+static bool iommu_reserve_map;
 static struct drm_driver rockchip_drm_driver;
 
 struct rockchip_drm_mode_set {
@@ -1320,6 +1321,7 @@ static int rockchip_drm_init_iommu(struct drm_device *drm_dev)
 	struct rockchip_drm_private *private = drm_dev->dev_private;
 	struct iommu_domain_geometry *geometry;
 	u64 start, end;
+	int ret = 0;
 
 	if (!is_support_iommu)
 		return 0;
@@ -1340,7 +1342,23 @@ static int rockchip_drm_init_iommu(struct drm_device *drm_dev)
 	iommu_set_fault_handler(private->domain, rockchip_drm_fault_handler,
 				drm_dev);
 
-	return 0;
+	if (iommu_reserve_map) {
+		/*
+		 * At 32 bit platform size_t maximum value is 0xffffffff, SZ_4G(0x100000000) will be
+		 * cliped to 0, so we split into two mapping
+		 */
+		ret = iommu_map(private->domain, 0, 0, (size_t)SZ_2G,
+				IOMMU_WRITE | IOMMU_READ | IOMMU_PRIV);
+		if (ret)
+			dev_err(drm_dev->dev, "failed to create 0-2G pre mapping\n");
+
+		ret = iommu_map(private->domain, SZ_2G, SZ_2G, (size_t)SZ_2G,
+				IOMMU_WRITE | IOMMU_READ | IOMMU_PRIV);
+		if (ret)
+			dev_err(drm_dev->dev, "failed to create 2G-4G pre mapping\n");
+	}
+
+	return ret;
 }
 
 static void rockchip_iommu_cleanup(struct drm_device *drm_dev)
@@ -1350,6 +1368,10 @@ static void rockchip_iommu_cleanup(struct drm_device *drm_dev)
 	if (!is_support_iommu)
 		return;
 
+	if (iommu_reserve_map) {
+		iommu_unmap(private->domain, 0, (size_t)SZ_2G);
+		iommu_unmap(private->domain, SZ_2G, (size_t)SZ_2G);
+	}
 	drm_mm_takedown(&private->mm);
 	iommu_domain_free(private->domain);
 }
@@ -2303,6 +2325,7 @@ static int rockchip_drm_platform_of_probe(struct device *dev)
 		}
 
 		found = true;
+		iommu_reserve_map |= of_property_read_bool(iommu, "rockchip,reserve-map");
 
 		of_node_put(iommu);
 		of_node_put(port);
