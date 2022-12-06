@@ -389,12 +389,13 @@ static void iep2_config(struct mpp_dev *mpp, struct iep_task *task)
 		| IEP2_REG_DIL_OSD_EN
 		| IEP2_REG_DIL_PD_EN
 		| IEP2_REG_DIL_FF_EN
-		| IEP2_REG_DIL_MD_PRE_EN
 		| IEP2_REG_DIL_FIELD_ORDER(cfg->dil_field_order)
 		| IEP2_REG_DIL_OUT_MODE(cfg->dil_out_mode)
 		| IEP2_REG_DIL_MODE(cfg->dil_mode);
 	if (cfg->roi_en)
 		reg |= IEP2_REG_DIL_ROI_EN;
+	if (cfg->md_lambda < 8)
+		reg |= IEP2_REG_DIL_MD_PRE_EN;
 	mpp_write_relaxed(mpp, IEP2_REG_DIL_CONFIG0, reg);
 
 	if (cfg->dil_mode != ROCKCHIP_IEP2_DIL_MODE_PD) {
