@@ -722,6 +722,8 @@ static struct rockchip_clk_branch rk3528_clk_branches[] __initdata = {
 #if 0
 	GATE(SCLK_IN_SPI0, "sclk_in_spi0", "sclk_in_spi0_io", 0,
 	     RK3528_CLKGATE_CON(37), 4, GFLAGS),
+	GATE(CLK_UART_JTAG, "clk_uart_jtag", "xin24m", 0,
+	     RK3528_CLKGATE_CON(37), 0, GFLAGS),
 #endif
 	COMPOSITE_NODIV(CLK_SPI0, "clk_spi0", mux_200m_100m_50m_24m_p, 0,
 	                RK3528_CLKSEL_CON(79), 13, 2, MFLAGS,
@@ -729,8 +731,6 @@ static struct rockchip_clk_branch rk3528_clk_branches[] __initdata = {
 	COMPOSITE_NODIV(MCLK_SAI_I2S1, "mclk_sai_i2s1", mclk_sai_i2s1_p, CLK_SET_RATE_PARENT,
 	                RK3528_CLKSEL_CON(79), 8, 1, MFLAGS,
 	                RK3528_CLKGATE_CON(36), 10, GFLAGS),
-	GATE(CLK_UART_JTAG, "clk_uart_jtag", "xin24m", 0,
-	     RK3528_CLKGATE_CON(37), 0, GFLAGS),
 	GATE(DBCLK_GPIO4, "dbclk_gpio4", "xin24m", 0,
 	     RK3528_CLKGATE_CON(37), 9, GFLAGS),
 
