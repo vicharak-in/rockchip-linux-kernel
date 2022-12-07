@@ -48,28 +48,32 @@
 		regulator-max-microvolt = <12000000>;
 	};
 
-	gpio-leds {
+	leds: gpio-leds {
 		compatible = "gpio-leds";
-
-		ir-led {
-			gpios = <&gpio0 RK_PB7 GPIO_ACTIVE_HIGH>;
+		ir {
+			gpios = <&gpio4 RK_PB7 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "none";
 			default-state = "off";
 		};
-		net-red-led {
+		net-red {
 			gpios = <&gpio4 RK_PB5 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "none";
 			default-state = "off";
 		};
-		net-green-led {
+		net-green {
 			gpios = <&gpio4 RK_PC0 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "none";
 			default-state = "off";
 		};
-		pwr-red-led {
+		pwr-red {
 			gpios = <&gpio4 RK_PB3 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "timer";
-		};
-		pwr-green-led {
-			gpios = <&gpio4 RK_PC1 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "none";
 			default-state = "off";
+		};
+		pwr-green {
+			gpios = <&gpio4 RK_PC1 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "none";
+			default-state = "on";
 		};
 	};
 
@@ -135,7 +139,7 @@
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 		enable-active-high;
-		gpio = <&gpio4 RK_PB5 GPIO_ACTIVE_HIGH>;
+		gpio = <&gpio4 RK_PC2 GPIO_ACTIVE_HIGH>;
 		vin-supply = <&vcc5v0_sys>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&vcc5v0_host_en>;
@@ -147,7 +151,7 @@
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 		enable-active-high;
-		gpio = <&gpio4 RK_PC1 GPIO_ACTIVE_HIGH>;
+		gpio = <&gpio4 RK_PB6 GPIO_ACTIVE_HIGH>;
 		vin-supply = <&vcc5v0_sys>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&vcc5v0_otg_en>;
@@ -297,11 +301,11 @@
 &pinctrl {
 	usb {
 		vcc5v0_host_en: vcc5v0-host-en {
-			rockchip,pins = <4 RK_PB6 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <4 RK_PC2 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
 		vcc5v0_otg_en: vcc5v0-otg-en {
-			rockchip,pins = <4 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <4 RK_PB6 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };
@@ -441,6 +445,11 @@
 
 &rkvenc_mmu {
 	status = "okay";
+};
+
+&rmii0_phy {
+	/delete-property/ pinctrl-names;
+	/delete-property/ pinctrl-0;
 };
 
 &rockchip_suspend {
