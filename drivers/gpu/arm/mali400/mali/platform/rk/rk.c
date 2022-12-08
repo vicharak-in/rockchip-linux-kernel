@@ -34,6 +34,8 @@
 #include <linux/dma-mapping.h>
 #include <linux/pm_runtime.h>
 #include <linux/delay.h>
+#include <linux/regmap.h>
+#include <linux/mfd/syscon.h>
 #include <linux/rockchip/cpu.h>
 #include <soc/rockchip/rockchip_opp_select.h>
 
@@ -47,6 +49,7 @@ u32 mali_group_error;
 
 /*---------------------------------------------------------------------------*/
 
+#define RK3528_GPU_SD_SLP_HAST	0x10024
 #define DEFAULT_UTILISATION_PERIOD_IN_MS (100)
 
 /*
@@ -55,6 +58,7 @@ u32 mali_group_error;
 struct rk_context {
 	/* mali device. */
 	struct device *dev;
+	struct regmap *grf;
 	/* is the GPU powered on?  */
 	bool is_powered;
 	/* debug only, the period in ms to count gpu_utilisation. */
@@ -183,6 +187,10 @@ static int rk_context_init(struct platform_device *pdev)
 	}
 
 	platform->dev = dev;
+	platform->grf = syscon_regmap_lookup_by_phandle(dev->of_node,
+							"rockchip,grf");
+	if (IS_ERR(platform->grf))
+		platform->grf = NULL;
 	platform->is_powered = false;
 
 	platform->utilisation_period = DEFAULT_UTILISATION_PERIOD_IN_MS;
@@ -430,6 +438,12 @@ static int rk_platform_power_on_gpu(struct device *dev)
 			goto fail_to_enable_regulator;
 		}
 
+		if (cpu_is_rk3528() && platform->grf) {
+			regmap_write(platform->grf,
+				     RK3528_GPU_SD_SLP_HAST,
+				     0xffff0000);
+		}
+
 		platform->is_powered = true;
 	}
 
@@ -447,6 +461,11 @@ static void rk_platform_power_off_gpu(struct device *dev)
 	struct rk_context *platform = s_rk_context;
 
 	if (platform->is_powered) {
+		if (cpu_is_rk3528() && platform->grf) {
+			regmap_write(platform->grf,
+				     RK3528_GPU_SD_SLP_HAST,
+				     0xfffffffd);
+		}
 		rk_platform_disable_clk_gpu(dev);
 		rk_platform_disable_gpu_regulator(dev);
 
