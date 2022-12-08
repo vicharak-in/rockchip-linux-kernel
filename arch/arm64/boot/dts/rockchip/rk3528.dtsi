@@ -854,6 +854,7 @@
 		operating-points-v2 = <&gpu_opp_table>;
 		#cooling-cells = <2>;
 		dynamic-power-coefficient = <742>;
+		rockchip,grf = <&grf>;
 		status = "disabled";
 
 		gpu_power_model: power_model {
