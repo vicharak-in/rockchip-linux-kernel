@@ -1726,6 +1726,7 @@ static const struct vop2_ctrl rk3528_vop_ctrl = {
 	.if_ctrl_cfg_done_imd = VOP_REG(RK3568_DSP_IF_POL, 0x1, 28),
 	.version = VOP_REG(RK3568_VERSION_INFO, 0xffff, 16),
 	.lut_dma_en = VOP_REG(RK3568_SYS_AXI_LUT_CTRL, 0x1, 0),
+	.dsp_vs_t_sel = VOP_REG(RK3568_SYS_AXI_LUT_CTRL, 0x1, 16),
 	.rgb_en = VOP_REG(RK3568_DSP_IF_EN, 0x1, 0),
 	.hdmi0_en = VOP_REG(RK3568_DSP_IF_EN, 0x1, 1),
 	.bt656_en = VOP_REG(RK3568_DSP_IF_EN, 0x1, 7),

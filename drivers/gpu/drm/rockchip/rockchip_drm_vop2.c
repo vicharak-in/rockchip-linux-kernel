@@ -3135,8 +3135,10 @@ static void vop2_initial(struct drm_crtc *crtc)
 		VOP_MODULE_SET(vop2, wb, axi_uv_id, 0xe);
 		vop2_wb_cfg_done(vp);
 
-		if (is_vop3(vop2))
+		if (is_vop3(vop2)) {
+			VOP_CTRL_SET(vop2, dsp_vs_t_sel, 0);
 			VOP_CTRL_SET(vop2, esmart_lb_mode, vop2->data->esmart_lb_mode);
+		}
 
 		/*
 		 * This is unused and error init value for rk3528 vp1, if less of this config,

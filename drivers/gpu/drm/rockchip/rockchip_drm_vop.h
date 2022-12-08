@@ -1013,6 +1013,7 @@ struct vop2_ctrl {
 	struct vop_reg version;
 	struct vop_reg standby;
 	struct vop_reg dma_stop;
+	struct vop_reg dsp_vs_t_sel;
 	struct vop_reg lut_dma_en;
 	struct vop_reg axi_outstanding_max_num;
 	struct vop_reg axi_max_outstanding_en;
