@@ -998,12 +998,16 @@
 		interrupt-names = "irq_dec";
 		clocks = <&cru ACLK_VPU>, <&cru HCLK_VPU>;
 		clock-names = "aclk_vcodec", "hclk_vcodec";
+		rockchip,normal-rates = <300000000>, <0>;
+		assigned-clocks = <&cru ACLK_VPU>;
+		assigned-clock-rates = <300000000>;
 		resets = <&cru SRST_ARESETN_VPU>, <&cru SRST_HRESETN_VPU>;
 		reset-names = "shared_video_a", "shared_video_h";
 		iommus = <&vdpu_mmu>;
 		rockchip,srv = <&mpp_srv>;
 		rockchip,taskqueue-node = <2>;
 		rockchip,resetgroup-node = <2>;
+		rockchip,disable-auto-freq;
 		status = "disabled";
 	};
 
@@ -1025,12 +1029,16 @@
 		interrupt-names = "irq_dec";
 		clocks = <&cru ACLK_VPU>, <&cru HCLK_VPU>;
 		clock-names = "aclk_vcodec", "hclk_vcodec";
+		rockchip,normal-rates = <300000000>, <0>;
+		assigned-clocks = <&cru ACLK_VPU>;
+		assigned-clock-rates = <300000000>;
 		resets = <&cru SRST_ARESETN_VPU>, <&cru SRST_HRESETN_VPU>;
 		reset-names = "shared_video_a", "shared_video_h";
 		iommus = <&vdpu_mmu>;
 		rockchip,srv = <&mpp_srv>;
 		rockchip,taskqueue-node = <2>;
 		rockchip,resetgroup-node = <2>;
+		rockchip,disable-auto-freq;
 		status = "disabled";
 	};
 
@@ -1166,6 +1174,7 @@
 		rockchip,srv = <&mpp_srv>;
 		rockchip,taskqueue-node = <3>;
 		rockchip,resetgroup-node = <3>;
+		rockchip,disable-auto-freq;
 		iommus = <&iep_mmu>;
 		status = "disabled";
 	};
@@ -1176,6 +1185,9 @@
 		interrupts = <GIC_SPI 107 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&cru ACLK_JPEG_DECODER>, <&cru HCLK_JPEG_DECODER>;
 		clock-names = "aclk_vcodec", "hclk_vcodec";
+		rockchip,normal-rates = <340000000>, <0>;
+		assigned-clocks = <&cru ACLK_JPEG_DECODER>;
+		assigned-clock-rates = <340000000>;
 		rockchip,disable-auto-freq;
 		resets = <&cru SRST_ARESETN_JPEG_DECODER>, <&cru SRST_HRESETN_JPEG_DECODER>;
 		reset-names = "video_a", "video_h";
