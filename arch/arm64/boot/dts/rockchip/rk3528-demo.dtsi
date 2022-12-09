@@ -69,11 +69,15 @@
 			gpios = <&gpio4 RK_PB3 GPIO_ACTIVE_HIGH>;
 			linux,default-trigger = "none";
 			default-state = "off";
+			retain-state-suspended;
+			retain-state-shutdown;
 		};
 		pwr-green {
 			gpios = <&gpio4 RK_PC1 GPIO_ACTIVE_HIGH>;
 			linux,default-trigger = "none";
 			default-state = "on";
+			retain-state-suspended;
+			retain-state-shutdown;
 		};
 	};
 
