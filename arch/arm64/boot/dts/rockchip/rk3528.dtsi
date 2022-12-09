@@ -1288,58 +1288,6 @@
 		};
 	};
 
-	can0: can@ff960000 {
-		compatible = "rockchip,rk3528-can";
-		reg = <0x0 0xff960000 0x0 0x100>;
-		interrupts = <GIC_SPI 48 IRQ_TYPE_LEVEL_HIGH>;
-		assigned-clocks = <&cru CLK_CAN0>;
-		assigned-clock-rates = <198000000>;
-		clocks = <&cru CLK_CAN0>, <&cru PCLK_CAN0>;
-		clock-names = "baudclk", "apb_pclk";
-		resets = <&cru SRST_RESETN_CAN0>, <&cru SRST_PRESETN_CAN0>;
-		reset-names = "can", "can-apb";
-		status = "disabled";
-	};
-
-	can1: can@ff970000 {
-		compatible = "rockchip,rk3528-can";
-		reg = <0x0 0xff970000 0x0 0x100>;
-		interrupts = <GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>;
-		assigned-clocks = <&cru CLK_CAN1>;
-		assigned-clock-rates = <198000000>;
-		clocks = <&cru CLK_CAN1>, <&cru PCLK_CAN1>;
-		clock-names = "baudclk", "apb_pclk";
-		resets = <&cru SRST_RESETN_CAN1>, <&cru SRST_PRESETN_CAN1>;
-		reset-names = "can", "can-apb";
-		status = "disabled";
-	};
-
-	can2: can@ff980000 {
-		compatible = "rockchip,rk3528-can";
-		reg = <0x0 0xff980000 0x0 0x100>;
-		interrupts = <GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>;
-		assigned-clocks = <&cru CLK_CAN2>;
-		assigned-clock-rates = <198000000>;
-		clocks = <&cru CLK_CAN2>, <&cru PCLK_CAN2>;
-		clock-names = "baudclk", "apb_pclk";
-		resets = <&cru SRST_RESETN_CAN2>, <&cru SRST_PRESETN_CAN2>;
-		reset-names = "can", "can-apb";
-		status = "disabled";
-	};
-
-	can3: can@ff990000 {
-		compatible = "rockchip,rk3528-can";
-		reg = <0x0 0xff990000 0x0 0x100>;
-		interrupts = <GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>;
-		assigned-clocks = <&cru CLK_CAN3>;
-		assigned-clock-rates = <198000000>;
-		clocks = <&cru CLK_CAN3>, <&cru PCLK_CAN3>;
-		clock-names = "baudclk", "apb_pclk";
-		resets = <&cru SRST_RESETN_CAN3>, <&cru SRST_PRESETN_CAN3>;
-		reset-names = "can", "can-apb";
-		status = "disabled";
-	};
-
 	spi0: spi@ff9c0000 {
 		compatible = "rockchip,rk3066-spi";
 		reg = <0x0 0xff9c0000 0x0 0x1000>;
