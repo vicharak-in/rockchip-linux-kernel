@@ -3847,6 +3847,7 @@ static void vop2_plane_atomic_update(struct drm_plane *plane, struct drm_plane_s
 		VOP_CLUSTER_SET(vop2, win, lb_mode, lb_mode);
 		VOP_CLUSTER_SET(vop2, win, scl_lb_mode, lb_mode == 1 ? 3 : 0);
 		VOP_CLUSTER_SET(vop2, win, enable, 1);
+		VOP_CLUSTER_SET(vop2, win, frm_reset_en, 1);
 	}
 	if (vcstate->output_if & VOP_OUTPUT_IF_BT1120 ||
 	    vcstate->output_if & VOP_OUTPUT_IF_BT656)
