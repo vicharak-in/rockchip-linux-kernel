@@ -2046,8 +2046,10 @@ static int dw_hdmi_rockchip_resume(struct device *dev)
 {
 	struct rockchip_hdmi *hdmi = dev_get_drvdata(dev);
 
-	if (hdmi->hpd_gpiod)
+	if (hdmi->hpd_gpiod) {
+		dw_hdmi_rk3528_gpio_hpd_init(hdmi);
 		enable_irq(hdmi->hpd_irq);
+	}
 	pm_runtime_get_sync(dev);
 	dw_hdmi_resume(dev, hdmi->hdmi);
 
