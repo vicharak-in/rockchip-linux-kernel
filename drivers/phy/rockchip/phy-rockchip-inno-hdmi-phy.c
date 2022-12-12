@@ -1124,10 +1124,8 @@ inno_hdmi_phy_rk3528_power_on(struct inno_hdmi_phy *inno,
 	u32 val;
 	u64 temp;
 
-	/* set pdata_en to 0 */
-	inno_update_bits(inno, 0x02, 1, 0);
 	/* Power off post PLL */
-	inno_update_bits(inno, 0xaa, 1, 1);
+	inno_update_bits(inno, 0xaa, 1, 0);
 
 	val = cfg->prediv;
 	inno_write(inno, 0xab, val);
@@ -1171,6 +1169,18 @@ inno_hdmi_phy_rk3528_power_on(struct inno_hdmi_phy *inno,
 	/* enable serializer */
 	inno_write(inno, 0xbe, 0x70);
 
+	inno_write(inno, 0xb2, 0x0f);
+
+	for (val = 0; val < 5; val++) {
+		if (inno_read(inno, 0xaf) & 1)
+			break;
+		udelay(1000);
+	}
+	if (!(inno_read(inno, 0xaf) & 1)) {
+		dev_err(inno->dev, "HDMI PHY Post PLL unlock\n");
+		return -ETIMEDOUT;
+	}
+
 	/* set termination resistance */
 	if (phy_cfg->tmdsclock > 340000000) {
 		inno_write(inno, 0xc7, 0x76);
@@ -1200,19 +1210,11 @@ inno_hdmi_phy_rk3528_power_on(struct inno_hdmi_phy *inno,
 	inno_update_bits(inno, 0xb0, 4, 4);
 	inno_write(inno, 0xb2, 0x0f);
 
-	/* Wait for post PLL lock */
-	for (val = 0; val < 5; val++) {
-		if (inno_read(inno, 0xaf) & 1)
-			break;
-		usleep_range(1000, 2000);
-	}
-	if (!(inno_read(inno, 0xaf) & 1)) {
-		dev_err(inno->dev, "HDMI PHY Post PLL unlock\n");
-		return -ETIMEDOUT;
-	}
 	if (phy_cfg->tmdsclock > 340000000)
 		msleep(100);
-	/* set pdata_en to 1 */
+	/* set pdata_en to 0/1 */
+	inno_update_bits(inno, 0x02, 1, 0);
+	mdelay(1);
 	inno_update_bits(inno, 0x02, 1, 1);
 
 	/* Enable PHY IRQ */
@@ -1227,11 +1229,16 @@ static void inno_hdmi_phy_rk3528_power_off(struct inno_hdmi_phy *inno)
 {
 	/* Power off driver */
 	inno_write(inno, 0xb2, 0);
-	/* Power off band gap */
-	inno_update_bits(inno, 0xb0, 4, 0);
+	/* Power off serializer */
+	inno_write(inno, 0xbe, 0);
+	/* Power off LDO */
+	inno_write(inno, 0xb4, 0);
 	/* Power off post pll */
 	inno_update_bits(inno, 0xaa, 1, 1);
-
+	/* Power off rxsense detection circuit */
+	inno_write(inno, 0xcc, 0);
+	/* Power off band gap */
+	inno_update_bits(inno, 0xb0, 4, 0);
 	/* Disable PHY IRQ */
 	inno_write(inno, 0x05, 0);
 	inno_write(inno, 0x07, 0);
@@ -1261,8 +1268,11 @@ inno_hdmi_phy_rk3528_pre_pll_update(struct inno_hdmi_phy *inno,
 {
 	u32 val;
 
-	/* Power off PLL */
-	inno_update_bits(inno, 0xa0, 1, 1);
+	inno_update_bits(inno, 0xb0, 4, 4);
+	inno_write(inno, 0xcc, 0x0f);
+
+	/* Power on PLL */
+	inno_update_bits(inno, 0xa0, 1, 0);
 	/* Configure pre-pll */
 	inno_update_bits(inno, 0xa0, 2, (cfg->vco_div_5_en & 1) << 1);
 	inno_write(inno, 0xa1, cfg->prediv);
@@ -1295,9 +1305,6 @@ inno_hdmi_phy_rk3528_pre_pll_update(struct inno_hdmi_phy *inno,
 		inno_write(inno, 0xd2, 0);
 		inno_write(inno, 0xd1, 0);
 	}
-
-	/* Power up PLL */
-	inno_update_bits(inno, 0xa0, 1, 0);
 
 	/* Wait for PLL lock */
 	for (val = 0; val < 5; val++) {
