@@ -359,6 +359,7 @@ struct dw_hdmi {
 	struct cec_notifier *cec_notifier;
 
 	bool initialized;		/* hdmi is enabled before bind */
+	bool logo_plug_out;		/* hdmi is plug out when kernel logo */
 	hdmi_codec_plugged_cb plugged_cb;
 	struct device *codec_dev;
 	enum drm_connector_status last_connector_result;
@@ -2715,6 +2716,7 @@ static void dw_hdmi_update_power(struct dw_hdmi *hdmi)
 		if (hdmi->initialized) {
 			hdmi->initialized = false;
 			hdmi->disabled = true;
+			hdmi->logo_plug_out = true;
 		}
 		if (hdmi->bridge_is_on)
 			dw_hdmi_poweroff(hdmi);
@@ -3014,7 +3016,7 @@ static int dw_hdmi_connector_atomic_check(struct drm_connector *connector,
 			vmode->mtmdsclock /= 2;
 	}
 
-	if (check_hdr_color_change(old_state, new_state, hdmi) ||
+	if (check_hdr_color_change(old_state, new_state, hdmi) || hdmi->logo_plug_out ||
 	    dw_hdmi_color_changed(connector)) {
 		u32 mtmdsclk;
 
@@ -3039,13 +3041,15 @@ static int dw_hdmi_connector_atomic_check(struct drm_connector *connector,
 			mtmdsclk /= 2;
 
 		if (hdmi->hdmi_data.video_mode.mpixelclock == (mode->clock * 1000) &&
-		    hdmi->hdmi_data.video_mode.mtmdsclock == (mtmdsclk * 1000)) {
+		    hdmi->hdmi_data.video_mode.mtmdsclock == (mtmdsclk * 1000) &&
+		    !hdmi->logo_plug_out) {
 			hdmi->update = true;
 			hdmi_writeb(hdmi, HDMI_FC_GCP_SET_AVMUTE, HDMI_FC_GCP);
 			mdelay(50);
 		} else {
 			hdmi->update = false;
 			crtc_state->mode_changed = true;
+			hdmi->logo_plug_out = false;
 		}
 	}
 
@@ -4093,6 +4097,7 @@ __dw_hdmi_probe(struct platform_device *pdev,
 	if (ret)
 		goto err_iahb;
 
+	hdmi->logo_plug_out = false;
 	hdmi->initialized = false;
 	ret = hdmi_readb(hdmi, HDMI_PHY_STAT0);
 	if (((ret & HDMI_PHY_TX_PHY_LOCK) && (ret & HDMI_PHY_HPD) &&
