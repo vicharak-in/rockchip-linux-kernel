@@ -53,7 +53,7 @@ ccflags-y += -DPPPOE_LLC_SUPPORT
 #ccflags-y += -DTCP_ACK_DROP_SUPPORT
 ccflags-y += -DWOW_SUPPORT
 #ccflags-y += -DCPUFREQ_UPDATE_SUPPORT
-#ccflags-y += -DCUSTOM_REGDOMAIN
+ccflags-y += -DCUSTOM_REGDOMAIN
 #####module name ###
 obj-m += $(MODULE_NAME).o
 
