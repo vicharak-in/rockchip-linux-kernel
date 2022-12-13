@@ -980,6 +980,9 @@
 		assigned-clock-rates = <300000000>, <300000000>;
 		iommus = <&rkvenc_mmu>;
 		rockchip,srv = <&mpp_srv>;
+		rockchip,grf = <&grf>;
+		rockchip,grf-mem-offset = <0x20010>;
+		rockchip,grf-mem-values = <0x00000021>, <0xffff0021>;
 		rockchip,taskqueue-node = <1>;
 		rockchip,resetgroup-node = <1>;
 		status = "disabled";
@@ -1010,6 +1013,9 @@
 		reset-names = "shared_video_a", "shared_video_h";
 		iommus = <&vdpu_mmu>;
 		rockchip,srv = <&mpp_srv>;
+		rockchip,grf = <&grf>;
+		rockchip,grf-mem-offset = <0x40034>;
+		rockchip,grf-mem-values = <0x0f040000>, <0x0f040f04>;
 		rockchip,taskqueue-node = <2>;
 		rockchip,resetgroup-node = <2>;
 		rockchip,disable-auto-freq;
@@ -1177,6 +1183,9 @@
 			 <&cru SRST_RESETN_CORE_VDPP>;
 		reset-names = "shared_rst_a", "shared_rst_h", "shared_rst_s";
 		rockchip,srv = <&mpp_srv>;
+		rockchip,grf = <&grf>;
+		rockchip,grf-mem-offset = <0x600e0>;
+		rockchip,grf-mem-values = <0xf0040000>, <0xf004f004>;
 		rockchip,taskqueue-node = <3>;
 		rockchip,resetgroup-node = <3>;
 		rockchip,disable-auto-freq;
