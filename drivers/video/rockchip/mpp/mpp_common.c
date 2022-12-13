@@ -2353,6 +2353,44 @@ int mpp_clk_set_rate(struct mpp_clk_info *clk_info,
 	return 0;
 }
 
+int mpp_init_grf_mem_info(struct device_node *np,
+			  struct mpp_dev *mpp)
+{
+	int ret;
+	u32 grf_mem_offset = 0;
+	u32 grf_value = 0;
+	u32 grf_value_off = 0;
+	struct regmap *grf;
+	struct mpp_grf_info *grf_info;
+
+	grf_info = &mpp->grf_mem;
+	grf = syscon_regmap_lookup_by_phandle(np, "rockchip,grf");
+	if (IS_ERR_OR_NULL(grf))
+		return -EINVAL;
+
+	ret = of_property_read_u32(np, "rockchip,grf-mem-offset", &grf_mem_offset);
+	if (ret)
+		return -ENODATA;
+
+
+	ret = of_property_read_u32_index(np, "rockchip,grf-mem-values",
+					 0, &grf_value);
+	if (ret)
+		return -ENODATA;
+
+	ret = of_property_read_u32_index(np, "rockchip,grf-mem-values",
+					 1, &grf_value_off);
+	if (ret)
+		return -ENODATA;
+
+	grf_info->grf = grf;
+	grf_info->offset = grf_mem_offset;
+	grf_info->val = grf_value;
+	grf_info->val_off = grf_value_off;
+
+	return 0;
+}
+
 #ifdef CONFIG_ROCKCHIP_MPP_PROC_FS
 static int fops_show_u32(struct seq_file *file, void *v)
 {

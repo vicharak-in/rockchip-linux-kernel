@@ -201,6 +201,7 @@ struct mpp_task_msgs {
 struct mpp_grf_info {
 	u32 offset;
 	u32 val;
+	u32 val_off;
 	struct regmap *grf;
 };
 
@@ -310,6 +311,7 @@ struct mpp_dev {
 
 	void __iomem *reg_base;
 	struct mpp_grf_info *grf_info;
+	struct mpp_grf_info grf_mem;
 	struct mpp_iommu_info *iommu_info;
 
 	atomic_t reset_request;
@@ -673,6 +675,9 @@ unsigned long mpp_get_clk_info_rate_hz(struct mpp_clk_info *clk_info,
 				       enum MPP_CLOCK_MODE mode);
 int mpp_clk_set_rate(struct mpp_clk_info *clk_info,
 		     enum MPP_CLOCK_MODE mode);
+
+int mpp_init_grf_mem_info(struct device_node *np,
+			  struct mpp_dev *mpp);
 
 static inline int mpp_write(struct mpp_dev *mpp, u32 reg, u32 val)
 {

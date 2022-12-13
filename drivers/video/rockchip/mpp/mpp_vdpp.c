@@ -18,6 +18,8 @@
 #include <linux/uaccess.h>
 #include <linux/regmap.h>
 #include <linux/proc_fs.h>
+#include <linux/mfd/syscon.h>
+#include <linux/rockchip/cpu.h>
 #include <soc/rockchip/pm_domains.h>
 
 #include "mpp_debug.h"
@@ -89,6 +91,7 @@ struct vdpp_dev {
 	struct reset_control *rst_s;
 	/* for zme */
 	void __iomem *zme_base;
+	struct regmap *grf;
 };
 
 static struct vdpp_hw_info vdpp_v1_hw_info = {
@@ -722,6 +725,9 @@ static int vdpp_probe(struct platform_device *pdev)
 		dev_err(dev, "register interrupter runtime failed\n");
 		return -EINVAL;
 	}
+	if (mpp_init_grf_mem_info(dev->of_node, mpp))
+		mpp->grf_mem.grf = NULL;
+
 	mpp->session_max_buffers = VDPP_SESSION_MAX_BUFFERS;
 	vdpp->hw_info = to_vdpp_info(mpp->var->hw_info);
 	vdpp_procfs_init(mpp);
@@ -763,12 +769,43 @@ static void vdpp_shutdown(struct platform_device *pdev)
 		dev_err(dev, "wait total running time out\n");
 }
 
+static int vdpp_runtime_suspend(struct device *dev)
+{
+	struct mpp_dev *mpp = dev_get_drvdata(dev);
+
+	if (cpu_is_rk3528() && mpp->grf_mem.grf && mpp->grf_mem.offset)
+		regmap_write(mpp->grf_mem.grf,
+			     mpp->grf_mem.offset,
+			     mpp->grf_mem.val_off);
+
+	return 0;
+}
+
+static int vdpp_runtime_resume(struct device *dev)
+{
+	struct mpp_dev *mpp = dev_get_drvdata(dev);
+
+	if (cpu_is_rk3528() && mpp->grf_mem.grf && mpp->grf_mem.offset)
+		regmap_write(mpp->grf_mem.grf,
+			     mpp->grf_mem.offset,
+			     mpp->grf_mem.val);
+
+	return 0;
+}
+
+static const struct dev_pm_ops vdpp_pm_ops = {
+	.runtime_suspend		= vdpp_runtime_suspend,
+	.runtime_resume			= vdpp_runtime_resume,
+};
+
+
 struct platform_driver rockchip_vdpp_driver = {
 	.probe = vdpp_probe,
 	.remove = vdpp_remove,
 	.shutdown = vdpp_shutdown,
 	.driver = {
 		.name = VDPP_DRIVER_NAME,
+		.pm = &vdpp_pm_ops,
 		.of_match_table = of_match_ptr(mpp_vdpp_dt_match),
 	},
 };

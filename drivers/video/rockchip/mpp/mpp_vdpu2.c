@@ -20,6 +20,8 @@
 #include <linux/uaccess.h>
 #include <linux/regmap.h>
 #include <linux/proc_fs.h>
+#include <linux/mfd/syscon.h>
+#include <linux/rockchip/cpu.h>
 #include <soc/rockchip/pm_domains.h>
 
 #include "mpp_debug.h"
@@ -111,6 +113,7 @@ struct vdpu_dev {
 #endif
 	struct reset_control *rst_a;
 	struct reset_control *rst_h;
+	struct regmap *grf;
 };
 
 static struct mpp_hw_info vdpu_v2_hw_info = {
@@ -749,6 +752,9 @@ static int vdpu_probe(struct platform_device *pdev)
 		set_bit(MPP_DEVICE_VDPU2_PP, &mpp->srv->hw_support);
 	}
 
+	if (mpp_init_grf_mem_info(dev->of_node, mpp))
+		mpp->grf_mem.grf = NULL;
+
 	mpp->session_max_buffers = VDPU2_SESSION_MAX_BUFFERS;
 	vdpu_procfs_init(mpp);
 	/* register current device to mpp service */
@@ -788,12 +794,42 @@ static void vdpu_shutdown(struct platform_device *pdev)
 		dev_err(dev, "wait total running time out\n");
 }
 
+static int vdpu_runtime_suspend(struct device *dev)
+{
+	struct mpp_dev *mpp = dev_get_drvdata(dev);
+
+	if (cpu_is_rk3528() && mpp->grf_mem.grf && mpp->grf_mem.offset)
+		regmap_write(mpp->grf_mem.grf,
+			     mpp->grf_mem.offset,
+			     mpp->grf_mem.val_off);
+
+	return 0;
+}
+
+static int vdpu_runtime_resume(struct device *dev)
+{
+	struct mpp_dev *mpp = dev_get_drvdata(dev);
+
+	if (cpu_is_rk3528() && mpp->grf_mem.grf && mpp->grf_mem.offset)
+		regmap_write(mpp->grf_mem.grf,
+			     mpp->grf_mem.offset,
+			     mpp->grf_mem.val);
+
+	return 0;
+}
+
+static const struct dev_pm_ops vdpu_pm_ops = {
+	.runtime_suspend		= vdpu_runtime_suspend,
+	.runtime_resume			= vdpu_runtime_resume,
+};
+
 struct platform_driver rockchip_vdpu2_driver = {
 	.probe = vdpu_probe,
 	.remove = vdpu_remove,
 	.shutdown = vdpu_shutdown,
 	.driver = {
 		.name = VDPU2_DRIVER_NAME,
+		.pm = &vdpu_pm_ops,
 		.of_match_table = of_match_ptr(mpp_vdpu2_dt_match),
 	},
 };

@@ -28,6 +28,8 @@
 #include <linux/nospec.h>
 #include <linux/workqueue.h>
 #include <linux/dma-iommu.h>
+#include <linux/mfd/syscon.h>
+#include <linux/rockchip/cpu.h>
 #include <soc/rockchip/pm_domains.h>
 #include <soc/rockchip/rockchip_ipa.h>
 #include <soc/rockchip/rockchip_opp_select.h>
@@ -188,6 +190,7 @@ struct rkvenc_dev {
 	dma_addr_t sram_iova;
 	u32 sram_enabled;
 	struct page *rcb_page;
+	struct regmap *grf;
 };
 
 
@@ -1369,6 +1372,10 @@ static int rkvenc_probe_default(struct platform_device *pdev)
 	}
 	mpp->session_max_buffers = RKVENC_SESSION_MAX_BUFFERS;
 	enc->hw_info = to_rkvenc_info(mpp->var->hw_info);
+
+	if (mpp_init_grf_mem_info(dev->of_node, mpp))
+		mpp->grf_mem.grf = NULL;
+
 	rkvenc_procfs_init(mpp);
 	mpp_dev_register_srv(mpp, mpp->srv);
 
@@ -1447,12 +1454,43 @@ static void rkvenc_shutdown(struct platform_device *pdev)
 	dev_info(dev, "shutdown success\n");
 }
 
+static int rkvenc_runtime_suspend(struct device *dev)
+{
+	struct mpp_dev *mpp = dev_get_drvdata(dev);
+
+	if (cpu_is_rk3528() && mpp->grf_mem.grf && mpp->grf_mem.offset)
+		regmap_write(mpp->grf_mem.grf,
+			     mpp->grf_mem.offset,
+			     mpp->grf_mem.val_off);
+
+	return 0;
+}
+
+static int rkvenc_runtime_resume(struct device *dev)
+{
+	struct mpp_dev *mpp = dev_get_drvdata(dev);
+
+
+	if (cpu_is_rk3528() && mpp->grf_mem.grf && mpp->grf_mem.offset)
+		regmap_write(mpp->grf_mem.grf,
+			     mpp->grf_mem.offset,
+			     mpp->grf_mem.val);
+
+	return 0;
+}
+
+static const struct dev_pm_ops rkvenc_pm_ops = {
+	.runtime_suspend		= rkvenc_runtime_suspend,
+	.runtime_resume			= rkvenc_runtime_resume,
+};
+
 struct platform_driver rockchip_rkvenc2_driver = {
 	.probe = rkvenc_probe,
 	.remove = rkvenc_remove,
 	.shutdown = rkvenc_shutdown,
 	.driver = {
 		.name = RKVENC_DRIVER_NAME,
+		.pm = &rkvenc_pm_ops,
 		.of_match_table = of_match_ptr(mpp_rkvenc_dt_match),
 	},
 };
