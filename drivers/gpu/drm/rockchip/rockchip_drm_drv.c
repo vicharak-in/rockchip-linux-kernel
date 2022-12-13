@@ -1787,16 +1787,14 @@ static int rockchip_drm_bind(struct device *dev)
 	if (ret)
 		goto err_kms_helper_poll_fini;
 
-	drm_for_each_crtc(crtc, drm_dev) {
-		struct drm_fb_helper *helper = private->fbdev_helper;
-		struct rockchip_crtc_state *s = NULL;
+	if (private->fbdev_helper && private->fbdev_helper->fb) {
+		drm_for_each_crtc(crtc, drm_dev) {
+			struct rockchip_crtc_state *s = NULL;
 
-		if (!helper)
-			break;
-
-		s = to_rockchip_crtc_state(crtc->state);
-		if (is_support_hotplug(s->output_type))
-			drm_framebuffer_get(helper->fb);
+			s = to_rockchip_crtc_state(crtc->state);
+			if (is_support_hotplug(s->output_type))
+				drm_framebuffer_get(private->fbdev_helper->fb);
+		}
 	}
 
 	drm_dev->mode_config.allow_fb_modifiers = true;
