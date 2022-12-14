@@ -2713,7 +2713,7 @@ static void vop2_wb_commit(struct drm_crtc *crtc)
 		fifo_throd = fb->pitches[0] >> 4;
 		if (fifo_throd >= vop2->data->wb->fifo_depth)
 			fifo_throd = vop2->data->wb->fifo_depth;
-		r2y = fb->format->is_yuv && (!is_yuv_output(vcstate->bus_format));
+		r2y = !vcstate->yuv_overlay && fb->format->is_yuv;
 
 		/*
 		 * the vp_id register config done immediately
