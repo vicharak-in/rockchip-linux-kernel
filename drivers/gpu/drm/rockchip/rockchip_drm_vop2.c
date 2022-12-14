@@ -82,6 +82,8 @@
 #define VOP_CTRL_SET(x, name, v) \
 		REG_SET(x, name, 0, (x)->data->ctrl->name, v, false)
 
+#define VOP_CTRL_GET(x, name) vop2_read_reg(x, 0, &(x)->data->ctrl->name)
+
 #define VOP_INTR_GET(vop2, name) \
 		vop2_read_reg(vop2, 0, &vop2->data->ctrl->name)
 
@@ -3017,25 +3019,15 @@ err:
  */
 static void vop3_layer_map_initial(struct vop2 *vop2, uint32_t current_vp_id)
 {
-	struct vop2_video_port *vp;
-	struct vop2_win *win;
-	unsigned long win_mask;
 	uint16_t vp_id;
-	int phys_id;
-	int i;
+	struct drm_plane *plane = NULL;
 
-	for (i = 0; i < vop2->data->nr_vps; i++) {
-		vp_id = i;
-		vp = &vop2->vps[vp_id];
-		vp->win_mask = vp->plane_mask;
-		win_mask = vp->win_mask;
-		for_each_set_bit(phys_id, &win_mask, ROCKCHIP_MAX_LAYER) {
-			win = vop2_find_win_by_phys_id(vop2, phys_id);
-			VOP_CTRL_SET(vop2, win_vp_id[phys_id], vp_id);
-			win->vp_mask = BIT(vp_id);
-			win->old_vp_mask = win->vp_mask;
-			DRM_DEV_DEBUG(vop2->dev, "%s attach to vp%d\n", win->name, vp_id);
-		}
+	drm_for_each_plane(plane, vop2->drm_dev) {
+		struct vop2_win *win = to_vop2_win(plane);
+
+		vp_id = VOP_CTRL_GET(vop2, win_vp_id[win->phys_id]);
+		win->vp_mask = BIT(vp_id);
+		win->old_vp_mask = win->vp_mask;
 	}
 }
 
@@ -7970,7 +7962,8 @@ static int vop2_create_crtc(struct vop2 *vop2)
 					   drm_dev->mode_config.tv_top_margin_property, 100);
 		drm_object_attach_property(&crtc->base,
 					   drm_dev->mode_config.tv_bottom_margin_property, 100);
-		vop2_crtc_create_plane_mask_property(vop2, crtc, plane_mask);
+		if (plane_mask)
+			vop2_crtc_create_plane_mask_property(vop2, crtc, plane_mask);
 
 		if (vp_data->feature & VOP_FEATURE_VIVID_HDR) {
 			vop2_crtc_create_hdr_property(vop2, crtc);
