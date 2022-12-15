@@ -147,6 +147,7 @@
 		nvmem-cells = <&cpu_leakage>;
 		nvmem-cell-names = "leakage";
 
+		rockchip,video-4k-freq = <1200000>;
 		rockchip,pvtm-voltage-sel = <
 			0	1310	0
 			1311	1340	1
