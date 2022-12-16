@@ -1282,6 +1282,7 @@
 		      <0x0 0xff610000 0x0 0x200>;
 		interrupts = <GIC_SPI 102 IRQ_TYPE_LEVEL_HIGH>,
 			     <GIC_SPI 103 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "hdmi", "hdmi_wakeup";
 		clocks = <&cru PCLK_HDMI>,
 			 <&cru CLK_SFR_HDMI>,
 			 <&cru CLK_CEC_HDMI>;
