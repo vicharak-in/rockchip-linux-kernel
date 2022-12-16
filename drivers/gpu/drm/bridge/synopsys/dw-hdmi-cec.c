@@ -475,19 +475,21 @@ static int dw_hdmi_cec_probe(struct platform_device *pdev)
 	if (ret < 0)
 		return ret;
 
-	ret = devm_request_threaded_irq(&pdev->dev, cec->wake_irq,
-					dw_hdmi_cec_wake_irq,
-					dw_hdmi_cec_wake_thread,
-					IRQF_TRIGGER_HIGH | IRQF_ONESHOT,
-					"cec-wakeup", cec->adap);
-	if (ret) {
-		dev_err(&pdev->dev,
-			"hdmi_cec request_irq failed (%d).\n",
-			ret);
-		return ret;
+	if (cec->wake_irq > 0) {
+		ret = devm_request_threaded_irq(&pdev->dev, cec->wake_irq,
+						dw_hdmi_cec_wake_irq,
+						dw_hdmi_cec_wake_thread,
+						IRQF_TRIGGER_HIGH | IRQF_ONESHOT,
+						"cec-wakeup", cec->adap);
+		if (ret) {
+			dev_err(&pdev->dev,
+				"hdmi_cec request_irq failed (%d).\n",
+				ret);
+			return ret;
+		}
+		device_init_wakeup(&pdev->dev, 1);
+		enable_irq_wake(cec->wake_irq);
 	}
-	device_init_wakeup(&pdev->dev, 1);
-	enable_irq_wake(cec->wake_irq);
 
 	cec->notify = cec_notifier_get(pdev->dev.parent);
 	if (!cec->notify)

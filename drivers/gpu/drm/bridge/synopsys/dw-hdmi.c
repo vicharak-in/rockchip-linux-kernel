@@ -4150,10 +4150,8 @@ __dw_hdmi_probe(struct platform_device *pdev,
 		cec.irq = irq;
 
 		irq = platform_get_irq(pdev, 1);
-		if (irq < 0) {
-			ret = irq;
-			goto err_iahb;
-		}
+		if (irq < 0)
+			dev_dbg(hdmi->dev, "can't get cec wake up irq\n");
 
 		cec.wake_irq = irq;
 
