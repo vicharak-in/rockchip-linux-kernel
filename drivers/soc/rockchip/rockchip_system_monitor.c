@@ -68,6 +68,7 @@ struct system_monitor {
 	int temp_hysteresis;
 	unsigned int delay;
 	bool is_temp_offline;
+	bool boosted;
 };
 
 static unsigned long system_status;
@@ -740,6 +741,20 @@ int rockchip_monitor_cpu_high_temp_adjust(struct monitor_dev_info *info,
 	return 0;
 }
 EXPORT_SYMBOL(rockchip_monitor_cpu_high_temp_adjust);
+
+void rockchip_monitor_set_boosted(void)
+{
+	if (system_monitor)
+		system_monitor->boosted = true;
+}
+EXPORT_SYMBOL(rockchip_monitor_set_boosted);
+
+void rockchip_monitor_clear_boosted(void)
+{
+	if (system_monitor)
+		system_monitor->boosted = false;
+}
+EXPORT_SYMBOL(rockchip_monitor_clear_boosted);
 
 static int rockchip_monitor_update_devfreq(struct devfreq *df)
 {
@@ -1417,7 +1432,8 @@ static int rockchip_monitor_cpufreq_policy_notifier(struct notifier_block *nb,
 			if (limit_freq > info->wide_temp_limit / 1000)
 				limit_freq = info->wide_temp_limit / 1000;
 		}
-		if (info->status_max_limit &&
+		if (!system_monitor->boosted &&
+		    info->status_max_limit &&
 		    limit_freq > info->status_max_limit)
 			limit_freq = info->status_max_limit;
 
