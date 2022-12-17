@@ -6,33 +6,6 @@
 
 &pwm3 {
 	ir_key1 {
-		rockchip,usercode = <0x4040>;
-		rockchip,key_table =
-			<0xf2	KEY_REPLY>,
-			<0xba	KEY_BACK>,
-			<0xf4	KEY_UP>,
-			<0xf1	KEY_DOWN>,
-			<0xef	KEY_LEFT>,
-			<0xee	KEY_RIGHT>,
-			<0xbd	KEY_HOME>,
-			<0xea	KEY_VOLUMEUP>,
-			<0xe3	KEY_VOLUMEDOWN>,
-			<0xe2	KEY_SEARCH>,
-			<0xb2	KEY_POWER>,
-			<0xbc	KEY_MUTE>,
-			<0xec	KEY_MENU>,
-			<0xbf	0x190>,
-			<0xe0	0x191>,
-			<0xe1	0x192>,
-			<0xe9	183>,
-			<0xe6	248>,
-			<0xe8	185>,
-			<0xe7	186>,
-			<0xf0	388>,
-			<0xbe	0x175>;
-	};
-
-	ir_key2 {
 		rockchip,usercode = <0xff00>;
 		rockchip,key_table =
 			<0xf9	KEY_HOME>,
@@ -66,6 +39,60 @@
 			<0xb4	KEY_VOLUMEDOWN>,
 			<0xa4	KEY_SETUP>,
 			<0xbe	KEY_SEARCH>;
+	};
+
+	/*for IPTV ltjc*/
+	ir_key2 {
+		rockchip,usercode = <0xc43b>;
+		rockchip,key_table =
+			<0x7e	KEY_REPLY>,
+			<0x7f	KEY_BACK>,
+			<0x7a	KEY_UP>,
+			<0x78	KEY_DOWN>,
+			<0x7b	KEY_LEFT>,
+			<0x79	KEY_RIGHT>,
+			<0x66	KEY_VOLUMEUP>,
+			<0x65	KEY_VOLUMEDOWN>,
+			<0x69	KEY_POWER>,
+			<0x64	KEY_MUTE>,
+			<0x76	KEY_1>,
+			<0x75	KEY_2>,
+			<0x74	KEY_3>,
+			<0x73	KEY_4>,
+			<0x72	KEY_5>,
+			<0x71	KEY_6>,
+			<0x70	KEY_7>,
+			<0x6f	KEY_8>,
+			<0x6e	KEY_9>,
+			<0x77	KEY_0>,
+			<0x7c	KEY_PAGEDOWN>,
+			<0x7d	KEY_PAGEUP>,
+			<0x6a	KEY_SETUP>,
+			<0x68	KEY_CHANNEL_UP>,
+			<0x67	KEY_CHANNEL_DN>,
+			<0x39	KEY_PORTAL>,
+			<0x29	KEY_HOME_PAGE>,
+			<0x33	KEY_CH_CUT_BACK>,
+			<0x34   KEY_LOCAL>,
+			<0x2d	KEY_REVIEW>,
+			<0x2c	KEY_ON_DEMAND>,
+			<0x2b	KEY_INFO1>,
+			<0x2e	KEY_DIRECT_SEEDING>,
+			<0x2d	KEY_REVIEW>,
+			<0x2c	KEY_ON_DEMAND>,
+			<0x2b	KEY_INFO1>,
+			<0x63	KEY_SOUND1>,
+			<0x6c	KEY_X1>,
+			<0x6d	KEY_X2>,
+			<0x62	KEY_PLAYPAUSE>,
+			<0x6b	KEY_EQUAL>,
+			<0x61	KEY_FASTFORWARD>,
+			<0x60	KEY_REWIND>,
+			<0x3b	KEY_STOP>,
+			<0x35  KEY_BLUE>,
+			<0x36  KEY_YELLOW>,
+			<0x37  KEY_GREEN>,
+			<0x38  KEY_RED>;
 	};
 
 	ir_key3 {
@@ -363,102 +390,5 @@
 			<0x9f   KEY_BLUE>,
 			<0xcb   KEY_APPLICATION>,
 			<0xc5   KEY_POS>;
-	};
-
-	/* IPTV_AHDX FibeHome */
-	ir_key10 {
-		rockchip,usercode = <0xee11>;
-		rockchip,key_table =
-			<0xea   KEY_REPLY>,
-			<0xed   KEY_BACK>,
-			<0xeb   KEY_UP>,
-			<0xe9   KEY_DOWN>,
-			<0xe2   KEY_LEFT>,
-			<0xee   KEY_RIGHT>,
-			<0xb4   KEY_VOLUMEUP>,
-			<0xe3   KEY_VOLUMEDOWN>,
-			<0xbc   KEY_POWER>,
-			<0xb8   KEY_MUTE>,
-			<0xa2   KEY_MENU>, //bookmark
-			<0xab   KEY_POS>, //locate
-			<0xbd   KEY_1>,
-			<0xbe   KEY_2>,
-			<0xbf   KEY_3>,
-			<0xb9   KEY_4>,
-			<0xba   KEY_5>,
-			<0xbb   KEY_6>,
-			<0xb5   KEY_7>,
-			<0xb6   KEY_8>,
-			<0xb7   KEY_9>,
-			<0xb2   KEY_0>,
-			<0xef   KEY_PAGEDOWN>,
-			<0xe7   KEY_PAGEUP>,
-			<0xaa   KEY_SETUP>,
-			<0xae   KEY_CHANNEL_UP>,
-			<0xaf   KEY_CHANNEL_DN>,
-			<0xe1   KEY_HOME_PAGE>,
-			<0xa0   KEY_DIRECT_SEEDING>,
-			<0xa4   KEY_REVIEW>,
-			<0xa8   KEY_ON_DEMAND>,
-			<0xac   KEY_INFO1>,
-			<0xd5   KEY_SOUND1>,
-			<0xa6   KEY_EQUAL>,
-			<0xe4   KEY_PLAYPAUSE>,
-			<0xe5   KEY_X2>, //inputmethod
-			<0xe6   KEY_X1>; //Soft input
-	};
-
-	/*for IPTV hblt*/
-	ir_key11 {
-		rockchip,usercode = <0xc43b>;
-		rockchip,key_table =
-			<0x7e	KEY_REPLY>,
-			<0x7f	KEY_BACK>,
-			<0x7a	KEY_UP>,
-			<0x78	KEY_DOWN>,
-			<0x7b	KEY_LEFT>,
-			<0x79	KEY_RIGHT>,
-			<0x66	KEY_VOLUMEUP>,
-			<0x65	KEY_VOLUMEDOWN>,
-			<0x69	KEY_POWER>,
-			<0x64	KEY_MUTE>,
-			<0x76	KEY_1>,
-			<0x75	KEY_2>,
-			<0x74	KEY_3>,
-			<0x73	KEY_4>,
-			<0x72	KEY_5>,
-			<0x71	KEY_6>,
-			<0x70	KEY_7>,
-			<0x6f	KEY_8>,
-			<0x6e	KEY_9>,
-			<0x77	KEY_0>,
-			<0x7c	KEY_PAGEDOWN>,
-			<0x7d	KEY_PAGEUP>,
-			<0x6a	KEY_SETUP>,
-			<0x68	KEY_CHANNEL_UP>,
-			<0x67	KEY_CHANNEL_DN>,
-			<0x39	KEY_PORTAL>,
-			<0x29	KEY_HOME_PAGE>,
-			<0x33	KEY_CH_CUT_BACK>,
-			<0x34   KEY_LOCAL>,
-			<0x2d	KEY_REVIEW>,
-			<0x2c	KEY_ON_DEMAND>,
-			<0x2b	KEY_INFO1>,
-			<0x2e	KEY_DIRECT_SEEDING>,
-			<0x2d	KEY_REVIEW>,
-			<0x2c	KEY_ON_DEMAND>,
-			<0x2b	KEY_INFO1>,
-			<0x63	KEY_SOUND1>,
-			<0x6c	KEY_X1>,
-			<0x6d	KEY_X2>,
-			<0x62	KEY_PLAYPAUSE>,
-			<0x6b	KEY_EQUAL>,
-			<0x61	KEY_FASTFORWARD>,
-			<0x60	KEY_REWIND>,
-			<0x3b	KEY_STOP>,
-			<0x35  KEY_BLUE>,
-			<0x36  KEY_YELLOW>,
-			<0x37  KEY_GREEN>,
-			<0x38  KEY_RED>;
 	};
 };
