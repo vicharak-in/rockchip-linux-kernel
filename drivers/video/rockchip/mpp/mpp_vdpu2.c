@@ -752,9 +752,6 @@ static int vdpu_probe(struct platform_device *pdev)
 		set_bit(MPP_DEVICE_VDPU2_PP, &mpp->srv->hw_support);
 	}
 
-	if (mpp_init_grf_mem_info(dev->of_node, mpp))
-		mpp->grf_mem.grf = NULL;
-
 	mpp->session_max_buffers = VDPU2_SESSION_MAX_BUFFERS;
 	vdpu_procfs_init(mpp);
 	/* register current device to mpp service */
@@ -797,11 +794,17 @@ static void vdpu_shutdown(struct platform_device *pdev)
 static int vdpu_runtime_suspend(struct device *dev)
 {
 	struct mpp_dev *mpp = dev_get_drvdata(dev);
+	struct mpp_grf_info *info = mpp->grf_info;
+	struct mpp_taskqueue *queue = mpp->queue;
 
-	if (cpu_is_rk3528() && mpp->grf_mem.grf && mpp->grf_mem.offset)
-		regmap_write(mpp->grf_mem.grf,
-			     mpp->grf_mem.offset,
-			     mpp->grf_mem.val_off);
+	if (cpu_is_rk3528() && info && info->mem_offset) {
+		mutex_lock(&queue->ref_lock);
+		if (!atomic_dec_if_positive(&queue->runtime_cnt)) {
+			regmap_write(info->grf, info->mem_offset,
+				     info->val_mem_off);
+		}
+		mutex_unlock(&queue->ref_lock);
+	}
 
 	return 0;
 }
@@ -809,11 +812,16 @@ static int vdpu_runtime_suspend(struct device *dev)
 static int vdpu_runtime_resume(struct device *dev)
 {
 	struct mpp_dev *mpp = dev_get_drvdata(dev);
+	struct mpp_grf_info *info = mpp->grf_info;
+	struct mpp_taskqueue *queue = mpp->queue;
 
-	if (cpu_is_rk3528() && mpp->grf_mem.grf && mpp->grf_mem.offset)
-		regmap_write(mpp->grf_mem.grf,
-			     mpp->grf_mem.offset,
-			     mpp->grf_mem.val);
+	if (cpu_is_rk3528() && info && info->mem_offset) {
+		mutex_lock(&queue->ref_lock);
+		regmap_write(info->grf, info->mem_offset,
+			     info->val_mem_on);
+		atomic_inc(&queue->runtime_cnt);
+		mutex_unlock(&queue->ref_lock);
+	}
 
 	return 0;
 }

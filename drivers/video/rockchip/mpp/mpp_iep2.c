@@ -20,6 +20,8 @@
 #include <linux/regmap.h>
 #include <linux/pm_runtime.h>
 #include <linux/proc_fs.h>
+#include <linux/mfd/syscon.h>
+#include <linux/rockchip/cpu.h>
 #include <soc/rockchip/pm_domains.h>
 
 #include "rockchip_iep2_regs.h"
@@ -1039,12 +1041,53 @@ static void iep2_shutdown(struct platform_device *pdev)
 		dev_err(dev, "wait total running time out\n");
 }
 
+static int iep2_runtime_suspend(struct device *dev)
+{
+	struct mpp_dev *mpp = dev_get_drvdata(dev);
+	struct mpp_grf_info *info = mpp->grf_info;
+	struct mpp_taskqueue *queue = mpp->queue;
+
+	if (cpu_is_rk3528() && info && info->mem_offset) {
+		mutex_lock(&queue->ref_lock);
+		if (!atomic_dec_if_positive(&queue->runtime_cnt)) {
+			regmap_write(info->grf, info->mem_offset,
+				     info->val_mem_off);
+		}
+		mutex_unlock(&queue->ref_lock);
+	}
+
+	return 0;
+}
+
+static int iep2_runtime_resume(struct device *dev)
+{
+	struct mpp_dev *mpp = dev_get_drvdata(dev);
+	struct mpp_grf_info *info = mpp->grf_info;
+	struct mpp_taskqueue *queue = mpp->queue;
+
+	if (cpu_is_rk3528() && info && info->mem_offset) {
+		mutex_lock(&queue->ref_lock);
+		regmap_write(info->grf, info->mem_offset,
+			     info->val_mem_on);
+		atomic_inc(&queue->runtime_cnt);
+		mutex_unlock(&queue->ref_lock);
+	}
+
+	return 0;
+}
+
+static const struct dev_pm_ops iep2_pm_ops = {
+	.runtime_suspend		= iep2_runtime_suspend,
+	.runtime_resume			= iep2_runtime_resume,
+};
+
 struct platform_driver rockchip_iep2_driver = {
 	.probe = iep2_probe,
 	.remove = iep2_remove,
 	.shutdown = iep2_shutdown,
 	.driver = {
 		.name = IEP2_DRIVER_NAME,
+		.pm = &iep2_pm_ops,
 		.of_match_table = of_match_ptr(mpp_iep2_match),
 	},
 };

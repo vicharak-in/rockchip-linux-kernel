@@ -201,7 +201,12 @@ struct mpp_task_msgs {
 struct mpp_grf_info {
 	u32 offset;
 	u32 val;
-	u32 val_off;
+
+	/* close mem when module is not working*/
+	u32 mem_offset;
+	u32 val_mem_on;
+	u32 val_mem_off;
+
 	struct regmap *grf;
 };
 
@@ -311,7 +316,6 @@ struct mpp_dev {
 
 	void __iomem *reg_base;
 	struct mpp_grf_info *grf_info;
-	struct mpp_grf_info grf_mem;
 	struct mpp_iommu_info *iommu_info;
 
 	atomic_t reset_request;
@@ -492,6 +496,15 @@ struct mpp_taskqueue {
 	 * device task capacity which is attached to the taskqueue
 	 */
 	u32 task_capacity;
+
+	/*
+	 * when we need to set grf_mem config to close mem shared by combo modules,
+	 * use runtime_cnt to make sure every combo module are not working
+	 */
+	/* lock for runtime counting */
+	struct mutex ref_lock;
+	atomic_t runtime_cnt;
+
 };
 
 struct mpp_reset_group {
@@ -675,9 +688,6 @@ unsigned long mpp_get_clk_info_rate_hz(struct mpp_clk_info *clk_info,
 				       enum MPP_CLOCK_MODE mode);
 int mpp_clk_set_rate(struct mpp_clk_info *clk_info,
 		     enum MPP_CLOCK_MODE mode);
-
-int mpp_init_grf_mem_info(struct device_node *np,
-			  struct mpp_dev *mpp);
 
 static inline int mpp_write(struct mpp_dev *mpp, u32 reg, u32 val)
 {

@@ -479,6 +479,8 @@ static int vdpp_init(struct mpp_dev *mpp)
 	int ret;
 	struct vdpp_dev *vdpp = to_vdpp_dev(mpp);
 
+	mpp->grf_info = &mpp->srv->grf_infos[MPP_DRIVER_VDPP];
+
 	/* Get clock info from dtsi */
 	ret = mpp_get_clk_info(mpp, &vdpp->aclk_info, "aclk");
 	if (ret)
@@ -725,8 +727,6 @@ static int vdpp_probe(struct platform_device *pdev)
 		dev_err(dev, "register interrupter runtime failed\n");
 		return -EINVAL;
 	}
-	if (mpp_init_grf_mem_info(dev->of_node, mpp))
-		mpp->grf_mem.grf = NULL;
 
 	mpp->session_max_buffers = VDPP_SESSION_MAX_BUFFERS;
 	vdpp->hw_info = to_vdpp_info(mpp->var->hw_info);
@@ -772,11 +772,17 @@ static void vdpp_shutdown(struct platform_device *pdev)
 static int vdpp_runtime_suspend(struct device *dev)
 {
 	struct mpp_dev *mpp = dev_get_drvdata(dev);
+	struct mpp_grf_info *info = mpp->grf_info;
+	struct mpp_taskqueue *queue = mpp->queue;
 
-	if (cpu_is_rk3528() && mpp->grf_mem.grf && mpp->grf_mem.offset)
-		regmap_write(mpp->grf_mem.grf,
-			     mpp->grf_mem.offset,
-			     mpp->grf_mem.val_off);
+	if (cpu_is_rk3528() && info && info->mem_offset) {
+		mutex_lock(&queue->ref_lock);
+		if (!atomic_dec_if_positive(&queue->runtime_cnt)) {
+			regmap_write(info->grf, info->mem_offset,
+				     info->val_mem_off);
+		}
+		mutex_unlock(&queue->ref_lock);
+	}
 
 	return 0;
 }
@@ -784,11 +790,16 @@ static int vdpp_runtime_suspend(struct device *dev)
 static int vdpp_runtime_resume(struct device *dev)
 {
 	struct mpp_dev *mpp = dev_get_drvdata(dev);
+	struct mpp_grf_info *info = mpp->grf_info;
+	struct mpp_taskqueue *queue = mpp->queue;
 
-	if (cpu_is_rk3528() && mpp->grf_mem.grf && mpp->grf_mem.offset)
-		regmap_write(mpp->grf_mem.grf,
-			     mpp->grf_mem.offset,
-			     mpp->grf_mem.val);
+	if (cpu_is_rk3528() && info && info->mem_offset) {
+		mutex_lock(&queue->ref_lock);
+		regmap_write(info->grf, info->mem_offset,
+			     info->val_mem_on);
+		atomic_inc(&queue->runtime_cnt);
+		mutex_unlock(&queue->ref_lock);
+	}
 
 	return 0;
 }
@@ -797,7 +808,6 @@ static const struct dev_pm_ops vdpp_pm_ops = {
 	.runtime_suspend		= vdpp_runtime_suspend,
 	.runtime_resume			= vdpp_runtime_resume,
 };
-
 
 struct platform_driver rockchip_vdpp_driver = {
 	.probe = vdpp_probe,

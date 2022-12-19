@@ -20,6 +20,8 @@
 #include <linux/uaccess.h>
 #include <linux/regmap.h>
 #include <linux/proc_fs.h>
+#include <linux/mfd/syscon.h>
+#include <linux/rockchip/cpu.h>
 #include <soc/rockchip/pm_domains.h>
 
 #include "mpp_debug.h"
@@ -891,12 +893,53 @@ static void vdpu_shutdown(struct platform_device *pdev)
 		dev_err(dev, "wait total running time out\n");
 }
 
+static int vdpu_runtime_suspend(struct device *dev)
+{
+	struct mpp_dev *mpp = dev_get_drvdata(dev);
+	struct mpp_grf_info *info = mpp->grf_info;
+	struct mpp_taskqueue *queue = mpp->queue;
+
+	if (cpu_is_rk3528() && info && info->mem_offset) {
+		mutex_lock(&queue->ref_lock);
+		if (!atomic_dec_if_positive(&queue->runtime_cnt)) {
+			regmap_write(info->grf, info->mem_offset,
+				     info->val_mem_off);
+		}
+		mutex_unlock(&queue->ref_lock);
+	}
+
+	return 0;
+}
+
+static int vdpu_runtime_resume(struct device *dev)
+{
+	struct mpp_dev *mpp = dev_get_drvdata(dev);
+	struct mpp_grf_info *info = mpp->grf_info;
+	struct mpp_taskqueue *queue = mpp->queue;
+
+	if (cpu_is_rk3528() && info && info->mem_offset) {
+		mutex_lock(&queue->ref_lock);
+		regmap_write(info->grf, info->mem_offset,
+			     info->val_mem_on);
+		atomic_inc(&queue->runtime_cnt);
+		mutex_unlock(&queue->ref_lock);
+	}
+
+	return 0;
+}
+
+static const struct dev_pm_ops vdpu_pm_ops = {
+	.runtime_suspend		= vdpu_runtime_suspend,
+	.runtime_resume			= vdpu_runtime_resume,
+};
+
 struct platform_driver rockchip_vdpu1_driver = {
 	.probe = vdpu_probe,
 	.remove = vdpu_remove,
 	.shutdown = vdpu_shutdown,
 	.driver = {
 		.name = VDPU1_DRIVER_NAME,
+		.pm = &vdpu_pm_ops,
 		.of_match_table = of_match_ptr(mpp_vdpu1_dt_match),
 	},
 };

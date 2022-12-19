@@ -1079,7 +1079,7 @@ static int rkvenc_init(struct mpp_dev *mpp)
 	struct rkvenc_dev *enc = to_rkvenc_dev(mpp);
 	int ret = 0;
 
-	mpp->grf_info = &mpp->srv->grf_infos[MPP_DRIVER_RKVENC];
+	mpp->grf_info = &mpp->srv->grf_infos[MPP_DRIVER_RKVENC2];
 
 	/* Get clock info from dtsi */
 	ret = mpp_get_clk_info(mpp, &enc->aclk_info, "aclk_vcodec");
@@ -1373,9 +1373,6 @@ static int rkvenc_probe_default(struct platform_device *pdev)
 	mpp->session_max_buffers = RKVENC_SESSION_MAX_BUFFERS;
 	enc->hw_info = to_rkvenc_info(mpp->var->hw_info);
 
-	if (mpp_init_grf_mem_info(dev->of_node, mpp))
-		mpp->grf_mem.grf = NULL;
-
 	rkvenc_procfs_init(mpp);
 	mpp_dev_register_srv(mpp, mpp->srv);
 
@@ -1457,11 +1454,12 @@ static void rkvenc_shutdown(struct platform_device *pdev)
 static int rkvenc_runtime_suspend(struct device *dev)
 {
 	struct mpp_dev *mpp = dev_get_drvdata(dev);
+	struct mpp_grf_info *info = mpp->grf_info;
 
-	if (cpu_is_rk3528() && mpp->grf_mem.grf && mpp->grf_mem.offset)
-		regmap_write(mpp->grf_mem.grf,
-			     mpp->grf_mem.offset,
-			     mpp->grf_mem.val_off);
+	if (cpu_is_rk3528() && info && info->mem_offset)
+		regmap_write(info->grf,
+			     info->mem_offset,
+			     info->val_mem_off);
 
 	return 0;
 }
@@ -1469,12 +1467,12 @@ static int rkvenc_runtime_suspend(struct device *dev)
 static int rkvenc_runtime_resume(struct device *dev)
 {
 	struct mpp_dev *mpp = dev_get_drvdata(dev);
+	struct mpp_grf_info *info = mpp->grf_info;
 
-
-	if (cpu_is_rk3528() && mpp->grf_mem.grf && mpp->grf_mem.offset)
-		regmap_write(mpp->grf_mem.grf,
-			     mpp->grf_mem.offset,
-			     mpp->grf_mem.val);
+	if (cpu_is_rk3528() && info && info->mem_offset)
+		regmap_write(info->grf,
+			     info->mem_offset,
+			     info->val_mem_on);
 
 	return 0;
 }
