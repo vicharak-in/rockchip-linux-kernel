@@ -2231,9 +2231,6 @@ static void hdmi_av_composer(struct dw_hdmi *hdmi,
 	int hblank, vblank, h_de_hs, v_de_vs, hsync_len, vsync_len;
 	unsigned int vdisplay, hdisplay;
 
-	if (hdmi->update)
-		return;
-
 	vmode->previous_pixelclock = vmode->mpixelclock;
 	vmode->mpixelclock = mode->crtc_clock * 1000;
 	if ((mode->flags & DRM_MODE_FLAG_3D_MASK) ==
@@ -2245,6 +2242,9 @@ static void hdmi_av_composer(struct dw_hdmi *hdmi,
 	vmode->mtmdsclock = hdmi_get_tmdsclock(hdmi, vmode->mpixelclock);
 	if (hdmi_bus_fmt_is_yuv420(hdmi->hdmi_data.enc_out_bus_format))
 		vmode->mtmdsclock /= 2;
+
+	if (hdmi->update)
+		return;
 
 	/* Set up HDMI_FC_INVIDCONF
 	 * Some display equipments require that the interval
@@ -3008,8 +3008,8 @@ static int dw_hdmi_connector_atomic_check(struct drm_connector *connector,
 
 		memcpy(&hdmi->previous_mode, mode, sizeof(hdmi->previous_mode));
 		vmode->mpixelclock = mode->crtc_clock * 1000;
-		vmode->previous_pixelclock = mode->clock;
-		vmode->previous_tmdsclock = mode->clock;
+		vmode->previous_pixelclock = mode->clock * 1000;
+		vmode->previous_tmdsclock = mode->clock * 1000;
 		vmode->mtmdsclock = hdmi_get_tmdsclock(hdmi,
 						       vmode->mpixelclock);
 		if (hdmi_bus_fmt_is_yuv420(hdmi->hdmi_data.enc_out_bus_format))
