@@ -4257,7 +4257,8 @@ __dw_hdmi_probe(struct platform_device *pdev,
 
 	hdmi->extcon = devm_extcon_dev_allocate(hdmi->dev, dw_hdmi_cable);
 	if (IS_ERR(hdmi->extcon)) {
-		dev_err(hdmi->dev, "allocate extcon failed\n");
+		ret = PTR_ERR(hdmi->extcon);
+		dev_err(hdmi->dev, "allocate extcon failed: %d\n", ret);
 		goto err_iahb;
 	}
 
