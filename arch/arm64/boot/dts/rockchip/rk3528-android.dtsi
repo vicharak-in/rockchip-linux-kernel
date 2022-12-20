@@ -16,7 +16,7 @@
 		/* If enable uart uses irq instead of fiq */
 		rockchip,irq-mode-enable = <1>;
 		rockchip,baudrate = <1500000>;  /* Only 115200 and 1500000 */
-		interrupts = <GIC_SPI 242 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 186 IRQ_TYPE_LEVEL_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&uart0m0_xfer>;
 		status = "okay";
