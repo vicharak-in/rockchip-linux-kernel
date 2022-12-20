@@ -204,6 +204,7 @@ static void dwcmshc_rk_set_clock(struct sdhci_host *host, unsigned int clock)
 	struct dwcmshc_priv *priv = sdhci_pltfm_priv(pltfm_host);
 	const struct dwcmshc_driver_data *drv_data = priv->drv_data;
 	u32 txclk_tapnum, extra, rxclk_tapnum;
+	u16 clock_control;
 	int err;
 
 	host->mmc->actual_clock = 0;
@@ -229,6 +230,11 @@ static void dwcmshc_rk_set_clock(struct sdhci_host *host, unsigned int clock)
 	extra &= ~BIT(0);
 	sdhci_writel(host, extra, DWCMSHC_HOST_CTRL3);
 
+	/* Disable output clock while config DLL */
+	clock_control = sdhci_readw(host, SDHCI_CLOCK_CONTROL);
+	clock_control &= ~SDHCI_CLOCK_CARD_EN;
+	sdhci_writew(host, clock_control, SDHCI_CLOCK_CONTROL);
+
 	if (clock <= 52000000) {
 		/*
 		 * Disable DLL and reset both of sample and drive clock.
@@ -247,7 +253,7 @@ static void dwcmshc_rk_set_clock(struct sdhci_host *host, unsigned int clock)
 			DLL_STRBIN_DELAY_NUM_SEL |
 			drv_data->ddr50_strbin_delay_num << DLL_STRBIN_DELAY_NUM_OFFSET;
 		sdhci_writel(host, extra, DWCMSHC_EMMC_DLL_STRBIN);
-		return;
+		goto exit;
 	}
 
 	/* Reset DLL */
@@ -266,7 +272,7 @@ static void dwcmshc_rk_set_clock(struct sdhci_host *host, unsigned int clock)
 				 500 * USEC_PER_MSEC);
 	if (err) {
 		dev_err(mmc_dev(host->mmc), "DLL lock timeout!\n");
-		return;
+		goto exit;
 	}
 
 	extra = 0x1 << 16 | /* tune clock stop en */
@@ -309,6 +315,12 @@ static void dwcmshc_rk_set_clock(struct sdhci_host *host, unsigned int clock)
 		drv_data->hs400_strbin_tap |
 		DLL_STRBIN_TAPNUM_FROM_SW;
 	sdhci_writel(host, extra, DWCMSHC_EMMC_DLL_STRBIN);
+
+exit:
+	/* enable output clock */
+	clock_control = sdhci_readw(host, SDHCI_CLOCK_CONTROL);
+	clock_control |= SDHCI_CLOCK_CARD_EN;
+	sdhci_writew(host, clock_control, SDHCI_CLOCK_CONTROL);
 }
 
 static void rockchip_sdhci_reset(struct sdhci_host *host, u8 mask)
