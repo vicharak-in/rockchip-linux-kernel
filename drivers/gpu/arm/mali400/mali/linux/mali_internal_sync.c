@@ -682,7 +682,7 @@ static void mali_internal_fence_release(struct fence *fence)
 
 
 	spin_lock_irqsave(fence->lock, flags);
-	if (WARN_ON_ONCE(!list_empty(&sync_pt->sync_pt_list)))
+	if (!list_empty(&sync_pt->sync_pt_list))
 		list_del(&sync_pt->sync_pt_list);
 	spin_unlock_irqrestore(fence->lock, flags);
 
