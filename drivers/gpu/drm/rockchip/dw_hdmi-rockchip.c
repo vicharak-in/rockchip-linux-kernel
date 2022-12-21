@@ -143,6 +143,7 @@ struct rockchip_hdmi {
 	unsigned long bus_format;
 	unsigned long output_bus_format;
 	unsigned long enc_out_encoding;
+	unsigned long prev_bus_format;
 	int color_changed;
 
 	struct drm_property *color_depth_property;
@@ -482,6 +483,37 @@ static struct dw_hdmi_phy_config rockchip_phy_config[] = {
 	{ ~0UL,	     0x0000, 0x0000, 0x0000},
 	{ ~0UL,      0x0000, 0x0000, 0x0000},
 };
+
+static int hdmi_bus_fmt_color_depth(unsigned int bus_format)
+{
+	switch (bus_format) {
+	case MEDIA_BUS_FMT_RGB888_1X24:
+	case MEDIA_BUS_FMT_YUV8_1X24:
+	case MEDIA_BUS_FMT_UYVY8_1X16:
+	case MEDIA_BUS_FMT_UYYVYY8_0_5X24:
+		return 8;
+
+	case MEDIA_BUS_FMT_RGB101010_1X30:
+	case MEDIA_BUS_FMT_YUV10_1X30:
+	case MEDIA_BUS_FMT_UYVY10_1X20:
+	case MEDIA_BUS_FMT_UYYVYY10_0_5X30:
+		return 10;
+
+	case MEDIA_BUS_FMT_RGB121212_1X36:
+	case MEDIA_BUS_FMT_YUV12_1X36:
+	case MEDIA_BUS_FMT_UYVY12_1X24:
+	case MEDIA_BUS_FMT_UYYVYY12_0_5X36:
+		return 12;
+
+	case MEDIA_BUS_FMT_RGB161616_1X48:
+	case MEDIA_BUS_FMT_YUV16_1X48:
+	case MEDIA_BUS_FMT_UYYVYY16_0_5X48:
+		return 16;
+
+	default:
+		return 0;
+	}
+}
 
 static int rockchip_hdmi_update_phy_table(struct rockchip_hdmi *hdmi,
 					  u32 *config,
@@ -875,6 +907,7 @@ dw_hdmi_rockchip_select_output(struct drm_connector_state *conn_state,
 	unsigned int color_depth;
 	bool support_dc = false;
 	bool sink_is_hdmi = dw_hdmi_get_output_whether_hdmi(hdmi->hdmi);
+	bool yuv422_out = false;
 	int max_tmds_clock = info->max_tmds_clock;
 	int output_eotf;
 
@@ -950,22 +983,27 @@ dw_hdmi_rockchip_select_output(struct drm_connector_state *conn_state,
 			*eotf = output_eotf;
 	}
 
-	if ((*eotf > TRADITIONAL_GAMMA_HDR &&
-	     conn_state->connector->hdr_sink_metadata.hdmi_type1.eotf &
-	     BIT(*eotf)) || (hdmi->colorimetry ==
-	     RK_HDMI_COLORIMETRY_BT2020 && info->hdmi.colorimetry &
-	     (BIT(6) | BIT(7))))
+	/* bt2020 sdr/hdr output */
+	if (hdmi->colorimetry == RK_HDMI_COLORIMETRY_BT2020 &&
+	    info->hdmi.colorimetry & (BIT(6) | BIT(7))) {
 		*enc_out_encoding = V4L2_YCBCR_ENC_BT2020;
-	else if ((vic == 6) || (vic == 7) || (vic == 21) || (vic == 22) ||
-		 (vic == 2) || (vic == 3) || (vic == 17) || (vic == 18))
-		*enc_out_encoding = V4L2_YCBCR_ENC_601;
-	else
+		yuv422_out = true;
+	/* bt709 hdr output */
+	} else if (hdmi->colorimetry != RK_HDMI_COLORIMETRY_BT2020 &&
+		   (conn_state->connector->hdr_sink_metadata.hdmi_type1.eotf & BIT(*eotf) &&
+		    *eotf > TRADITIONAL_GAMMA_HDR)) {
 		*enc_out_encoding = V4L2_YCBCR_ENC_709;
+		yuv422_out = true;
+	} else if ((vic == 6) || (vic == 7) || (vic == 21) || (vic == 22) ||
+		   (vic == 2) || (vic == 3) || (vic == 17) || (vic == 18)) {
+		*enc_out_encoding = V4L2_YCBCR_ENC_601;
+	} else {
+		*enc_out_encoding = V4L2_YCBCR_ENC_709;
+	}
 
-	if (*enc_out_encoding == V4L2_YCBCR_ENC_BT2020 && color_depth == 8) {
-		/* BT2020 require color depth at lest 10bit */
-		color_depth = 10;
-		/* We prefer use YCbCr422 to send 10bit */
+	if ((yuv422_out || hdmi->hdmi_output == DRM_HDMI_OUTPUT_YCBCR_HQ) &&
+	    color_depth == 10 && hdmi_bus_fmt_color_depth(hdmi->prev_bus_format) == 8) {
+		/* We prefer use YCbCr422 to send hdr 10bit */
 		if (info->color_formats & DRM_COLOR_FORMAT_YCRCB422)
 			*color_format = DRM_HDMI_OUTPUT_YCBCR422;
 	}
@@ -1220,6 +1258,13 @@ dw_hdmi_rockchip_check_hdr_color_change(struct drm_connector_state *conn_state,
 	return false;
 }
 
+static void dw_hdmi_rockchip_set_prev_bus_format(void *data, unsigned long bus_format)
+{
+	struct rockchip_hdmi *hdmi = (struct rockchip_hdmi *)data;
+
+	hdmi->prev_bus_format = bus_format;
+}
+
 static const struct drm_prop_enum_list color_depth_enum_list[] = {
 	{ 0, "Automatic" }, /* Prefer highest color depth */
 	{ 8, "24bit" },
@@ -1302,6 +1347,7 @@ dw_hdmi_rockchip_attach_properties(struct drm_connector *connector,
 	}
 
 	hdmi->bus_format = color;
+	hdmi->prev_bus_format = color;
 
 	if (hdmi->hdmi_output == DRM_HDMI_OUTPUT_YCBCR422) {
 		if (hdmi->colordepth == 12)
@@ -1894,6 +1940,8 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
 		dw_hdmi_rockchip_update_color_format;
 	plat_data->check_hdr_color_change =
 		dw_hdmi_rockchip_check_hdr_color_change;
+	plat_data->set_prev_bus_format =
+		dw_hdmi_rockchip_set_prev_bus_format;
 	plat_data->property_ops = &dw_hdmi_rockchip_property_ops;
 
 	encoder = &hdmi->encoder;

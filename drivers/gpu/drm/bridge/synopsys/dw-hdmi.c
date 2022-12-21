@@ -2215,6 +2215,11 @@ static void hdmi_config_hdr_infoframe(struct dw_hdmi *hdmi)
 	hdmi_writeb(hdmi, HDR_LSB(frame.max_fall), HDMI_FC_DRM_PB24);
 	hdmi_writeb(hdmi, HDR_MSB(frame.max_fall), HDMI_FC_DRM_PB25);
 	hdmi_writeb(hdmi, 1, HDMI_FC_DRM_UP);
+	/*
+	 * avi and hdr infoframe cannot be sent at the same time
+	 * for compatibility with Huawei TV
+	 */
+	mdelay(50);
 	hdmi_modb(hdmi, HDMI_FC_PACKET_DRM_TX_EN,
 		  HDMI_FC_PACKET_DRM_TX_EN_MASK, HDMI_FC_PACKET_TX_EN);
 
@@ -2542,6 +2547,9 @@ static int dw_hdmi_setup(struct dw_hdmi *hdmi, struct drm_display_mode *mode)
 	else
 		hdmi->hdmi_data.enc_out_bus_format =
 			MEDIA_BUS_FMT_RGB888_1X24;
+
+	if (hdmi->plat_data->set_prev_bus_format)
+		hdmi->plat_data->set_prev_bus_format(data, hdmi->hdmi_data.enc_out_bus_format);
 
 	/* TOFIX: Get input encoding from plat data or fallback to none */
 	if (hdmi->plat_data->get_enc_in_encoding)
@@ -2942,9 +2950,31 @@ static bool hdr_metadata_equal(const struct drm_connector_state *old_state,
 {
 	struct drm_property_blob *old_blob = old_state->hdr_output_metadata;
 	struct drm_property_blob *new_blob = new_state->hdr_output_metadata;
+	int i;
+	u8 *data;
 
-	if (!old_blob || !new_blob)
-		return old_blob == new_blob;
+	if (!old_blob && !new_blob)
+		return true;
+
+	if (!old_blob) {
+		data = (u8 *)new_blob->data;
+
+		for (i = 0; i < new_blob->length; i++)
+			if (data[i])
+				return false;
+
+		return true;
+	}
+
+	if (!new_blob) {
+		data = (u8 *)old_blob->data;
+
+		for (i = 0; i < old_blob->length; i++)
+			if (data[i])
+				return false;
+
+		return true;
+	}
 
 	if (old_blob->length != new_blob->length)
 		return false;
@@ -2958,8 +2988,10 @@ static bool check_hdr_color_change(struct drm_connector_state *old_state,
 {
 	void *data = hdmi->plat_data->phy_data;
 
-	if (!hdr_metadata_equal(old_state, new_state))
-		return hdmi->plat_data->check_hdr_color_change(new_state, data);
+	if (!hdr_metadata_equal(old_state, new_state)) {
+		hdmi->plat_data->check_hdr_color_change(new_state, data);
+		return true;
+	}
 
 	return false;
 }
