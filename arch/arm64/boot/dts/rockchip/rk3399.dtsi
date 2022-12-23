@@ -37,6 +37,8 @@
 		mmc0 = &sdio0;
 		mmc1 = &sdmmc;
 		mmc2 = &sdhci;
+		pwm0 = &pwm0;
+		pwm1 = &pwm1;
 		serial0 = &uart0;
 		serial1 = &uart1;
 		serial2 = &uart2;
@@ -44,6 +46,8 @@
 		serial4 = &uart4;
 		dsi0 = &dsi;
 		dsi1 = &dsi1;
+		spi1 = &spi1;
+		spi2 = &spi2;
 	};
 
 	cpus {
