@@ -404,6 +404,7 @@
 	mmc-hs400-1_8v;
 	mmc-hs400-enhanced-strobe;
 	max-frequency = <200000000>;
+	fixed-emmc-driver-type = <4>;
 	status = "okay";
 };
 
