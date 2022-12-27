@@ -144,22 +144,10 @@
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 		enable-active-high;
-		gpio = <&gpio4 RK_PC2 GPIO_ACTIVE_HIGH>;
+		gpio = <&gpio4 RK_PB4 GPIO_ACTIVE_HIGH>;
 		vin-supply = <&vcc5v0_sys>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&vcc5v0_host_en>;
-	};
-
-	vcc5v0_otg: vcc5v0-otg-regulator {
-		compatible = "regulator-fixed";
-		regulator-name = "vcc5v0_otg";
-		regulator-min-microvolt = <5000000>;
-		regulator-max-microvolt = <5000000>;
-		enable-active-high;
-		gpio = <&gpio4 RK_PB6 GPIO_ACTIVE_HIGH>;
-		vin-supply = <&vcc5v0_sys>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&vcc5v0_otg_en>;
 	};
 
 	vdd_fixed: vdd-fixed {
@@ -306,11 +294,7 @@
 &pinctrl {
 	usb {
 		vcc5v0_host_en: vcc5v0-host-en {
-			rockchip,pins = <4 RK_PC2 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-
-		vcc5v0_otg_en: vcc5v0-otg-en {
-			rockchip,pins = <4 RK_PB6 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <4 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };
@@ -430,7 +414,7 @@
 };
 
 &u2phy_otg {
-	vbus-supply = <&vcc5v0_otg>;
+	phy-supply = <&vcc5v0_host>;
 	status = "okay";
 };
 
