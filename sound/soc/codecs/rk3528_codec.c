@@ -111,8 +111,6 @@ static int rk3528_codec_power_off(struct rk3528_codec_priv *rk3528)
 	regmap_update_bits(rk3528->regmap, ACODEC_ANA01,
 			   ACODEC_VREF_SEL_MASK, ACODEC_VREF_SEL(0xff));
 	/* vendor step 2 */
-	regmap_update_bits(rk3528->regmap, ACODEC_ANA01,
-			   ACODEC_VREF_SEL_MASK, ACODEC_DAC_R_POP_CTRL_OFF);
 	/* vendor step 3 */
 	regmap_update_bits(rk3528->regmap, ACODEC_ANA00,
 			   ACODEC_VREF_MASK, ACODEC_VREF_DIS);
@@ -417,8 +415,6 @@ static int rk3528_codec_close_playback(struct rk3528_codec_priv *rk3528)
 
 static int rk3528_codec_dlp_down(struct rk3528_codec_priv *rk3528)
 {
-	rk3528_codec_power_off(rk3528);
-
 	return 0;
 }
 
@@ -610,6 +606,21 @@ static const struct snd_soc_component_driver soc_codec_dev_rk3528 = {
 /* Set the default value or reset value */
 static const struct reg_default rk3528_codec_reg_defaults[] = {
 	{ ACODEC_DIG00, 0x71 },
+	{ ACODEC_DIG03, 0x53 },
+	{ ACODEC_DIG07, 0x03 },
+	{ ACODEC_DIG08, 0xc3 },
+	{ ACODEC_DIG09, 0x28 },
+	{ ACODEC_DIG0A, 0x1 },
+	{ ACODEC_DIG0B, 0x80 },
+	{ ACODEC_DIG0D, 0xc3 },
+	{ ACODEC_DIG0E, 0xc3 },
+	{ ACODEC_DIG10, 0xf1 },
+	{ ACODEC_DIG11, 0xf1 },
+	{ ACODEC_ANA02, 0x77 },
+	{ ACODEC_ANA08, 0x20 },
+	{ ACODEC_ANA0A, 0x8 },
+	{ ACODEC_ANA0C, 0x20 },
+	{ ACODEC_ANA0E, 0x8 },
 };
 
 static bool rk3528_codec_volatile_reg(struct device *dev, unsigned int reg)
