@@ -1659,6 +1659,8 @@
 		reg = <0x0 0xffac0000 0x0 0x100>;
 		clocks = <&cru TCLK_WDT_NS>, <&cru PCLK_WDT_NS>;
 		clock-names = "tclk", "pclk";
+		resets = <&cru SRST_PRESETN_WDT_NS>;
+		reset-names = "reset";
 		interrupts = <GIC_SPI 28 IRQ_TYPE_LEVEL_HIGH>;
 		status = "disabled";
 	};
