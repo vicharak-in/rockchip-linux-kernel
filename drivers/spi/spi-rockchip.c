@@ -1034,7 +1034,7 @@ static int rockchip_spi_probe(struct platform_device *pdev)
 	switch (rs->version) {
 	case ROCKCHIP_SPI_VER2_TYPE1:
 	case ROCKCHIP_SPI_VER2_TYPE2:
-		if (ctlr->can_dma && slave_mode)
+		if (slave_mode)
 			rs->cs_inactive = true;
 		else
 			rs->cs_inactive = false;
