@@ -1509,7 +1509,6 @@ again:
 		mutex_lock(&queue->pending_lock);
 		list_del_init(&task->queue_link);
 
-		kref_get(&task->ref);
 		set_bit(TASK_STATE_ABORT_READY, &task->state);
 		set_bit(TASK_STATE_PROC_DONE, &task->state);
 
