@@ -543,6 +543,8 @@ static int rkvdec_link_send_task_to_hw(struct rkvdec_link_dev *dev,
 	/* start config before all registers are set */
 	wmb();
 
+	mpp_iommu_flush_tlb(dev->mpp->iommu_info);
+
 	/* configure done */
 	writel(RKVDEC_LINK_BIT_CFG_DONE, reg_base + RKVDEC_LINK_CFG_CTRL_BASE);
 
