@@ -14,6 +14,7 @@
  */
 #include <linux/module.h>
 #include <linux/string.h>
+#include <linux/extcon-provider.h>
 #include <sound/core.h>
 #include <sound/jack.h>
 #include <sound/pcm.h>
@@ -277,6 +278,11 @@ static const struct hdmi_codec_cea_spk_alloc hdmi_codec_channel_alloc[] = {
 	  .mask = FL | FR | LFE | FC | RL | RR | FLC | FRC },
 };
 
+static const unsigned int hdmi_extcon_cable[] = {
+	EXTCON_DISP_HDMI_AUDIO,
+	EXTCON_NONE,
+};
+
 struct hdmi_codec_priv {
 	struct hdmi_codec_pdata hcd;
 	struct snd_soc_dai_driver *daidrv;
@@ -288,6 +294,7 @@ struct hdmi_codec_priv {
 	unsigned int chmap_idx;
 	unsigned int mode;
 	struct snd_soc_jack *jack;
+	struct extcon_dev *edev;
 	unsigned int jack_status;
 };
 
@@ -774,10 +781,16 @@ static void plugged_cb(struct device *dev, bool plugged)
 {
 	struct hdmi_codec_priv *hcp = dev_get_drvdata(dev);
 
-	if (plugged)
+	if (plugged) {
 		hdmi_codec_jack_report(hcp, SND_JACK_LINEOUT);
-	else
+		extcon_set_state_sync(hcp->edev,
+				      EXTCON_DISP_HDMI_AUDIO, true);
+	} else {
 		hdmi_codec_jack_report(hcp, 0);
+		extcon_set_state_sync(hcp->edev,
+				      EXTCON_DISP_HDMI_AUDIO, false);
+	}
+
 	mutex_lock(&hcp->current_stream_lock);
 	if (hcp->current_stream && !plugged)
 		snd_pcm_stop(hcp->current_stream, SNDRV_PCM_STATE_DISCONNECTED);
@@ -919,6 +932,18 @@ static int hdmi_codec_probe(struct platform_device *pdev)
 	}
 
 	dev_set_drvdata(dev, hcp);
+
+	hcp->edev = devm_extcon_dev_allocate(&pdev->dev, hdmi_extcon_cable);
+	if (IS_ERR(hcp->edev)) {
+		dev_err(&pdev->dev, "Failed to allocate extcon device\n");
+		return -ENOMEM;
+	}
+
+	ret = devm_extcon_dev_register(&pdev->dev, hcp->edev);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "Failed to register extcon device\n");
+		return ret;
+	}
 
 	ret = devm_snd_soc_register_component(dev, &hdmi_driver, hcp->daidrv,
 				     dai_count);
