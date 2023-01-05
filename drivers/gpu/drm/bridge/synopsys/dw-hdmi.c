@@ -2855,7 +2855,6 @@ static int dw_hdmi_connector_get_modes(struct drm_connector *connector)
 			}
 		}
 
-		dw_hdmi_update_hdr_property(connector);
 		kfree(edid);
 	} else {
 		hdmi->support_hdmi = true;
@@ -2883,6 +2882,7 @@ static int dw_hdmi_connector_get_modes(struct drm_connector *connector)
 
 		dev_info(hdmi->dev, "failed to get edid\n");
 	}
+	dw_hdmi_update_hdr_property(connector);
 	dw_hdmi_check_output_type_changed(hdmi);
 
 	return ret;
