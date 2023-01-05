@@ -186,9 +186,9 @@
 				/* hdmi_tx_cec */
 				<0 RK_PA3 1 &pcfg_pull_none>,
 				/* hdmi_tx_scl */
-				<0 RK_PA4 1 &pcfg_pull_none>,
+				<0 RK_PA4 1 &pcfg_pull_none_smt>,
 				/* hdmi_tx_sda */
-				<0 RK_PA5 1 &pcfg_pull_none>;
+				<0 RK_PA5 1 &pcfg_pull_none_smt>;
 		};
 	};
 
