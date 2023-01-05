@@ -3246,6 +3246,7 @@ static void vop2_crtc_atomic_disable(struct drm_crtc *crtc,
 	vop2_dsp_hold_valid_irq_disable(crtc);
 
 	vop2_disable(crtc);
+	memset(&vp->active_tv_state, 0, sizeof(vp->active_tv_state));
 	vop2_unlock(vop2);
 
 	vop2->active_vp_mask &= ~BIT(vp->id);
