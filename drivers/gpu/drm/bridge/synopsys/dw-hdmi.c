@@ -4002,6 +4002,7 @@ __dw_hdmi_probe(struct platform_device *pdev,
 	hdmi->connector.stereo_allowed = 1;
 	hdmi->plat_data = plat_data;
 	hdmi->dev = dev;
+	hdmi->audio_enable = true;
 	hdmi->sample_rate = 48000;
 	hdmi->disabled = true;
 	hdmi->rxsense = true;
