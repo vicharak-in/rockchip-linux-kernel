@@ -610,6 +610,7 @@ again:
 		struct cpufreq_policy *policy;
 #ifdef CONFIG_ARCH_ROCKCHIP
 		struct interactive_tunables *tunables;
+		bool update_policy = false;
 		u64 now;
 
 		now = ktime_to_us(ktime_get());
@@ -631,17 +632,19 @@ again:
 		    now > tunables->touchboostpulse_endtime) {
 			tunables->touchboost = false;
 			rockchip_monitor_clear_boosted();
-			cpufreq_update_policy(cpu);
+			update_policy = true;
 		}
 
 		if (!tunables->is_touchboosted && tunables->touchboost) {
 			rockchip_monitor_set_boosted();
-			cpufreq_update_policy(cpu);
+			update_policy = true;
 		}
 
 		tunables->is_touchboosted = tunables->touchboost;
 
 		up_read(&icpu->enable_sem);
+		if (update_policy)
+			cpufreq_update_policy(cpu);
 #endif
 		policy = cpufreq_cpu_get(cpu);
 		if (!policy)
