@@ -489,15 +489,39 @@ static int rk3528_combphy_cfg(struct rockchip_combphy_priv *priv)
 			val |= 0x17d;
 			writel(val, priv->mmio + 0x100);
 		} else if (priv->mode == PHY_TYPE_PCIE) {
+			/* Set ssc_cnt[10:0]=00101111101 & 31.5KHz */
+			val = readl(priv->mmio + 0x100);
+			val &= ~GENMASK(10, 0);
+			val |= 0x17d;
+			writel(val, priv->mmio + 0x100);
+
 			/* tx_trim[14]=1, Enable the counting clock of the rterm detect */
 			val = readl(priv->mmio + 0x218);
 			val |= (1 << 14);
 			writel(val, priv->mmio + 0x218);
+
+			/* PLL KVCO tuning fine */
+			val = readl(priv->mmio + 0x18);
+			val &= ~(0x7 << 10);
+			val |= 0x2 << 10;
+			writel(val, priv->mmio + 0x18);
+
+			/* su_trim[6:4]=111, [10:7]=1001, [2:0]=000 */
+			val = readl(priv->mmio + 0x108);
+			val &= ~(0x7f7);
+			val |= 0x4f0;
+			writel(val, priv->mmio + 0x108);
 		}
 		break;
 	case 100000000:
 		param_write(priv->phy_grf, &cfg->pipe_clk_100m, true);
 		if (priv->mode == PHY_TYPE_PCIE) {
+			/* Set ssc_cnt[10:0]=11000110011 & 31.5KHz */
+			val = readl(priv->mmio + 0x100);
+			val &= ~GENMASK(10, 0);
+			val |= 0x633;
+			writel(val, priv->mmio + 0x100);
+
 			/* PLL KVCO tuning fine */
 			val = readl(priv->mmio + 0x18);
 			val &= ~(0x7 << 10);
