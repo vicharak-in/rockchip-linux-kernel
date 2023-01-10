@@ -11,13 +11,13 @@
 #include <linux/notifier.h>
 
 /*
-* max support panel size 2232x1680
+* max support panel size 2560x1920
 * ebc module display buf use 4bit per pixel
 * eink module display buf use 8bit per pixel
 * ebc module direct mode display buf use 2bit per pixel
 */
 #define EBC_FB_SIZE		0x200000 /* 2M */
-#define EINK_FB_SIZE		0x400000 /* 4M */
+#define EINK_FB_SIZE		0x500000 /* 5M */
 #define DIRECT_FB_SIZE		0x200000 /* 2M */
 #define LUT_TABLE_SIZE		0x100000 /* 1M */
 #define FRAME_COUNT_SIZE 0x500000 /* 5M */
