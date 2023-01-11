@@ -218,6 +218,7 @@
 		compatible = "regulator-fixed";
 		gpio = <&gpio4 RK_PA1 GPIO_ACTIVE_LOW>;
 		regulator-name = "vcc_sd";
+		regulator-boot-on;
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		vin-supply = <&vcc_3v3_s3>;
