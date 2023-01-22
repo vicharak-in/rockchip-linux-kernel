@@ -994,9 +994,8 @@ static int sprdwl_inetaddr_event(struct notifier_block *this,
 				if (entry->ctx_id == vif->ctx_id)
 					entry->ip_acquired = 1;
 				else
-					;
-					//wl_err("ctx_id(%d) mismatch\n",
-					//	   entry->ctx_id);
+					wl_err("ctx_id(%d) mismatch\n",
+						   entry->ctx_id);
 			} else {
 				wl_err("failed to find entry\n");
 			}
@@ -1089,7 +1088,12 @@ static void sprdwl_set_mac_addr(struct sprdwl_vif *vif, u8 *pending_addr,
 	if (is_valid_ether_addr(custom_mac)) {
 		ether_addr_copy(addr, custom_mac);
 	} else if (priv && is_valid_ether_addr(priv->mac_addr)) {
-		ether_addr_copy(addr, priv->mac_addr);
+		if (type == NL80211_IFTYPE_P2P_DEVICE) {
+			ether_addr_copy(addr, priv->mac_addr);
+		} else {
+			vif->ndev->addr_len = ETH_ALEN;
+			dev_addr_set(vif->ndev, priv->mac_addr);
+		}
 	} else if (pending_addr && is_valid_ether_addr(pending_addr)) {
 		ether_addr_copy(addr, pending_addr);
 	} else if (priv && is_valid_ether_addr(priv->default_mac)) {

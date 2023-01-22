@@ -83,8 +83,7 @@ enum marlin_wake_host_en {
 };
 
 enum marlin_cp2_status {
-	MARLIN_CP2_STS_READY = 0,
-	MARLIN_CP2_STS_ASSERTED = 1,
+	MARLIN_CP2_STS_ASSERTED = 0,
 };
 
 enum wcn_hw_type wcn_get_hw_if_type(void);

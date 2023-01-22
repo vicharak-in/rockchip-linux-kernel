@@ -237,13 +237,11 @@ u16 get_wmmac_admitted_time(u8 tsid);
 void reset_wmmac_parameters(struct sprdwl_priv *priv);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 void update_wmmac_edcaftime_timeout(struct timer_list *t);
-void update_wmmac_vo_timeout(struct timer_list *t);
-void update_wmmac_vi_timeout(struct timer_list *t);
 #else
 void update_wmmac_edcaftime_timeout(unsigned long data);
+#endif
 void update_wmmac_vo_timeout(unsigned long data);
 void update_wmmac_vi_timeout(unsigned long data);
-#endif
 unsigned int change_priority_if(struct sprdwl_priv *priv, unsigned char *tid, unsigned char *tos, u16 len);
 const u8 *get_wmm_ie(u8 *res, u16 ie_len, u8 ie, uint oui, uint oui_type);
 #endif

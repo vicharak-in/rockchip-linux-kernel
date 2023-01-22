@@ -530,9 +530,9 @@ void sprdwl_fc_add_share_credit(struct sprdwl_vif *vif)
 	tx_msg = (struct sprdwl_tx_msg *)intf->sprdwl_tx;
 	for (i = 0; i < MAX_COLOR_BIT; i++) {
 		if (tx_msg->flow_ctrl[i].mode == vif->mode) {
-			wl_err("%s, %d, mode:%d closed, index:%d, share it\n",
-				   __func__, __LINE__,
-				   vif->mode, i);
+			//wl_err("%s, %d, mode:%d closed, index:%d, share it\n",
+			//	   __func__, __LINE__,
+			//	   vif->mode, i);
 			tx_msg->flow_ctrl[i].mode = SPRDWL_MODE_NONE;
 			break;
 		}
@@ -1080,10 +1080,6 @@ int sprdwl_sdio_process_credit(void *pdev, void *data)
 
 	if (common->type == SPRDWL_TYPE_DATA_SPECIAL) {
 		int offset = (size_t)&((struct rx_msdu_desc *)0)->rsvd5;
-
-		if (intf->priv->hw_type == SPRDWL_HW_USB) {
-			return -2;
-		}
 
 		flow = data + offset;
 		goto out;

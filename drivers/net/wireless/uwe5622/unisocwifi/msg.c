@@ -169,7 +169,6 @@ struct sprdwl_msg_buf *sprdwl_get_msgbuf_by_data(void *data,
 	return find ? msg_buf : NULL;
 }
 
-#if defined(UWE5621_FTR)
 struct sprdwl_msg_buf *sprdwl_get_tail_msg_buf(struct sprdwl_msg_list *list)
 {
 	struct sprdwl_msg_buf *msg_buf = NULL;
@@ -181,5 +180,4 @@ struct sprdwl_msg_buf *sprdwl_get_tail_msg_buf(struct sprdwl_msg_list *list)
 	spin_unlock_bh(&list->busylock);
 	return msg_buf;
 }
-#endif
 

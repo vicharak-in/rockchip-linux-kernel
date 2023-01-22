@@ -538,20 +538,12 @@ static struct notifier_block boost_notifier = {
 extern struct sprdwl_priv *g_sprdwl_priv;
 extern void sprdwl_cancel_scan(struct sprdwl_vif *vif);
 extern void sprdwl_cancel_sched_scan(struct sprdwl_vif *vif);
-extern void sprdwl_flush_all_txlist(struct sprdwl_tx_msg *sprdwl_tx_dev);
-extern int sprdwl_cmd_init(void);
-extern void sprdwl_cmd_deinit(void);
-extern void sprdwl_net_flowcontrl(struct sprdwl_priv *priv,
-			   enum sprdwl_mode mode, bool state);
-extern void sprdwl_reg_notify(struct wiphy *wiphy, struct regulatory_request *request);
-struct work_struct wifi_rst_begin;
-struct work_struct wifi_rst_down;
 struct completion wifi_reset_ready;
+extern void sprdwl_net_flowcontrl(struct sprdwl_priv *priv, enum sprdwl_mode mode, bool state);
 extern struct sprdwl_cmd g_sprdwl_cmd;
 
-static void wifi_reset_wq(struct work_struct *work)
+static void sprdwl_wifi_reset(void)
 {
-	struct sprdwl_vif *vif, *tmp_vif;
 	struct sprdwl_intf *intf = NULL;
 	struct sprdwl_tx_msg *tx_msg = NULL;
 	struct sprdwl_rx_if *rx_if = NULL;
@@ -560,103 +552,38 @@ static void wifi_reset_wq(struct work_struct *work)
 	tx_msg = (void *)intf->sprdwl_tx;
 	rx_if = (struct sprdwl_rx_if *)intf->sprdwl_rx;
 
-	reinit_completion(&wifi_reset_ready);
-
 	wl_err("cp2 reset begin..........\n");
 	g_sprdwl_priv->sync.scan_not_allowed = true;
 	g_sprdwl_priv->sync.cmd_not_allowed = true;
 	intf->cp_asserted = 1;
-	sprdwl_reorder_init(&rx_if->ba_entry);
-	sprdwl_net_flowcontrl(g_sprdwl_priv, SPRDWL_MODE_NONE, false);
-	if (tx_msg->tx_thread)
+	intf->exit = 1;
+	if (tx_msg->tx_thread) {
 		tx_up(tx_msg);
-
-	sprdwl_flush_all_txlist(tx_msg);
-	flush_workqueue(rx_if->rx_queue);
-	list_for_each_entry_safe(vif, tmp_vif, &g_sprdwl_priv->vif_list, vif_node) {
-		g_sprdwl_priv->sync.fw_stat[vif->mode] =  g_sprdwl_priv->fw_stat[vif->mode];
-		g_sprdwl_priv->fw_stat[vif->mode] = SPRDWL_INTF_CLOSE;
-		sprdwl_report_disconnection(vif, true);
-		if (g_sprdwl_priv->scan_vif)
-			sprdwl_cancel_scan(g_sprdwl_priv->scan_vif);
-		if (g_sprdwl_priv->sched_scan_vif) {
-			sprdwl_sched_scan_done(g_sprdwl_priv->sched_scan_vif, true);
-			sprdwl_cancel_sched_scan(g_sprdwl_priv->sched_scan_vif);
-		}
+		kthread_stop(tx_msg->tx_thread);
+		tx_msg->tx_thread = NULL;
 	}
 
-	sprdwl_vendor_deinit(g_sprdwl_priv->wiphy);
-	sprdwl_cmd_wake_upall();
-	sprdwl_tcp_ack_deinit(g_sprdwl_priv);
-	sprdwl_intf_deinit(intf);
-	// sprdwl_cmd_deinit();
-	complete(&wifi_reset_ready);
 	wl_err("cp2 reset finish..........\n");
-
 }
 
-static void wifi_resume_wq(struct work_struct *work)
+static int wifi_exception_event(void)
 {
-	struct sprdwl_vif *vif, *tmp_vif;
-	struct sprdwl_intf *intf = NULL;
-	struct sprdwl_rx_if *rx_if = NULL;
-	wl_err("cp2 resume begin...............\n");
-
-	intf = (struct sprdwl_intf *)g_sprdwl_priv->hw_priv;
-	rx_if = (struct sprdwl_rx_if *)intf->sprdwl_rx;
-
-	wait_for_completion(&wifi_reset_ready);
-
-	sprdwl_intf_init(g_sprdwl_priv, intf);
-	// sprdwl_cmd_init();
-	wl_err("sprdwl cmd init finish.\n");
-	g_sprdwl_priv->sync.cmd_not_allowed = false;
-	intf->cp_asserted = 0;
-	sprdwl_net_flowcontrl(g_sprdwl_priv, SPRDWL_MODE_NONE, true);
-	sprdwl_reorder_init(&rx_if->ba_entry);
-	sprdwl_sync_version(g_sprdwl_priv);
-	sprdwl_download_ini(g_sprdwl_priv);
-	sprdwl_tcp_ack_init(g_sprdwl_priv);
-	sprdwl_get_fw_info(g_sprdwl_priv);
-	sprdwl_setup_wiphy(g_sprdwl_priv->wiphy, g_sprdwl_priv);
-	sprdwl_vendor_init(g_sprdwl_priv->wiphy);
-
-	sprdwl_reg_notify(g_sprdwl_priv->wiphy, &g_sprdwl_priv->sync.request);
-
-	list_for_each_entry_safe(vif, tmp_vif, &g_sprdwl_priv->vif_list, vif_node) {
-		if (SPRDWL_INTF_OPEN == g_sprdwl_priv->sync.fw_stat[vif->mode]) {
-			vif->mode = SPRDWL_MODE_NONE;
-			sprdwl_init_fw(vif);
-		}
-	}
-	g_sprdwl_priv->sync.scan_not_allowed = false;
-	wl_err("cp2 resume complete...............\n");
-}
-
-static void wifi_reset_init(void)
-{
-	INIT_WORK(&wifi_rst_begin, wifi_reset_wq);
-	INIT_WORK(&wifi_rst_down, wifi_resume_wq);
-	init_completion(&wifi_reset_ready);
-	return;
+	char *envp[2];
+	envp[0] = "CP2-EXCEPTION-EVENT";
+	envp[1] = NULL;
+	kobject_uevent_env(&sprdwl_dev->kobj, KOBJ_CHANGE, envp);
+	return 0;
 }
 
 int wifi_reset_callback(struct notifier_block *nb, unsigned long event, void *v)
 {
-	wl_info("%s[%d]: %s %d\n", __func__, __LINE__, (char *)v, (int)event);
-	switch (event) {
-	case 1:
-		schedule_work(&wifi_rst_begin);
-		break;
-	case 0:
-		schedule_work(&wifi_rst_down);
-		break;
-	}
-
+	sprdwl_wifi_reset();
+	wifi_exception_event();
 	return NOTIFY_OK;
 }
+
 static struct notifier_block wifi_reset_notifier = {
-	.notifier_call = wifi_reset_callback,
+    .notifier_call = wifi_reset_callback,
 };
 #endif
 
@@ -668,7 +595,6 @@ static int sprdwl_probe(struct platform_device *pdev)
 	u8 i;
 
 #ifdef CP2_RESET_SUPPORT
-	wifi_reset_init();
 	marlin_reset_callback_register(MARLIN_WIFI, &wifi_reset_notifier);
 #endif
 
@@ -765,7 +691,6 @@ static int sprdwl_probe(struct platform_device *pdev)
 	return ret;
 
 err_core_init:
-	sprdwl_bus_deinit();
 	sprdwl_tx_deinit(intf);
 err_tx_init:
 	sprdwl_rx_deinit(intf);
@@ -791,7 +716,6 @@ static int sprdwl_remove(struct platform_device *pdev)
 	cpufreq_unregister_notifier(&boost_notifier, CPUFREQ_POLICY_NOTIFIER);
 	sprdwl_debugfs_deinit();
 	sprdwl_core_deinit(priv);
-	sprdwl_bus_deinit();
 	sprdwl_tx_deinit(intf);
 	sprdwl_rx_deinit(intf);
 	sprdwl_intf_deinit(intf);

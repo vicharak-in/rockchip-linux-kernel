@@ -117,6 +117,7 @@ void mdbg_ring_destroy(struct mdbg_ring_t *ring)
 		}
 		MDBG_LOG("to free ring.");
 		kfree(ring);
+		ring = NULL;
 	}
 }
 

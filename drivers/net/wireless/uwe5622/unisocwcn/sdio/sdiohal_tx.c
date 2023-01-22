@@ -141,7 +141,7 @@ int sdiohal_tx_thread(void *data)
 	static int times_count;
 
 	param.sched_priority = SDIO_TX_TASK_PRIO;
-	sched_set_fifo_low(current);
+	sched_setscheduler(current, SCHED_FIFO, &param);
 
 	while (1) {
 		/* Wait the semaphore */

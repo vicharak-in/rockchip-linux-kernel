@@ -1725,20 +1725,6 @@ static int sprdwl_cfg80211_sched_scan_stop(struct wiphy *wiphy,
 #ifdef SYNC_DISCONNECT
 void sprdwl_disconnect_handle(struct sprdwl_vif *vif)
 {
-	u16 reason_code = 0;
-	if ((vif->sm_state == SPRDWL_CONNECTED) ||
-			(vif->sm_state == SPRDWL_DISCONNECTING)) {
-		cfg80211_disconnected(vif->ndev, reason_code,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 83)
-			NULL, 0, true, GFP_KERNEL);
-#else
-			NULL, 0, GFP_KERNEL);
-#endif
-		wl_ndev_log(L_DBG, vif->ndev,
-			"%s %s, reason_code %d\n", __func__,
-			vif->ssid, reason_code);
-	}
-
 	vif->sm_state = SPRDWL_DISCONNECTED;
 
 	/* Clear bssid & ssid */
@@ -1788,19 +1774,17 @@ static int sprdwl_cfg80211_disconnect(struct wiphy *wiphy,
 		goto out;
 	}
 #ifdef SYNC_DISCONNECT
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 60)
 	if (!sprdwl_sync_disconnect_event(vif, msecs_to_jiffies(1000))) {
 		kt = ktime_get();
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
-		msec = (u32)(div_u64(kt, NSEC_PER_MSEC));
-#else
 		msec = (u32)(div_u64(kt.tv64, NSEC_PER_MSEC));
-#endif
 		wl_err("Wait disconnect event timeout. [mstime = %d]\n",
-			   cpu_to_le32(msec));
+		       cpu_to_le32(msec));
 	} else {
 		sprdwl_disconnect_handle(vif);
 	}
 	atomic_set(&vif->sync_disconnect_event, 0);
+#endif
 #endif
 	trace_deauth_reason(vif->mode, reason_code, LOCAL_EVENT);
 out:
@@ -2253,9 +2237,8 @@ void sprdwl_report_scan_result(struct sprdwl_vif *vif, u16 chan, s16 rssi,
 				  ie, ielen, signal, GFP_KERNEL);
 
 	if (unlikely(!bss))
-		;
-		//wl_ndev_log(L_ERR, vif->ndev,
-		//	   "%s failed to inform bss frame!\n", __func__);
+		wl_ndev_log(L_ERR, vif->ndev,
+			   "%s failed to inform bss frame!\n", __func__);
 	cfg80211_put_bss(wiphy, bss);
 
 	/*check log mac flag and call report fake probe*/
@@ -2386,11 +2369,10 @@ void sprdwl_report_connection(struct sprdwl_vif *vif,
 					  mgmt->bssid, tsf,
 					  capability, beacon_interval,
 					  ie, ielen, conn_info->signal, GFP_KERNEL);
-		if (unlikely(!bss))
-			;
-			//wl_ndev_log(L_ERR, vif->ndev,
-			//	   "%s failed to inform bss frame!\n",
-			//	   __func__);
+		//if (unlikely(!bss))
+		//	wl_ndev_log(L_ERR, vif->ndev,
+		//		   "%s failed to inform bss frame!\n",
+		//		   __func__);
 	} else {
 		wl_ndev_log(L_ERR, vif->ndev, "%s No Beason IE!\n", __func__);
 	}
@@ -2706,9 +2688,24 @@ static int sprdwl_cfg80211_mgmt_tx(struct wiphy *wiphy,
 	/* send tx mgmt */
 	if (len > 0) {
 		ret = sprdwl_tx_mgmt(vif->priv, vif->ctx_id,
-					 ieee80211_frequency_to_channel
-					 (chan->center_freq), dont_wait_for_ack,
-					 wait, cookie, buf, len);
+				     ieee80211_frequency_to_channel
+				     (chan->center_freq), dont_wait_for_ack,
+				     wait, cookie, buf, len);
+
+		if (ret == 0 && len == 217 && (chan->center_freq == 2412 || chan->center_freq == 5200)) {
+			int type = ((*buf) & IEEE80211_FCTL_FTYPE) >> 2;
+			int subtype = ((*buf) & IEEE80211_FCTL_STYPE) >> 4;
+			int action = *(buf + MAC_LEN);
+			int action_subtype = *(buf + ACTION_SUBTYPE_OFFSET);
+			if (type == IEEE80211_FTYPE_MGMT && subtype == ACTION_TYPE &&
+				action == PUB_ACTION && action_subtype == 1 &&
+				buf[4] == 0x00 && buf[5] == 0x01 && buf[6] == 0x02 &&
+				buf[7] == 0x03 && buf[8] == 0x04 && buf[9] == 0x05) {
+				printk("sprdwl: %s(%d), DPP Frame Received\n", __func__, __LINE__);
+				cfg80211_mgmt_tx_status(wdev, *cookie, buf, len, 0, GFP_KERNEL);
+			}
+		}
+
 		if (ret)
 			if (!dont_wait_for_ack)
 				cfg80211_mgmt_tx_status(wdev, *cookie, buf, len,
@@ -3114,7 +3111,7 @@ static int sprdwl_cfg80211_set_mac_acl(struct wiphy *wiphy,
 	unsigned char *mac_addr = NULL;
 
 	if (!acl || !acl->n_acl_entries) {
-		//wl_ndev_log(L_ERR, ndev, "%s no ACL data\n", __func__);
+		wl_ndev_log(L_ERR, ndev, "%s no ACL data\n", __func__);
 		return 0;
 	}
 

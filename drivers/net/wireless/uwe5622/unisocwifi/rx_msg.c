@@ -384,9 +384,6 @@ int sprdwl_pkt_log_save(struct sprdwl_intf *intf, void *data)
 {
 	int i, j, temp, data_len, pkt_line_num,
 		temp_pkt_line_num, pkt_len, m = 0;
-#ifdef setfs
-	mm_segment_t fs;
-#endif
 	/*for pkt log space key and enter key*/
 	char temp_space, temp_enter;
 	/*for pkt log txt line number and write pkt log into file*/
@@ -399,10 +396,6 @@ int sprdwl_pkt_log_save(struct sprdwl_intf *intf, void *data)
 		wl_err("file create/open fail %s, %d\n", __func__, __LINE__);
 		return 1;
 	}
-#ifdef setfs
-	fs = get_fs();
-	set_fs(KERNEL_DS);
-#endif
 	pkt_len = ((struct sprdwl_pktlog_hdr *)(data))->plen;
 	data += sizeof(struct sprdwl_pktlog_hdr);
 	while (m < pkt_len) {
@@ -449,9 +442,6 @@ int sprdwl_pkt_log_save(struct sprdwl_intf *intf, void *data)
 		memset(temphdr, 0x00, 6);
 	}
 	filp_close(intf->pfile, NULL);
-#ifdef setfs
-	set_fs(fs);
-#endif
 	return 0;
 }
 

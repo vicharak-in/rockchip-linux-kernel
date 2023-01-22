@@ -344,3 +344,7 @@ int wcn_usb_dinit(void)
 	if (!this->download)
 		wcn_usb_dp("%s create file[download] failed\n", __func__);
 
+	ddthis = this;
+	return 0;
+}
+

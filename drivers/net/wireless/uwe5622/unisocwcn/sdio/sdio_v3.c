@@ -128,9 +128,9 @@ static void sdio_remove_card(void)
 static void sdiohal_cp_allow_sleep(enum slp_subsys subsys)
 {
 #ifdef CONFIG_WCN_SLP
-#ifdef CONFIG_CPLOG_DEBUG
-	sdiohal_info("%s entry\n", __func__);
-#endif
+//#ifdef CONFIG_CPLOG_DEBUG
+//	sdiohal_info("%s entry\n", __func__);
+//#endif
 	slp_mgr_drv_sleep(subsys, true);
 #endif
 }
@@ -138,9 +138,9 @@ static void sdiohal_cp_allow_sleep(enum slp_subsys subsys)
 static void sdiohal_cp_sleep_wakeup(enum slp_subsys subsys)
 {
 #ifdef CONFIG_WCN_SLP
-#ifdef CONFIG_CPLOG_DEBUG
-	sdiohal_info("%s entry\n", __func__);
-#endif
+//#ifdef CONFIG_CPLOG_DEBUG
+//	sdiohal_info("%s entry\n", __func__);
+//#endif
 	slp_mgr_drv_sleep(subsys, false);
 	slp_mgr_wakeup(subsys);
 #endif

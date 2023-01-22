@@ -62,7 +62,7 @@ extern long int sdiohal_log_level;
 	} while (0)
 #define sdiohal_pr_perf(fmt, args...) \
 	do { if (sdiohal_log_level & SDIOHAL_PERF_LEVEL) \
-		trace_printk(fmt, ## args); \
+		printk(fmt, ## args); \
 	} while (0)
 #else
 #define sdiohal_normal(fmt, args...)

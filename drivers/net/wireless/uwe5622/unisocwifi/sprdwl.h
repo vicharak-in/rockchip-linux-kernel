@@ -176,8 +176,6 @@ struct wmm_params_element {
 struct sprdwl_wmmac_params {
 	struct wmm_ac_params ac[4];
 	struct timer_list wmmac_edcaf_timer;
-	struct timer_list wmmac_vo_timer;
-	struct timer_list wmmac_vi_timer;
 };
 #endif
 

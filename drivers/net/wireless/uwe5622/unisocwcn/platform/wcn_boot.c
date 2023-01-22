@@ -92,7 +92,7 @@ struct gpio_config {
 };
 #endif
 
-#define WCN_FW_MAX_PATH_NUM	3
+#define WCN_FW_MAX_PATH_NUM	4
 /* path of cp2 firmware. */
 #ifdef CONFIG_CUSTOMIZE_UNISOC_FW_PATH
 #define UNISOC_FW_PATH_DEFAULT CONFIG_CUSTOMIZE_UNISOC_FW_PATH
@@ -2318,7 +2318,7 @@ static int marlin_start_run(void)
 	return ret;
 }
 
-#if IS_ENABLED(CONFIG_AW_BIND_VERIFY)
+//#if IS_ENABLED(CONFIG_AW_BIND_VERIFY)
 #include <crypto/sha2.h>
 
 static void expand_seed(u8 *seed, u8 *out)
@@ -2424,7 +2424,7 @@ static int marlin_bind_verify(void)
 
 	return ret;
 }
-#endif
+//#endif
 
 static int check_cp_ready(void)
 {
@@ -2449,7 +2449,7 @@ static int check_cp_ready(void)
 				marlin_dev->sync_f.prj_type);
 		if (marlin_dev->sync_f.init_status == SYNC_ALL_FINISHED)
 			i = 0;
-#if IS_ENABLED(CONFIG_AW_BIND_VERIFY)
+//#ifdef CONFIG_AW_BIND_VERIFY
 		else if (marlin_dev->sync_f.init_status ==
 			SYNC_VERIFY_WAITING) {
 			ret = marlin_bind_verify();
@@ -2459,7 +2459,7 @@ static int check_cp_ready(void)
 				return ret;
 			}
 		}
-#endif
+//#endif
 		else
 			msleep(20);
 		if (i > 10)
