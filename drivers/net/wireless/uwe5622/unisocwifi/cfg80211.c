@@ -703,7 +703,7 @@ static int sprdwl_add_cipher_key(struct sprdwl_vif *vif, bool pairwise,
 }
 
 static int sprdwl_cfg80211_add_key(struct wiphy *wiphy, struct net_device *ndev,
-				   u8 key_index, bool pairwise,
+				   int link_id, u8 key_index, bool pairwise,
 				   const u8 *mac_addr,
 				   struct key_params *params)
 {
@@ -725,7 +725,7 @@ static int sprdwl_cfg80211_add_key(struct wiphy *wiphy, struct net_device *ndev,
 }
 
 static int sprdwl_cfg80211_del_key(struct wiphy *wiphy, struct net_device *ndev,
-				   u8 key_index, bool pairwise,
+				   int link_id, u8 key_index, bool pairwise,
 				   const u8 *mac_addr)
 {
 	struct sprdwl_vif *vif = netdev_priv(ndev);
@@ -755,7 +755,7 @@ static int sprdwl_cfg80211_del_key(struct wiphy *wiphy, struct net_device *ndev,
 
 static int sprdwl_cfg80211_set_default_key(struct wiphy *wiphy,
 					   struct net_device *ndev,
-					   u8 key_index, bool unicast,
+					   int link_id, u8 key_index, bool unicast,
 					   bool multicast)
 {
 	struct sprdwl_vif *vif = netdev_priv(ndev);
@@ -2405,7 +2405,7 @@ void sprdwl_report_connection(struct sprdwl_vif *vif,
 		 conn_info->status == SPRDWL_ROAM_SUCCESS){
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
 		struct cfg80211_roam_info roam_info = {
-			.bss = bss,
+			.links[0].bss = bss,
 			.req_ie = conn_info->req_ie,
 			.req_ie_len = conn_info->req_ie_len,
 			.resp_ie = conn_info->resp_ie,
