@@ -92,6 +92,12 @@
 
 /* HCI device quirks */
 enum {
+	/*
+	 * Device declares that support Park link status, but it really
+	 * does not support it and fails to initialize
+	 */
+	HCI_QUIRK_BROKEN_PARK_LINK_STATUS,
+
 	/* When this quirk is set, the HCI Reset command is send when
 	 * closing the transport instead of when opening it.
 	 *
