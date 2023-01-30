@@ -30,7 +30,7 @@ config WIFI_GENERATE_RANDOM_MAC_ADDR
 
 menuconfig BCMDHD
 	bool "Broadcom Wireless Device Driver Support"
-	default y
+	default n
 
 if BCMDHD
 source "drivers/net/wireless/rockchip_wlan/rkwifi/Kconfig"
