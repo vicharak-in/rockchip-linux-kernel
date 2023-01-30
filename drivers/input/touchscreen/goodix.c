@@ -29,6 +29,8 @@
 #include <linux/of.h>
 #include <asm/unaligned.h>
 
+#include "goodix.h"
+
 #define GOODIX_GPIO_INT_NAME		"irq"
 #define GOODIX_GPIO_RST_NAME		"reset"
 
@@ -63,26 +65,12 @@
 #define MAX_CONTACTS_LOC	5
 #define TRIGGER_LOC		6
 
+#define POLL_INTERVAL_MS		17	/* 17ms = 60fps */
+
 /* Our special handling for GPIO accesses through ACPI is x86 specific */
 #if defined CONFIG_X86 && defined CONFIG_ACPI
 #define ACPI_GPIO_SUPPORT
 #endif
-
-struct goodix_ts_data;
-
-enum goodix_irq_pin_access_method {
-	IRQ_PIN_ACCESS_NONE,
-	IRQ_PIN_ACCESS_GPIO,
-	IRQ_PIN_ACCESS_ACPI_GPIO,
-	IRQ_PIN_ACCESS_ACPI_METHOD,
-};
-
-struct goodix_chip_data {
-	u16 config_addr;
-	int config_len;
-	int (*check_config)(struct goodix_ts_data *ts, const u8 *cfg, int len);
-	void (*calc_config_checksum)(struct goodix_ts_data *ts);
-};
 
 struct goodix_chip_id {
 	const char *id;
@@ -90,32 +78,6 @@ struct goodix_chip_id {
 };
 
 #define GOODIX_ID_MAX_LEN	4
-
-struct goodix_ts_data {
-	struct i2c_client *client;
-	struct input_dev *input_dev;
-	const struct goodix_chip_data *chip;
-	struct touchscreen_properties prop;
-	unsigned int max_touch_num;
-	unsigned int int_trigger_type;
-	struct regulator *avdd28;
-	struct regulator *vddio;
-	struct gpio_desc *gpiod_int;
-	struct gpio_desc *gpiod_rst;
-	int gpio_count;
-	int gpio_int_idx;
-	char id[GOODIX_ID_MAX_LEN + 1];
-	u16 version;
-	const char *cfg_name;
-	bool reset_controller_at_probe;
-	bool load_cfg_from_disk;
-	struct completion firmware_loading_complete;
-	unsigned long irq_flags;
-	enum goodix_irq_pin_access_method irq_pin_access_method;
-	unsigned int contact_size;
-	u8 config[GOODIX_CONFIG_MAX_LENGTH];
-	unsigned short keymap[GOODIX_MAX_KEYS];
-};
 
 static int goodix_check_cfg_8(struct goodix_ts_data *ts,
 			      const u8 *cfg, int len);
@@ -217,7 +179,7 @@ static const struct dmi_system_id inverted_x_screen[] = {
  * @buf: raw write data buffer.
  * @len: length of the buffer to write
  */
-static int goodix_i2c_read(struct i2c_client *client,
+int goodix_i2c_read(struct i2c_client *client,
 			   u16 reg, u8 *buf, int len)
 {
 	struct i2c_msg msgs[2];
@@ -246,8 +208,7 @@ static int goodix_i2c_read(struct i2c_client *client,
  * @buf: raw data buffer to write.
  * @len: length of the buffer to write
  */
-static int goodix_i2c_write(struct i2c_client *client, u16 reg, const u8 *buf,
-			    unsigned len)
+int goodix_i2c_write(struct i2c_client *client, u16 reg, const u8 *buf, int len)
 {
 	u8 *addr_buf;
 	struct i2c_msg msg;
@@ -271,7 +232,7 @@ static int goodix_i2c_write(struct i2c_client *client, u16 reg, const u8 *buf,
 	return ret < 0 ? ret : (ret != 1 ? -EIO : 0);
 }
 
-static int goodix_i2c_write_u8(struct i2c_client *client, u16 reg, u8 value)
+int goodix_i2c_write_u8(struct i2c_client *client, u16 reg, u8 value)
 {
 	return goodix_i2c_write(client, reg, &value, sizeof(value));
 }
@@ -444,16 +405,67 @@ static irqreturn_t goodix_ts_irq_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+static void goodix_ts_irq_poll_timer(struct timer_list *t)
+{
+	struct goodix_ts_data *ts = from_timer(ts, t, timer);
+
+	schedule_work(&ts->work_i2c_poll);
+	mod_timer(&ts->timer, jiffies + msecs_to_jiffies(POLL_INTERVAL_MS));
+}
+
+static void goodix_ts_work_i2c_poll(struct work_struct *work)
+{
+	struct goodix_ts_data *ts = container_of(work,
+			struct goodix_ts_data, work_i2c_poll);
+
+	goodix_process_events(ts);
+	goodix_i2c_write_u8(ts->client, GOODIX_READ_COOR_ADDR, 0);
+}
+
+static void goodix_enable_irq(struct goodix_ts_data *ts)
+{
+	if (ts->client->irq) {
+		enable_irq(ts->client->irq);
+	} else {
+		ts->timer.expires = jiffies + msecs_to_jiffies(POLL_INTERVAL_MS);
+		add_timer(&ts->timer);
+	}
+}
+
+static void goodix_disable_irq(struct goodix_ts_data *ts)
+{
+	if (ts->client->irq) {
+		disable_irq(ts->client->irq);
+	} else {
+		del_timer(&ts->timer);
+		cancel_work_sync(&ts->work_i2c_poll);
+	}
+}
+
 static void goodix_free_irq(struct goodix_ts_data *ts)
 {
-	devm_free_irq(&ts->client->dev, ts->client->irq, ts);
+	if (ts->client->irq) {
+		devm_free_irq(&ts->client->dev, ts->client->irq, ts);
+	} else {
+		del_timer(&ts->timer);
+		cancel_work_sync(&ts->work_i2c_poll);
+	}
 }
 
 static int goodix_request_irq(struct goodix_ts_data *ts)
 {
-	return devm_request_threaded_irq(&ts->client->dev, ts->client->irq,
-					 NULL, goodix_ts_irq_handler,
-					 ts->irq_flags, ts->client->name, ts);
+	if (ts->client->irq) {
+		return devm_request_threaded_irq(&ts->client->dev, ts->client->irq,
+						 NULL, goodix_ts_irq_handler,
+						 ts->irq_flags, ts->client->name, ts);
+	} else {
+		INIT_WORK(&ts->work_i2c_poll,
+			  goodix_ts_work_i2c_poll);
+		timer_setup(&ts->timer, goodix_ts_irq_poll_timer, 0);
+		if (ts->irq_pin_access_method == IRQ_PIN_ACCESS_NONE)
+			goodix_enable_irq(ts);
+		return 0;
+	}
 }
 
 static int goodix_check_cfg_8(struct goodix_ts_data *ts, const u8 *cfg, int len)
@@ -553,7 +565,7 @@ static int goodix_check_cfg(struct goodix_ts_data *ts, const u8 *cfg, int len)
  * @ts: goodix_ts_data pointer
  * @cfg: config firmware to write to device
  */
-static int goodix_send_cfg(struct goodix_ts_data *ts, const u8 *cfg, int len)
+int goodix_send_cfg(struct goodix_ts_data *ts, const u8 *cfg, int len)
 {
 	int error;
 
@@ -651,7 +663,7 @@ static int goodix_irq_direction_input(struct goodix_ts_data *ts)
 	return -EINVAL; /* Never reached */
 }
 
-static int goodix_int_sync(struct goodix_ts_data *ts)
+int goodix_int_sync(struct goodix_ts_data *ts)
 {
 	int error;
 
@@ -1272,6 +1284,11 @@ static int goodix_ts_remove(struct i2c_client *client)
 {
 	struct goodix_ts_data *ts = i2c_get_clientdata(client);
 
+	if (!client->irq) {
+		del_timer(&ts->timer);
+		cancel_work_sync(&ts->work_i2c_poll);
+	}
+
 	if (ts->load_cfg_from_disk)
 		wait_for_completion(&ts->firmware_loading_complete);
 
@@ -1289,7 +1306,7 @@ static int __maybe_unused goodix_suspend(struct device *dev)
 
 	/* We need gpio pins to suspend/resume */
 	if (ts->irq_pin_access_method == IRQ_PIN_ACCESS_NONE) {
-		disable_irq(client->irq);
+		goodix_disable_irq(ts);
 		return 0;
 	}
 
@@ -1331,7 +1348,7 @@ static int __maybe_unused goodix_resume(struct device *dev)
 	int error;
 
 	if (ts->irq_pin_access_method == IRQ_PIN_ACCESS_NONE) {
-		enable_irq(client->irq);
+		goodix_enable_irq(ts);
 		return 0;
 	}
 
