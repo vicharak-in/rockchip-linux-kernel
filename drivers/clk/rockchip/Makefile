@@ -32,3 +32,5 @@ obj-$(CONFIG_CPU_RK3568)	+= clk-rk3568.o
 obj-$(CONFIG_CPU_RK3399)	+= clk-rk3399.o
 
 obj-$(CONFIG_COMMON_CLK_ROCKCHIP_REGMAP)	+= regmap/
+
+obj-$(CONFIG_ROCKCHIP_CLK_OUT)  += clk-out.o
