@@ -1382,6 +1382,7 @@ static void hdmi_video_packetize(struct dw_hdmi *hdmi)
 		  HDMI_VP_CONF_BYPASS_SELECT_MASK, HDMI_VP_CONF);
 
 	hdmi_modb(hdmi, 0, HDMI_VP_STUFF_IDEFAULT_PHASE_MASK, HDMI_VP_STUFF);
+	hdmi_writeb(hdmi, remap_size, HDMI_VP_REMAP);
 
 	if (output_select == HDMI_VP_CONF_OUTPUT_SELECTOR_PP) {
 		vp_conf = HDMI_VP_CONF_BYPASS_EN_DISABLE |
