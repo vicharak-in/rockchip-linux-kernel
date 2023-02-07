@@ -766,7 +766,6 @@ static int rockchip_spi_slave_abort(struct spi_controller *ctlr)
 				*(u16 *)rs->rx = (u16)rxw;
 			rs->rx += rs->n_bytes;
 		}
-
 		rs->xfer->len = (unsigned int)(rs->rx - rs->xfer->rx_buf);
 	}
 
