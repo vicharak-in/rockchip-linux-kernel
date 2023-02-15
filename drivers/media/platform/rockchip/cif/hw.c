@@ -1039,6 +1039,7 @@ static int rkcif_plat_hw_probe(struct platform_device *pdev)
 	rkcif_hw_soft_reset(cif_hw, true);
 
 	mutex_init(&cif_hw->dev_lock);
+	spin_lock_init(&cif_hw->spin_lock);
 
 	pm_runtime_enable(&pdev->dev);
 	rkcif_init_reset_timer(cif_hw);

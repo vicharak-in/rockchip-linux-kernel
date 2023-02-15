@@ -116,6 +116,8 @@ struct rkcif_hw {
 	struct mutex			dev_lock;
 	struct rkcif_hw_timer		hw_timer;
 	struct rkcif_reset_info		reset_info;
+	spinlock_t			spin_lock;
+	bool				reset_work_cancel;
 };
 
 void rkcif_hw_soft_reset(struct rkcif_hw *cif_hw, bool is_rst_iommu);
