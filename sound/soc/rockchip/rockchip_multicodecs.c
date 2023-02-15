@@ -433,9 +433,17 @@ static int rk_dailink_init(struct snd_soc_pcm_runtime *rtd)
 	mc_data->jack_headset = jack_headset;
 
 	if (mc_data->codec_hp_det) {
-		struct snd_soc_component *component = rtd->codec_dai->component;
+		struct snd_soc_dai *codec_dai;
+		int i;
 
-		snd_soc_component_set_jack(component, jack_headset, NULL);
+		/* set jack for the first successful one */
+		for (i = 0; i < rtd->num_codecs; i++) {
+			codec_dai = rtd->codec_dais[i];
+			ret = snd_soc_component_set_jack(codec_dai->component,
+							 jack_headset, NULL);
+			if (ret >= 0)
+				break;
+		}
 	} else {
 		irq = gpiod_to_irq(mc_data->hp_det_gpio);
 		if (irq >= 0) {
