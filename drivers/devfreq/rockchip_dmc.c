@@ -1947,6 +1947,9 @@ static const struct of_device_id rockchip_dmcfreq_of_match[] = {
 #ifdef CONFIG_CPU_RK3399
 	{ .compatible = "rockchip,rk3399-dmc", .data = rk3399_dmc_init },
 #endif
+#ifdef CONFIG_CPU_RK3528
+	{ .compatible = "rockchip,rk3528-dmc", .data = NULL },
+#endif
 #ifdef CONFIG_CPU_RK3568
 	{ .compatible = "rockchip,rk3568-dmc", .data = rk3568_dmc_init },
 #endif
