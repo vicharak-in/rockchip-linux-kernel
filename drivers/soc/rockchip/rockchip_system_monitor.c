@@ -783,6 +783,8 @@ int rockchip_monitor_dev_low_temp_adjust(struct monitor_dev_info *info,
 	if (info->devp && info->devp->data) {
 		df = (struct devfreq *)info->devp->data;
 		rockchip_monitor_update_devfreq(df);
+	} else if (info->devp && info->devp->low_temp_adjust_volt) {
+		info->devp->low_temp_adjust_volt(info);
 	}
 
 	return 0;
@@ -1139,7 +1141,7 @@ rockchip_system_monitor_register(struct device *dev,
 
 	monitor_set_freq_table(dev, info);
 
-	if (info->devp->type == MONITOR_TPYE_DEV) {
+	if (info->devp->type == MONITOR_TPYE_DEV && info->devp->data) {
 		info->devfreq_nb.notifier_call =
 			system_monitor_devfreq_notifier_call;
 		devfreq = (struct devfreq *)info->devp->data;
@@ -1173,11 +1175,12 @@ void rockchip_system_monitor_unregister(struct monitor_dev_info *info)
 	list_del(&info->node);
 	up_write(&mdev_list_sem);
 
-	devfreq = (struct devfreq *)info->devp->data;
-	if (info->devp->type == MONITOR_TPYE_DEV)
+	if (info->devp->type == MONITOR_TPYE_DEV && info->devp->data) {
+		devfreq = (struct devfreq *)info->devp->data;
 		devm_devfreq_unregister_notifier(info->dev, devfreq,
 						 &info->devfreq_nb,
 						 DEVFREQ_TRANSITION_NOTIFIER);
+	}
 
 	kfree(info->low_temp_adjust_table);
 	kfree(info->opp_table);

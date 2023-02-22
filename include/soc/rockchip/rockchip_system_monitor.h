@@ -109,6 +109,7 @@ struct monitor_dev_info {
 struct monitor_dev_profile {
 	enum monitor_dev_type type;
 	void *data;
+	int (*low_temp_adjust_volt)(struct monitor_dev_info *info);
 	int (*low_temp_adjust)(struct monitor_dev_info *info, bool is_low);
 	int (*high_temp_adjust)(struct monitor_dev_info *info, bool is_low);
 	struct cpumask allowed_cpus;
