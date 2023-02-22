@@ -2989,8 +2989,16 @@ static int rockchip_dmcfreq_add_devfreq(struct rockchip_dmcfreq *dmcfreq)
 	return 0;
 }
 
+static int rockchip_dmcfreq_low_temp_adjust_volt(struct monitor_dev_info *mdev_info)
+{
+	struct rockchip_dmcfreq *dmcfreq = dev_get_drvdata(mdev_info->dev);
+
+	return rockchip_dmcfreq_set_volt_only(dmcfreq);
+}
+
 static struct monitor_dev_profile dmc_mdevp = {
 	.type = MONITOR_TPYE_DEV,
+	.low_temp_adjust_volt = rockchip_dmcfreq_low_temp_adjust_volt,
 	.low_temp_adjust = rockchip_monitor_dev_low_temp_adjust,
 	.high_temp_adjust = rockchip_monitor_dev_high_temp_adjust,
 };
@@ -2999,14 +3007,15 @@ static void rockchip_dmcfreq_register_notifier(struct rockchip_dmcfreq *dmcfreq)
 {
 	int ret;
 
-	if (vop_register_dmc())
-		dev_err(dmcfreq->dev, "fail to register notify to vop.\n");
+	if (dmcfreq->system_status_en || dmcfreq->auto_freq_en) {
+		if (vop_register_dmc())
+			dev_err(dmcfreq->dev, "fail to register notify to vop.\n");
 
-	dmcfreq->status_nb.notifier_call =
-		rockchip_dmcfreq_system_status_notifier;
-	ret = rockchip_register_system_status_notifier(&dmcfreq->status_nb);
-	if (ret)
-		dev_err(dmcfreq->dev, "failed to register system_status nb\n");
+		dmcfreq->status_nb.notifier_call = rockchip_dmcfreq_system_status_notifier;
+		ret = rockchip_register_system_status_notifier(&dmcfreq->status_nb);
+		if (ret)
+			dev_err(dmcfreq->dev, "failed to register system_status nb\n");
+	}
 
 	dmc_mdevp.data = dmcfreq->devfreq;
 	dmcfreq->mdev_info = rockchip_system_monitor_register(dmcfreq->dev,
@@ -3290,14 +3299,15 @@ static int rockchip_dmcfreq_probe(struct platform_device *pdev)
 		return ret;
 
 	rockchip_dmcfreq_parse_dt(data);
+	platform_set_drvdata(pdev, data);
 	if (!data->system_status_en && !data->auto_freq_en) {
 		dev_info(dev, "don't add devfreq feature\n");
+		rockchip_dmcfreq_register_notifier(data);
 		return rockchip_dmcfreq_set_volt_only(data);
 	}
 
 	pm_qos_add_request(&pm_qos, PM_QOS_CPU_DMA_LATENCY,
 			   PM_QOS_DEFAULT_VALUE);
-	platform_set_drvdata(pdev, data);
 
 	ret = devfreq_add_governor(&devfreq_dmc_ondemand);
 	if (ret)
