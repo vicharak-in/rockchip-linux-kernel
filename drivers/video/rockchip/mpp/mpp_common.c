@@ -496,6 +496,11 @@ static void mpp_task_timeout_work(struct work_struct *work_s)
 
 	mpp_task_dump_timing(task, ktime_us_delta(ktime_get(), task->on_create));
 
+	/* disable core irq */
+	disable_irq(mpp->irq);
+	/* disable mmu irq */
+	mpp_iommu_disable_irq(mpp->iommu_info);
+
 	/* hardware maybe dead, reset it */
 	mpp_reset_up_read(mpp->reset_group);
 	mpp_dev_reset(mpp);
@@ -508,6 +513,12 @@ static void mpp_task_timeout_work(struct work_struct *work_s)
 	/* remove task from taskqueue running list */
 	set_bit(TASK_STATE_TIMEOUT, &task->state);
 	mpp_taskqueue_pop_running(mpp->queue, task);
+
+	/* enable core irq */
+	enable_irq(mpp->irq);
+	/* enable mmu irq */
+	mpp_iommu_enable_irq(mpp->iommu_info);
+
 	mpp_taskqueue_trigger_work(mpp);
 }
 
