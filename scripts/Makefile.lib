@@ -429,10 +429,7 @@ endef
 $(obj)/%.dtb: $(src)/%.dts $(DTC) $(DT_TMP_SCHEMA) FORCE
 	$(call if_changed_rule,dtc)
 
-$(obj)/%.dtbo: $(src)/%.dts $(DTC) FORCE
-	$(call if_changed_dep,dtc)
-
-$(obj)/%.dtbo.disabled: $(src)/%.dts $(DTC) FORCE
+$(obj)/%.dtbo.disabled: $(src)/%.dtso $(DTC) FORCE
 	$(call if_changed_dep,dtc)
 
 $(obj)/%.dtbo: $(src)/%.dtso $(DTC) FORCE
