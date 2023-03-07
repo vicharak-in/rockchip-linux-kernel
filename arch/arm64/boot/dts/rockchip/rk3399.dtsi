@@ -2313,6 +2313,29 @@
 		reg = <0x0 0xffa8f800 0x0 0x400>;
 	};
 
+	cci: cci@ffb00000 {
+		compatible = "arm,cci-500";
+		reg = <0x0 0xffb00000 0x0 0x10000>;
+		ranges = <0x0 0x0 0xffb00000 0xa0000>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		status = "disabled";
+
+		cci_pmu: pmu@10000 {
+			compatible = "arm,cci-500-pmu,r0";
+			reg = <0x10000 0x80000>;
+			interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH 0>,
+				     <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH 0>,
+				     <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH 0>,
+				     <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH 0>,
+				     <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH 0>,
+				     <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH 0>,
+				     <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH 0>,
+				     <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH 0>;
+			status = "disabled";
+		};
+	};
+
 	rockchip_system_monitor: rockchip-system-monitor {
 		compatible = "rockchip,system-monitor";
 
