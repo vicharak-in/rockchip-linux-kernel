@@ -2193,6 +2193,7 @@ static void vop_atomic_plane_reset(struct drm_plane *plane)
 		return;
 
 	win->state.zpos = win->zpos;
+	vop_plane_state->base.zpos = win->zpos;
 	vop_plane_state->global_alpha = 0xff;
 	plane->state = &vop_plane_state->base;
 	plane->state->plane = plane;
