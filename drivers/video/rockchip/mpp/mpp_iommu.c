@@ -440,6 +440,8 @@ mpp_iommu_probe(struct device *dev)
 	info->dev = dev;
 	info->pdev = pdev;
 	init_rwsem(&info->rw_sem);
+	info->irq = platform_get_irq(pdev, 0);
+	info->got_irq = (info->irq < 0) ? false : true;
 
 	return info;
 
