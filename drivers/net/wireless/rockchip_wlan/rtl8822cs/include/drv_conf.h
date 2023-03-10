@@ -19,9 +19,9 @@
 
 #define CONFIG_RSSI_PRIORITY
 
-/* 
+/*
  * RTW_BUSY_DENY_SCAN control if scan would be denied by busy traffic.
- * When this defined, BUSY_TRAFFIC_SCAN_DENY_PERIOD would be used to judge if 
+ * When this defined, BUSY_TRAFFIC_SCAN_DENY_PERIOD would be used to judge if
  * scan request coming from scan UI. Scan request from scan UI would be
  * exception and never be denied by busy traffic.
  */
@@ -78,11 +78,11 @@
 #ifdef CONFIG_RTW_ANDROID
 
 	#include <linux/version.h>
-	
+
 	#ifndef CONFIG_IOCTL_CFG80211
 	#define CONFIG_IOCTL_CFG80211
 	#endif
-	
+
 	#ifndef RTW_USE_CFG80211_STA_EVENT
 	#define RTW_USE_CFG80211_STA_EVENT
 	#endif
@@ -176,14 +176,14 @@
 	#warning "You have CONFIG_ANDROID_POWER enabled in your system, we disable CONFIG_RESUME_IN_WORKQUEUE automatically"
 	#undef CONFIG_RESUME_IN_WORKQUEUE
 #endif
-*/
 
-#ifdef CONFIG_RESUME_IN_WORKQUEUE /* this can be removed, because there is no case for this... */
+#ifdef CONFIG_RESUME_IN_WORKQUEUE
 	#if !defined(CONFIG_WAKELOCK) && !defined(CONFIG_ANDROID_POWER)
 		#error "enable CONFIG_RESUME_IN_WORKQUEUE without CONFIG_WAKELOCK or CONFIG_ANDROID_POWER will suffer from the danger of wifi's unfunctionality..."
 		#error "If you still want to enable CONFIG_RESUME_IN_WORKQUEUE in this case, mask this preprossor checking and GOOD LUCK..."
 	#endif
 #endif
+*/
 
 /* About USB VENDOR REQ */
 #if defined(CONFIG_USB_VENDOR_REQ_BUFFER_PREALLOC) && !defined(CONFIG_USB_VENDOR_REQ_MUTEX)
@@ -453,7 +453,7 @@
 	#define NR_TBTX_SLOT			4
 	#define NR_MAXSTA_INSLOT		5
 	#define TBTX_TX_DURATION		30
-	
+
 	#define MAX_TXPAUSE_DURATION	(TBTX_TX_DURATION*NR_TBTX_SLOT)
 #endif
 
@@ -558,7 +558,7 @@ defined(CONFIG_RTL8723F) /*|| defined(CONFIG_RTL8814A)*/
 #define CONFIG_HWMPCAP_GEN3
 #endif
 
-#if defined(CONFIG_HWMPCAP_GEN1) && (CONFIG_IFACE_NUMBER > 2) 
+#if defined(CONFIG_HWMPCAP_GEN1) && (CONFIG_IFACE_NUMBER > 2)
 	#ifdef CONFIG_POWER_SAVING
 	/*#warning "Disable PS when CONFIG_IFACE_NUMBER > 2"*/
 	#undef CONFIG_POWER_SAVING
@@ -728,7 +728,7 @@ defined(CONFIG_RTL8723F) /*|| defined(CONFIG_RTL8814A)*/
 		#define RTW_LPS_MODE 1
 	#else
 		#define RTW_LPS_MODE 0
-	#endif 
+	#endif
 #endif /* !RTW_LPS_MODE */
 
 #if (RTW_LPS_MODE > 3 || RTW_LPS_MODE < 0)
@@ -784,11 +784,11 @@ defined(CONFIG_RTL8723F) /*|| defined(CONFIG_RTL8814A)*/
 #endif
 #endif
 
-#define CONFIG_RTW_TPT_MODE 
+#define CONFIG_RTW_TPT_MODE
 
 #ifdef CONFIG_PCI_BCN_POLLING
 #define CONFIG_BCN_ICF
-#endif 
+#endif
 
 #ifndef CONFIG_RTW_MGMT_QUEUE
 	#define CONFIG_RTW_MGMT_QUEUE

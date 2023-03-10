@@ -175,7 +175,7 @@ extern uint rtw_recvbuf_nr;
 
 #ifdef CONFIG_RTW_TPT_MODE
 	RTW_PRINT_SEL(sel, "CONFIG_RTW_TPT_MODE\n");
-#endif 
+#endif
 
 #ifdef CONFIG_USB_HCI
 #ifdef CONFIG_SUPPORT_USB_INT
@@ -421,7 +421,7 @@ void bb_reg_dump(void *sel, _adapter *adapter)
 		_RTW_PRINT_SEL(sel, " 0x%08x ", rtw_read32(adapter, i));
 		if ((j++) % 4 == 0)
 			_RTW_PRINT_SEL(sel, "\n");
-	}	
+	}
 
 	for (i = 0x4000; i < 0x4060; i += 4) {
 		if (j % 4 == 1)
@@ -429,7 +429,7 @@ void bb_reg_dump(void *sel, _adapter *adapter)
 		_RTW_PRINT_SEL(sel, " 0x%08x ", rtw_read32(adapter, i));
 		if ((j++) % 4 == 0)
 			_RTW_PRINT_SEL(sel, "\n");
-	}	
+	}
 
 	for (i = 0x4100; i < 0x4200; i += 4) {
 		if (j % 4 == 1)
@@ -437,7 +437,7 @@ void bb_reg_dump(void *sel, _adapter *adapter)
 		_RTW_PRINT_SEL(sel, " 0x%08x ", rtw_read32(adapter, i));
 		if ((j++) % 4 == 0)
 			_RTW_PRINT_SEL(sel, "\n");
-	}	
+	}
 
 #endif /* CONFIG_RTL8822C || CONFIG_RTL8814B */
 
@@ -509,7 +509,7 @@ void rtw_sink_rtp_seq_dbg(_adapter *adapter, u8 *ehdr_pos)
 				} else {
 					RTW_INFO("%s : RTP Seq num from %d to %d\n", __FUNCTION__, precvpriv->pre_rtp_rxseq, precvpriv->cur_rtp_rxseq);
 				}
-			}	
+			}
 		}
 	}
 }
@@ -1579,9 +1579,9 @@ int proc_get_war_offload_mdns_domain_name(struct seq_file *m, void *v)
 	if (_TRUE == pwrpriv->wowlan_war_offload_mode) {
 		if ((WAR_MDNS_V4_RSP_EN & pwrpriv->wowlan_war_offload_ctrl) ||
 			(WAR_MDNS_V6_RSP_EN & pwrpriv->wowlan_war_offload_ctrl) ||
-			(WAR_MDNS_V4_WAKEUP_EN & pwrpriv->wowlan_war_offload_ctrl) || 
+			(WAR_MDNS_V4_WAKEUP_EN & pwrpriv->wowlan_war_offload_ctrl) ||
 			(WAR_MDNS_V6_WAKEUP_EN & pwrpriv->wowlan_war_offload_ctrl)) {
-			RTW_PRINT_SEL(m, "\nDomain Name:[%s](%d)\n\n", 
+			RTW_PRINT_SEL(m, "\nDomain Name:[%s](%d)\n\n",
 			pwrpriv->wowlan_war_offload_mdns_domain_name, pwrpriv->wowlan_war_offload_mdns_domain_name_len);
 		} else {
 			RTW_PRINT_SEL(m, "\nMSND RSP Not enabled\n\n");
@@ -1592,7 +1592,7 @@ int proc_get_war_offload_mdns_domain_name(struct seq_file *m, void *v)
 
 	return 0;
 }
- 
+
 ssize_t proc_set_war_offload_mdns_domain_name(struct file *file, const char __user *buffer, size_t count, loff_t *pos, void *data)
 {
 	struct net_device *dev = data;
@@ -1622,7 +1622,7 @@ ssize_t proc_set_war_offload_mdns_domain_name(struct file *file, const char __us
 		int num = sscanf(tmp, "%s", domain_name);
 		if(1 == num) {
 			pwrpriv->wowlan_war_offload_mdns_domain_name_len = strlen(domain_name);
-			_rtw_memset(pwrpriv->wowlan_war_offload_mdns_domain_name, 0x00, MAX_MDNS_DOMAIN_NAME_LEN);		
+			_rtw_memset(pwrpriv->wowlan_war_offload_mdns_domain_name, 0x00, MAX_MDNS_DOMAIN_NAME_LEN);
 			_rtw_memcpy(pwrpriv->wowlan_war_offload_mdns_domain_name, domain_name, strlen(domain_name));
 		}
 	}
@@ -1647,7 +1647,7 @@ int proc_get_war_offload_mdns_machine_name(struct seq_file *m, void *v)
 			for(i=0; i<pwrpriv->wowlan_war_offload_mdns_mnane_num; i++)
 			{
 				RTW_PRINT_SEL(m, "[%d]", i);
-				rtw_wow_war_mdns_dump_buf(m, "Machine Name", 
+				rtw_wow_war_mdns_dump_buf(m, "Machine Name",
 					pwrpriv->wowlan_war_offload_mdns_mnane[i].name, pwrpriv->wowlan_war_offload_mdns_mnane[i].name_len);
 			}
 				RTW_PRINT_SEL(m, "\n");
@@ -1661,7 +1661,7 @@ int proc_get_war_offload_mdns_machine_name(struct seq_file *m, void *v)
 	return 0;
 }
 
- 
+
 ssize_t proc_set_war_offload_mdns_machine_name(struct file *file, const char __user *buffer, size_t count, loff_t *pos, void *data)
 {
 	struct net_device *dev = data;
@@ -1724,8 +1724,8 @@ int proc_get_war_offload_mdns_service_info(struct seq_file *m, void *v)
 			(WAR_MDNS_V6_WAKEUP_EN & pwrpriv->wowlan_war_offload_ctrl)) {
 				for(i=0; i<pwrpriv->wowlan_war_offload_mdns_service_info_num; i++)
 				{
-					RTW_PRINT_SEL(m, "[%d] service info ===> \n", i+1);  
-					RTW_PRINT_SEL(m, "\tservice-transport-domain : %s(%d)- %s(%d)- %s(%d)\n", 
+					RTW_PRINT_SEL(m, "[%d] service info ===> \n", i+1);
+					RTW_PRINT_SEL(m, "\tservice-transport-domain : %s(%d)- %s(%d)- %s(%d)\n",
 						psinfo[i].service, psinfo[i].service_len,
 						psinfo[i].transport, psinfo[i].transport_len,
 						psinfo[i].domain, psinfo[i].domain_len);
@@ -1733,9 +1733,9 @@ int proc_get_war_offload_mdns_service_info(struct seq_file *m, void *v)
 					RTW_PRINT_SEL(m, "\tport : %x-%x, ttl : %d \n", psinfo[i].port[0], psinfo[i].port[1], psinfo[i].ttl);
 					j = psinfo[i].txt_rsp_idx;
 					RTW_PRINT_SEL(m, "\ttype txt rsp. [%d] \n", j);
-					rtw_wow_war_mdns_dump_txt(m, "type txt rsp. (Str)", 
+					rtw_wow_war_mdns_dump_txt(m, "type txt rsp. (Str)",
 							pwrpriv->wowlan_war_offload_mdns_txt_rsp[j].txt, pwrpriv->wowlan_war_offload_mdns_txt_rsp[j].txt_len);
-					
+
 				}
 				RTW_PRINT_SEL(m, "\n");
 		} else {
@@ -1747,7 +1747,7 @@ int proc_get_war_offload_mdns_service_info(struct seq_file *m, void *v)
 
 	return 0;
 }
- 
+
 ssize_t proc_set_war_offload_mdns_service_info(struct file *file, const char __user *buffer, size_t count, loff_t *pos, void *data)
 {
 	struct net_device *dev = data;
@@ -1782,7 +1782,7 @@ ssize_t proc_set_war_offload_mdns_service_info(struct file *file, const char __u
 	tmp = rtw_zvmalloc(sizeof(char)*(max_input_size));
 	if (NULL == tmp) {
 		RTW_INFO(FUNC_ADPT_FMT ": tmp buffer allocate fail!!\n", FUNC_ADPT_ARG(padapter));
-		count = -EFAULT;	
+		count = -EFAULT;
 		goto exit;
 	}
 
@@ -1799,7 +1799,7 @@ ssize_t proc_set_war_offload_mdns_service_info(struct file *file, const char __u
 		}
 		/*else if(count != sscanf_parameter_length)
 		{
-			RTW_INFO(FUNC_ADPT_FMT ": Length of total parameters does not match the input buffer. (%d != %lu)\n", 
+			RTW_INFO(FUNC_ADPT_FMT ": Length of total parameters does not match the input buffer. (%d != %lu)\n",
 				FUNC_ADPT_ARG(padapter), sscanf_parameter_length, count);
 			RTW_INFO(FUNC_ADPT_FMT ": Please check the content and length of each parameter.\n", FUNC_ADPT_ARG(padapter));
 			RTW_INFO(FUNC_ADPT_FMT ": input buffer = (%s)(%lu)!\n\n", FUNC_ADPT_ARG(padapter), tmp, count);
@@ -1809,7 +1809,7 @@ ssize_t proc_set_war_offload_mdns_service_info(struct file *file, const char __u
 			RTW_INFO(FUNC_ADPT_FMT ": target = %s (%lu)!\n", FUNC_ADPT_ARG(padapter), target, strlen(target));
 			RTW_INFO(FUNC_ADPT_FMT ": port = %x-%x, ttl = %d!\n", FUNC_ADPT_ARG(padapter), port0, port1, ttl);
 			RTW_INFO(FUNC_ADPT_FMT ": txt idx = %d!\n", FUNC_ADPT_ARG(padapter), txt_idx);
-			count = -EFAULT;    
+			count = -EFAULT;
 			goto exit;
 		}*/else
 		{
@@ -1818,16 +1818,16 @@ ssize_t proc_set_war_offload_mdns_service_info(struct file *file, const char __u
 
 			if(txt_idx >= MAX_MDNS_TXT_NUM) {
 				RTW_INFO(FUNC_ADPT_FMT ": input txt idx, %d, is out of range (0~%d)!\n", FUNC_ADPT_ARG(padapter), txt_idx, MAX_MDNS_TXT_NUM-1);
-				count = -EFAULT;    
+				count = -EFAULT;
 				goto exit;
 			}
 
 			if(pwrpriv->wowlan_war_offload_mdns_txt_rsp[txt_idx].txt_len == 0) {
 				RTW_INFO(FUNC_ADPT_FMT ": wowlan_war_offload_mdns_txt_rsp[%d] is null! Please initiate it first.\n", FUNC_ADPT_ARG(padapter), txt_idx);
-				count = -EFAULT;    
+				count = -EFAULT;
 				goto exit;
 			}
-			
+
 			// 1. set the value of members for this new service
 			psinfo[idx].service_len = strlen(srv);
 			_rtw_memcpy(psinfo[idx].service, srv, psinfo[idx].service_len );
@@ -1844,7 +1844,7 @@ ssize_t proc_set_war_offload_mdns_service_info(struct file *file, const char __u
 		}
 	}
 
-exit:	
+exit:
 	if(tmp)
 		rtw_vmfree(tmp, sizeof(char)*(max_input_size));
 	return count;
@@ -1868,9 +1868,9 @@ int proc_get_war_offload_mdns_txt_rsp(struct seq_file *m, void *v)
 					RTW_PRINT_SEL(m, " (null)\n");
 					continue;
 				}
-				rtw_wow_war_mdns_dump_txt(m, "type txt rsp. (Str)", 
+				rtw_wow_war_mdns_dump_txt(m, "type txt rsp. (Str)",
 					pwrpriv->wowlan_war_offload_mdns_txt_rsp[i].txt, pwrpriv->wowlan_war_offload_mdns_txt_rsp[i].txt_len);
-				rtw_wow_war_mdns_dump_buf(m, "type txt rsp. (Hex)", 
+				rtw_wow_war_mdns_dump_buf(m, "type txt rsp. (Hex)",
 					pwrpriv->wowlan_war_offload_mdns_txt_rsp[i].txt, pwrpriv->wowlan_war_offload_mdns_txt_rsp[i].txt_len);
 			}
 			RTW_PRINT_SEL(m, "\n");
@@ -1908,7 +1908,7 @@ ssize_t proc_set_war_offload_mdns_txt_rsp(struct file *file, const char __user *
 	tmp = rtw_zvmalloc(sizeof(char)*(max_input_size));
 	if (NULL == tmp) {
 		RTW_INFO(FUNC_ADPT_FMT ": tmp buffer allocate fail!!\n", FUNC_ADPT_ARG(padapter));
-		count = -EFAULT;	
+		count = -EFAULT;
 		goto exit;
 	}
 
@@ -1922,7 +1922,7 @@ ssize_t proc_set_war_offload_mdns_txt_rsp(struct file *file, const char __user *
 			}else{
 				RTW_INFO(FUNC_ADPT_FMT ": Txt rsp are refered! (Current service_info_num = %d)\n", FUNC_ADPT_ARG(padapter), pwrpriv->wowlan_war_offload_mdns_service_info_num);
 				count = -EFAULT;
-				goto exit;     
+				goto exit;
 			 }
 
 		}else{
@@ -1935,7 +1935,7 @@ ssize_t proc_set_war_offload_mdns_txt_rsp(struct file *file, const char __user *
 			sscanf_parameter_length = 1 + strlen(op) + txt_len + num;
 
 			if(count != sscanf_parameter_length) {
-				RTW_INFO(FUNC_ADPT_FMT ": Length of total parameters does not match the input buffer. (%d != %lu)(num=%d)\n", 
+				RTW_INFO(FUNC_ADPT_FMT ": Length of total parameters does not match the input buffer. (%d != %lu)(num=%d)\n",
 					FUNC_ADPT_ARG(padapter), sscanf_parameter_length, count, num);
 				RTW_INFO(FUNC_ADPT_FMT ": Please check the content and length of each parameter.\n", FUNC_ADPT_ARG(padapter));
 				RTW_INFO(FUNC_ADPT_FMT ": input buffer = (%s)(%lu)!\n\n", FUNC_ADPT_ARG(padapter), tmp, count);
@@ -1950,7 +1950,7 @@ ssize_t proc_set_war_offload_mdns_txt_rsp(struct file *file, const char __user *
 				if(idx >= MAX_MDNS_TXT_NUM) {
 					RTW_INFO(FUNC_ADPT_FMT ": the index, %d, is over the range of txt rsp(0~%d)!\n", FUNC_ADPT_ARG(padapter), idx, MAX_MDNS_TXT_NUM-1);
 					count = -EFAULT;
-					goto exit; 
+					goto exit;
 				}
 
 				if( strncmp(op, "new", 3) == 0 ) {
@@ -1958,11 +1958,11 @@ ssize_t proc_set_war_offload_mdns_txt_rsp(struct file *file, const char __user *
 					pwrpriv->wowlan_war_offload_mdns_txt_rsp[idx].txt_len = 0;
 				}else if(strncmp(op, "append", 6) == 0 ){
 					if((pwrpriv->wowlan_war_offload_mdns_txt_rsp[idx].txt_len+strlen(txt_str)+1) > MAX_MDNS_TXT_LEN) {
-						RTW_INFO(FUNC_ADPT_FMT ": the txt rsp(%d) will be over the limitation(%d) if append input string(%lu)!\n", FUNC_ADPT_ARG(padapter), 
+						RTW_INFO(FUNC_ADPT_FMT ": the txt rsp(%d) will be over the limitation(%d) if append input string(%lu)!\n", FUNC_ADPT_ARG(padapter),
 						pwrpriv->wowlan_war_offload_mdns_txt_rsp[idx].txt_len,
 						MAX_MDNS_TXT_LEN, strlen(txt_str)+1);
 						count = -EFAULT;
-						goto exit; 
+						goto exit;
 					}
 				}else{
 					RTW_INFO(FUNC_ADPT_FMT ": Invaild op str %s (new/append only)!\n", FUNC_ADPT_ARG(padapter), op);
@@ -1977,13 +1977,13 @@ ssize_t proc_set_war_offload_mdns_txt_rsp(struct file *file, const char __user *
 
 				/* Dump ==> */
 				//RTW_PRINT_SEL(RTW_DBGDUMP, "[%d]", idx);
-				//rtw_wow_war_mdns_dump_txt(RTW_DBGDUMP, "type txt rsp. (Str)", 
-				//		pwrpriv->wowlan_war_offload_mdns_txt_rsp[idx].txt, pwrpriv->wowlan_war_offload_mdns_txt_rsp[idx].txt_len);         
+				//rtw_wow_war_mdns_dump_txt(RTW_DBGDUMP, "type txt rsp. (Str)",
+				//		pwrpriv->wowlan_war_offload_mdns_txt_rsp[idx].txt, pwrpriv->wowlan_war_offload_mdns_txt_rsp[idx].txt_len);
 			}
 		}
 	}
 
-exit:	
+exit:
 	if(tmp)
 		rtw_vmfree(tmp, sizeof(char)*(max_input_size));
 	return count;
@@ -2693,7 +2693,7 @@ ssize_t proc_set_rate_ctl(struct file *file, const char __user *buffer, size_t c
 
 		if ((fix_rate == 0) || (fix_rate == 0xFF))
 			en = 0;
-			
+
 		if (macid != 255) {
 			RTW_INFO("Call phydm_fw_fix_rate()--en[%d] mac_id[%d] bw[%d] fix_rate[%d]\n", en, macid, bw, fix_rate);
 			phydm_fw_fix_rate(dm, en, macid, bw, fix_rate);
@@ -3513,7 +3513,7 @@ int proc_get_rx_signal(struct seq_file *m, void *v)
 
 		RTW_PRINT_SEL(m, "rx_rate = %s\n", HDATA_RATE(odm->rx_rate));
 		return 0;
-	} else 
+	} else
 #endif
 	{
 		/* RTW_PRINT_SEL(m, "rxpwdb:%d\n", padapter->recvpriv.rxpwdb); */
@@ -4263,10 +4263,10 @@ int proc_get_dyn_rrsr(struct seq_file *m, void *v) {
 	struct registry_priv *pregpriv = &padapter->registrypriv;
 	u32 init_rrsr =0xFFFFFFFF;
 
-	if (padapter) 
+	if (padapter)
 		RTW_PRINT_SEL(m, "en_dyn_rrsr = %d fixed_rrsr_value =0x%x %s\n"
 			, pregpriv->en_dyn_rrsr
-			, pregpriv->set_rrsr_value 
+			, pregpriv->set_rrsr_value
 			, (pregpriv->set_rrsr_value == init_rrsr)?"(default)":"(fixed)"
 		);
 
@@ -5566,7 +5566,7 @@ ssize_t proc_set_wow_enable(struct file *file, const char __user *buffer,
 	int num = 0;
 	int mode = 0;
 
-	if (count < 1) 
+	if (count < 1)
 		return -EFAULT;
 
 	if (count > sizeof(tmp)) {
@@ -5574,9 +5574,9 @@ ssize_t proc_set_wow_enable(struct file *file, const char __user *buffer,
 		return -EFAULT;
 	}
 
-	if (buffer && !copy_from_user(tmp, buffer, count)) 
+	if (buffer && !copy_from_user(tmp, buffer, count))
 		num = sscanf(tmp, "%d", &mode);
-	else 
+	else
 		return -EFAULT;
 
 	if (num != 1) {
@@ -6071,7 +6071,7 @@ ssize_t proc_set_ps_info(struct file *file, const char __user *buffer, size_t co
 		RTW_INFO("%s: back to original LPS/IPS Mode\n", __FUNCTION__);
 
 		rtw_pm_set_lps(adapter, adapter->registrypriv.power_mgnt);
-		
+
 		rtw_pm_set_ips(adapter, adapter->registrypriv.ips_mode);
 
 #ifdef CONFIG_WOWLAN
@@ -6082,16 +6082,16 @@ ssize_t proc_set_ps_info(struct file *file, const char __user *buffer, size_t co
 
 		goto exit;
 	}
-	
-	if (mode == 1) { 
+
+	if (mode == 1) {
 		/* LPS */
-		RTW_INFO("%s: LPS: %s, en=%d\n", __FUNCTION__, (en == 0) ? "disable":"enable", en);	
+		RTW_INFO("%s: LPS: %s, en=%d\n", __FUNCTION__, (en == 0) ? "disable":"enable", en);
 		if (rtw_pm_set_lps(adapter, en) != 0 )
 			RTW_ERR("%s: invalid parameter, mode=%d, level=%d\n", __FUNCTION__, mode, en);
-		
+
 	} else if (mode == 2) {
 		/* IPS */
-		RTW_INFO("%s: IPS: %s, en=%d\n", __FUNCTION__, (en == 0) ? "disable":"enable", en);	
+		RTW_INFO("%s: IPS: %s, en=%d\n", __FUNCTION__, (en == 0) ? "disable":"enable", en);
 		if (rtw_pm_set_ips(adapter, en) != 0 )
 			RTW_ERR("%s: invalid parameter, mode=%d, level=%d\n", __FUNCTION__, mode, en);
 	}
@@ -6729,7 +6729,7 @@ ssize_t proc_set_simple_config(struct file *file, const char __user *buffer, siz
 		RTW_INFO("argument size is less than 1\n");
 		return -EFAULT;
 	}
-	
+
 	if (count > sizeof(tmp)) {
 		rtw_warn_on(1);
 		return -EFAULT;
@@ -6832,7 +6832,7 @@ int proc_get_efuse_map(struct seq_file *m, void *v)
 			else
 				RTW_PRINT_SEL(m, "Driver eFuse Map From HW\n");
 		} else
-#endif		
+#endif
 		{
 			RTW_PRINT_SEL(m, "Driver eFuse Map From HW\n");
 
@@ -7010,7 +7010,7 @@ ssize_t proc_set_tx_deauth(struct file *file, const char __user *buffer, size_t 
 	char tmp[16];
 	u8	mac_addr[NUM_STA][ETH_ALEN];
 	u8 bc_addr[ETH_ALEN] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-	u32 key_type;
+	u32 key_type = 0;
 	u8 index;
 
 

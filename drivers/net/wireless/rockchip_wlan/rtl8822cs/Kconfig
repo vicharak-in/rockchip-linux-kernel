@@ -1,4 +1,5 @@
 config RTL8822CS
 	tristate "Realtek 8822C SDIO WiFi"
-	---help---
+    default y
+	help
 	  Help message of RTL8822CS

@@ -24,6 +24,7 @@
  *****************************************************************************/
 
 #include "mp_precomp.h"
+#include "hal/phydm/phydm_types.h"
 #if (DM_ODM_SUPPORT_TYPE == ODM_WIN)
 #if RT_PLATFORM == PLATFORM_MACOSX
 #include "phydm_precomp.h"
@@ -76,7 +77,7 @@ void _halrf_txgapk_bb_dpk_8822c(
 	struct dm_struct *dm = (struct dm_struct *)dm_void;
 
 	RF_DBG(dm, DBG_RF_TXGAPK, "[TXGAPK] ======>%s\n", __func__);
-	
+
 	odm_set_bb_reg(dm, R_0x1e24, 0x00020000, 0x1);
 	odm_set_bb_reg(dm, R_0x1cd0, 0x10000000, 0x1);
 	odm_set_bb_reg(dm, R_0x1cd0, 0x20000000, 0x1);
@@ -96,7 +97,7 @@ void _halrf_txgapk_bb_dpk_8822c(
 		odm_set_bb_reg(dm, R_0x416c, 0x00000080, 0x1);
 		odm_set_bb_reg(dm, R_0x410c, 0x00000003, 0x0);
 	}
-	
+
 	odm_set_bb_reg(dm, R_0x1a00, 0x00000003, 0x2);
 }
 
@@ -252,7 +253,7 @@ void _halrf_txgapk_write_gain_bb_table_8822c(
 
 	RF_DBG(dm, DBG_RF_TXGAPK, "[TXGAPK] ======>%s channel=%d\n",
 		__func__, channel);
-	
+
 	odm_set_bb_reg(dm, R_0x1b00, 0x00000006, 0x0);
 
 	if (channel >= 1 && channel <= 14)
@@ -315,7 +316,7 @@ void _halrf_txgapk_write_gain_bb_table_8822c(
 						txgapk->txgapk_rf3f_bp[band_idx][gain_idx][path_idx]);
 				} else
 					tmp_3f = txgapk->txgapk_rf3f_bp[band_idx][gain_idx][path_idx] & 0xfff;
-				
+
 				odm_set_bb_reg(dm, R_0x1b98, 0x00000fff, tmp_3f);
 				odm_set_bb_reg(dm, R_0x1b98, 0x000f0000, gain_idx);
 				odm_set_bb_reg(dm, R_0x1b98, 0x00008000, 0x1);
@@ -347,7 +348,7 @@ void _halrf_txgapk_calculate_offset_8822c(
 	u32 bb_reg[5] = {R_0x820, R_0x1e2c, R_0x1e28, R_0x1800, R_0x4100};
 	u32 bb_reg_backup[5] = {0};
 	u32 backup_num = 5;
-	
+
 	RF_DBG(dm, DBG_RF_TXGAPK, "[TXGAPK] ======>%s channel=%d\n",
 		__func__, channel);
 
@@ -396,7 +397,7 @@ void _halrf_txgapk_calculate_offset_8822c(
 			ODM_delay_us(1000);
 			RF_DBG(dm, DBG_RF_TXGAPK, "================= delay %dms\n", i + 1);
 			if (odm_get_bb_reg(dm, R_0x2d9c, 0x000000ff) == 0x55)
-				break;	
+				break;
 		}
 
 		odm_set_bb_reg(dm, set_pi[path], 0xc0000000, 0x2);
@@ -450,7 +451,7 @@ void _halrf_txgapk_calculate_offset_8822c(
 			odm_set_bb_reg(dm, R_0x1b98, 0x00007000, 0x2);
 		else if (channel >= 100 && channel <= 144)
 			odm_set_bb_reg(dm, R_0x1b98, 0x00007000, 0x3);
-		else if (channel >= 149 && channel <= 177) 
+		else if (channel >= 149 && channel <= 177)
 			odm_set_bb_reg(dm, R_0x1b98, 0x00007000, 0x4);
 
 		odm_set_bb_reg(dm, R_0x820, 0x00000003, path + 1);
@@ -470,7 +471,7 @@ void _halrf_txgapk_calculate_offset_8822c(
 		ODM_delay_us(1000);
 		odm_set_bb_reg(dm, R_0x1bcc, 0xff, 0x36);
 		ODM_delay_us(1000);
-		
+
 		odm_set_bb_reg(dm, R_0x1b00, MASKDWORD, set_1b00_cfg1[path]);
 		odm_set_bb_reg(dm, R_0x1b00, MASKDWORD, set_1b00_cfg2[path]);
 
@@ -478,7 +479,7 @@ void _halrf_txgapk_calculate_offset_8822c(
 			ODM_delay_us(1000);
 			RF_DBG(dm, DBG_RF_TXGAPK, "================= delay %dms\n", i + 1);
 			if (odm_get_bb_reg(dm, R_0x2d9c, 0x000000ff) == 0x55)
-				break;	
+				break;
 		}
 
 		odm_set_bb_reg(dm, set_pi[path], 0xc0000000, 0x2);
@@ -694,7 +695,7 @@ void halrf_txgapk_save_all_tx_gain_table_8822c(
 	u8 ch_num[5] = {1, 1, 36, 100, 149};
 	u8 band_num[5] = {0x0, 0x0, 0x1, 0x3, 0x5};
 	u8 path_idx, band_idx, gain_idx, rf0_idx;
-	
+
 	RF_DBG(dm, DBG_RF_TXGAPK, "[TXGAPK] ======>%s\n", __func__);
 
 	if (txgapk->read_txgain == 1) {
