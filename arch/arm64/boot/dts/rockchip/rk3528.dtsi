@@ -1090,6 +1090,7 @@
 		clocks = <&cru ACLK_RKVDEC>, <&cru HCLK_RKVDEC>, <&cru CLK_HEVC_CA_RKVDEC>;
 		clock-names = "aclk", "iface", "clk_hevc_cabac";
 		#iommu-cells = <0>;
+		rockchip,shootdown-entire;
 		status = "disabled";
 	};
 
@@ -1121,6 +1122,7 @@
 		clocks = <&cru ACLK_RKVENC>, <&cru HCLK_RKVENC>;
 		clock-names = "aclk", "iface";
 		#iommu-cells = <0>;
+		rockchip,shootdown-entire;
 		status = "disabled";
 	};
 
@@ -1152,6 +1154,7 @@
 		clock-names = "aclk", "iface";
 		clocks = <&cru ACLK_VPU>, <&cru HCLK_VPU>;
 		#iommu-cells = <0>;
+		rockchip,shootdown-entire;
 		status = "disabled";
 	};
 
@@ -1291,6 +1294,7 @@
 		clocks = <&cru ACLK_VDPP>, <&cru HCLK_VDPP>;
 		clock-names = "aclk", "iface";
 		#iommu-cells = <0>;
+		rockchip,shootdown-entire;
 		status = "disabled";
 	};
 
@@ -1342,6 +1346,7 @@
 		clock-names = "aclk", "iface";
 		clocks = <&cru ACLK_JPEG_DECODER>, <&cru HCLK_JPEG_DECODER>;
 		#iommu-cells = <0>;
+		rockchip,shootdown-entire;
 		status = "disabled";
 	};
 
