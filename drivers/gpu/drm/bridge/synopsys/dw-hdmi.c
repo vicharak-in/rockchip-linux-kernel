@@ -2277,7 +2277,7 @@ static void hdmi_config_hdr_infoframe(struct dw_hdmi *hdmi)
 	 * avi and hdr infoframe cannot be sent at the same time
 	 * for compatibility with Huawei TV
 	 */
-	mdelay(50);
+	msleep(300);
 	hdmi_modb(hdmi, HDMI_FC_PACKET_DRM_TX_EN,
 		  HDMI_FC_PACKET_DRM_TX_EN_MASK, HDMI_FC_PACKET_TX_EN);
 
