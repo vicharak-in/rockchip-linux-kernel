@@ -366,7 +366,8 @@ void rkisp_config_dmatx_valid_buf(struct rkisp_device *dev)
 			stream = &isp->cap_dev.stream[j];
 			if (!stream->linked || stream->curr_buf || stream->next_buf)
 				continue;
-			mi_set_y_addr(stream, hw->dummy_buf.dma_addr);
+			if (!rkisp_read(dev, stream->config->mi.y_base_ad_init, true))
+				mi_set_y_addr(stream, hw->dummy_buf.dma_addr);
 		}
 	}
 }
