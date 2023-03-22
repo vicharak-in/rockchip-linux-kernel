@@ -44,4 +44,14 @@
 
 #define RK_FUNC_GPIO	0
 
+// PCA9554 GPIO expander
+#define PCA_IO0_0	0
+#define PCA_IO0_1	1
+#define PCA_IO0_2	2
+#define PCA_IO0_3	3
+#define PCA_IO0_4	4
+#define PCA_IO0_5	5
+#define PCA_IO0_6	6
+#define PCA_IO0_7	7
+
 #endif
