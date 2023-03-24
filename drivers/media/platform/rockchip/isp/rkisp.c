@@ -1382,6 +1382,10 @@ static int rkisp_config_path(struct rkisp_device *dev)
 		ret = -EINVAL;
 	}
 
+	/* fix 3a_wr no output with selfpath */
+	if (dev->isp_ver == ISP_V21)
+		dpcl |= CIF_VI_DPCL_CHAN_MODE_MP | CIF_VI_DPCL_MP_MUX_MRSZ_MI;
+
 	writel(dpcl, dev->base_addr + CIF_VI_DPCL);
 
 	return ret;
