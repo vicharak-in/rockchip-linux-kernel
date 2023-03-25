@@ -8,6 +8,7 @@ EXTRA_CFLAGS += -O1
 #EXTRA_CFLAGS += -Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes
 
 EXTRA_CFLAGS += -Wno-unused-variable
+EXTRA_CFLAGS += -Wno-address
 #EXTRA_CFLAGS += -Wno-unused-value
 EXTRA_CFLAGS += -Wno-unused-label
 #EXTRA_CFLAGS += -Wno-unused-parameter
@@ -20,7 +21,16 @@ ifeq ($(GCC_VER_49),1)
 EXTRA_CFLAGS += -Wno-date-time	# Fix compile error && warning on gcc 4.9 and later
 endif
 
+ifeq ($(CONFIG_ARCH_ROCKCHIP), y)
+DRV_PATH = $(shell pwd)/$(srctree)/$(src)
+
+EXTRA_CFLAGS += -I$(DRV_PATH)/include
+EXTRA_CFLAGS += -I$(DRV_PATH)/hal/phydm
+EXTRA_CFLAGS += -I$(DRV_PATH)/core/crypto
+EXTRA_CFLAGS += -I$(DRV_PATH)/platform
+else
 EXTRA_CFLAGS += -I$(src)/include
+endif
 
 EXTRA_LDFLAGS += --strip-debug
 
@@ -134,7 +144,7 @@ CONFIG_WOW_LPS_MODE = default
 CONFIG_SUSPEND_TYPE = 0
 CONFIG_WOW_STA_MIX = n
 CONFIG_GPIO_WAKEUP = n
-# Please contact with RTK support team first. After getting the agreement from RTK support team, 
+# Please contact with RTK support team first. After getting the agreement from RTK support team,
 # you are just able to modify the CONFIG_WAKEUP_GPIO_IDX with customized requirement.
 CONFIG_WAKEUP_GPIO_IDX = default
 CONFIG_HIGH_ACTIVE_DEV2HST = n
@@ -195,7 +205,6 @@ ifeq ($(CONFIG_HWSIM), y)
 else
 	HAL = phl
 endif
-
 ifeq ($(CONFIG_PLATFORM_RTL8198D), y)
 DRV_PATH = $(src)
 else
@@ -597,7 +606,7 @@ MODULE_NAME := $(USER_MODULE_NAME)
 endif
 
 ifneq ($(KERNELRELEASE),)
-export CONFIG_RTL8852BS = m
+export CONFIG_RTL8852BS = y
 ########### COMMON #################################
 include $(src)/common.mk
 
