@@ -33,13 +33,20 @@ obj-$(CONFIG_BT_HCIRSI)		+= btrsi.o
 btmrvl-y			:= btmrvl_main.o
 btmrvl-$(CONFIG_DEBUG_FS)	+= btmrvl_debugfs.o
 
-hci_uart-y				:= hci_ldisc.o
-hci_uart-$(CONFIG_BT_HCIUART_SERDEV)	+= hci_serdev.o
+ifeq ($(CONFIG_RTKBT_UART),)
+hci_uart-y				+= hci_ldisc.o
 hci_uart-$(CONFIG_BT_HCIUART_H4)	+= hci_h4.o
+hci_uart-$(CONFIG_BT_HCIUART_3WIRE)	+= hci_h5.o
+else
+obj-$(CONFIG_RTKBT_UART)	+=	rtk_coex.o \
+								rtk_hci_h4.o \
+								rtk_hci_h5.o \
+								rtk_hci_ldisc.o
+endif
+hci_uart-$(CONFIG_BT_HCIUART_SERDEV)	+= hci_serdev.o
 hci_uart-$(CONFIG_BT_HCIUART_BCSP)	+= hci_bcsp.o
 hci_uart-$(CONFIG_BT_HCIUART_LL)	+= hci_ll.o
 hci_uart-$(CONFIG_BT_HCIUART_ATH3K)	+= hci_ath.o
-hci_uart-$(CONFIG_BT_HCIUART_3WIRE)	+= hci_h5.o
 hci_uart-$(CONFIG_BT_HCIUART_INTEL)	+= hci_intel.o
 hci_uart-$(CONFIG_BT_HCIUART_BCM)	+= hci_bcm.o
 hci_uart-$(CONFIG_BT_HCIUART_QCA)	+= hci_qca.o
