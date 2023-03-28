@@ -3,6 +3,18 @@
 menu "Bluetooth device drivers"
 	depends on BT
 
+config RTKBT_UART
+	tristate "Realtek Bluetooth UART driver"
+	depends on SERIAL_DEV_BUS
+	select BT_HCIUART_SERDEV
+	help
+	  Realtek Bluetooth UART driver
+	  This driver supports various realtek bluetooth chipsets
+	  with uart interfaces.
+
+	  Say Y here to compile support for Realtek Bluetooth UART driver into the
+	  kernel or say M to compile as a module.
+
 config BT_INTEL
 	tristate
 	select REGMAP
