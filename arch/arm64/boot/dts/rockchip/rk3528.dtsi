@@ -1821,10 +1821,13 @@
 		interrupts = <GIC_SPI 128 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&cru MCLK_SAI_I2S3>, <&cru HCLK_SAI_I2S3>;
 		clock-names = "mclk", "hclk";
+		assigned-clocks = <&cru MCLK_SAI_I2S3>;
+		assigned-clock-rates = <6144000>;
 		dmas = <&dmac 5>;
 		dma-names = "tx";
 		resets = <&cru SRST_MRESETN_SAI_I2S3>, <&cru SRST_HRESETN_SAI_I2S3>;
 		reset-names = "m", "h";
+		rockchip,always-on;
 		#sound-dai-cells = <0>;
 		status = "disabled";
 	};
