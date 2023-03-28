@@ -337,7 +337,9 @@ int hci_uart_register_device(struct hci_uart *hu,
 	hdev->bus = HCI_UART;
 	hci_set_drvdata(hdev, hu);
 
+#if !IS_ENABLED(CONFIG_RTKBT_UART)
 	INIT_WORK(&hu->init_ready, hci_uart_init_work);
+#endif
 	INIT_WORK(&hu->write_work, hci_uart_write_work);
 
 	/* Only when vendor specific setup callback is provided, consider
