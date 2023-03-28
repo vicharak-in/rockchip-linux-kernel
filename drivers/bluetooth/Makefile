@@ -39,9 +39,10 @@ hci_uart-y				+= hci_ldisc.o
 hci_uart-$(CONFIG_BT_HCIUART_H4)	+= hci_h4.o
 hci_uart-$(CONFIG_BT_HCIUART_3WIRE)	+= hci_h5.o
 else
-hci_uart-y				+= rtk_hci_ldisc.o rtk_coex.o
-hci_uart-$(CONFIG_BT_HCIUART_H4)	+= rtk_hci_h4.o
-hci_uart-$(CONFIG_BT_HCIUART_3WIRE)	+= rtk_hci_h5.o
+obj-$(CONFIG_RTKBT_UART)	+=	rtk_coex.o \
+								rtk_hci_h4.o \
+								rtk_hci_h5.o \
+								rtk_hci_ldisc.o
 endif
 hci_uart-$(CONFIG_BT_HCIUART_SERDEV)	+= hci_serdev.o
 hci_uart-$(CONFIG_BT_HCIUART_BCSP)	+= hci_bcsp.o
