@@ -3147,6 +3147,9 @@ static int dw_hdmi_connector_atomic_check(struct drm_connector *connector,
 			vmode->mtmdsclock /= 2;
 
 		dw_hdmi_force_output_pattern(hdmi, mode);
+
+		hdmi_clk_regenerator_update_pixel_clock(hdmi);
+		hdmi_enable_audio_clk(hdmi, hdmi->audio_enable);
 	}
 
 	if (check_hdr_color_change(old_state, new_state, hdmi) || hdmi->logo_plug_out ||
