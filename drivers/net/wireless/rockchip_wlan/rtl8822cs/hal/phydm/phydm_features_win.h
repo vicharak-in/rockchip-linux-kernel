@@ -40,6 +40,10 @@
 	#define NHM_SUPPORT
 	#define CLM_SUPPORT
 
+#if (RTL8822C_SUPPORT || RTL8723F_SUPPORT)
+	#define EDCCA_CLM_SUPPORT
+#endif
+
 #if (RTL8822C_SUPPORT)
 	#define NHM_DYM_PW_TH_SUPPORT
 #endif

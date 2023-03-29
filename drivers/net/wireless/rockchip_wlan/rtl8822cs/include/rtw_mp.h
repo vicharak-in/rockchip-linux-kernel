@@ -310,6 +310,7 @@ enum {
 #endif
 	MP_SD_IREAD,
 	MP_SD_IWRITE,
+	GET_IC_TYPE,
 };
 
 struct mp_priv {
@@ -346,6 +347,7 @@ struct mp_priv {
 	u8 bandwidth;
 	u8 prime_channel_offset;
 	u8 txpoweridx;
+	s8 txpower_dbm_offset;
 	u8 rateidx;
 	u32 preamble;
 	/*	u8 modem; */
@@ -748,6 +750,8 @@ u32 mp_join(PADAPTER padapter, u8 mode);
 u32 hal_mpt_query_phytxok(PADAPTER	pAdapter);
 u32 mpt_get_tx_power_finalabs_val(PADAPTER	padapter, u8 rf_path);
 void mpt_trigger_tssi_tracking(PADAPTER pAdapter, u8 rf_path);
+u32 hal_mpt_tssi_turn_target_power(PADAPTER padapter, s16 power_offset, u8 path);
+s16 hal_mpt_get_tx_power_mdbm(_adapter *padapter, u8 rf_path);
 
 
 void

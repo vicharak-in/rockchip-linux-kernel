@@ -1510,7 +1510,7 @@ void phydm_set_auto_nbi_8822c(struct dm_struct *dm, boolean en_auto_nbi)
 		odm_set_bb_reg(dm, R_0x1d3c, 0x78000000, 0x0);
 	}
 
-	if (dm->en_nbi_detect) /*0x1 would be effective for technicolor*/
+	if (dm->en_nbi_detect) /*0x1 would be effective for techicolor*/
 		odm_set_bb_reg(dm, R_0x818, 0x7, 0x1);
 }
 

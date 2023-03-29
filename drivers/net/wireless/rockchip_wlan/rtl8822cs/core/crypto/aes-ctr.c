@@ -30,7 +30,7 @@ int aes_ctr_encrypt(const u8 *key, size_t key_len, const u8 *nonce,
 	u8 *pos = data;
 	u8 counter[AES_BLOCK_SIZE], buf[AES_BLOCK_SIZE];
 
-	ctx = aes_encrypt_init(key, key_len);
+	ctx = aes_rtl8822cs_encrypt_init(key, key_len);
 	if (ctx == NULL)
 		return -1;
 	os_memcpy(counter, nonce, AES_BLOCK_SIZE);
@@ -50,7 +50,7 @@ int aes_ctr_encrypt(const u8 *key, size_t key_len, const u8 *nonce,
 				break;
 		}
 	}
-	aes_encrypt_deinit(ctx);
+	aes_rtl8822cs_encrypt_deinit(ctx);
 	return 0;
 }
 

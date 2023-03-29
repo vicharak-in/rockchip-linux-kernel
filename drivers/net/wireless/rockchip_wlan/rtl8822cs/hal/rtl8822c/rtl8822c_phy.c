@@ -883,6 +883,13 @@ static void mac_switch_bandwidth(PADAPTER adapter, u8 pri_ch_idx)
 
 	channel = hal->current_channel;
 	bw = hal->current_channel_bw;
+#ifdef CONFIG_NARROWBAND_SUPPORTING
+	if (adapter->registrypriv.rtw_nb_config == RTW_NB_CONFIG_WIDTH_10)
+		err = rtw_halmac_set_bandwidth(adapter_to_dvobj(adapter), channel, pri_ch_idx, HALMAC_BW_10);
+	else if (adapter->registrypriv.rtw_nb_config == RTW_NB_CONFIG_WIDTH_5)
+		err = rtw_halmac_set_bandwidth(adapter_to_dvobj(adapter), channel, pri_ch_idx, HALMAC_BW_5);
+	else
+#endif
 	err = rtw_halmac_set_bandwidth(adapter_to_dvobj(adapter), channel, pri_ch_idx, bw);
 	if (err) {
 		RTW_INFO(FUNC_ADPT_FMT ": (channel=%d, pri_ch_idx=%d, bw=%d) fail\n",
@@ -930,6 +937,18 @@ static void switch_chnl_and_set_bw_by_drv(PADAPTER adapter, u8 switch_band)
 		mac_switch_bandwidth(adapter, pri_ch_idx);
 
 		/* 3.2 set BB/RF registet */
+
+#ifdef CONFIG_NARROWBAND_SUPPORTING
+		if (adapter->registrypriv.rtw_nb_config == RTW_NB_CONFIG_WIDTH_10) {
+			rtw_write8(adapter, REG_CCK_CHECK_8822C,
+				(rtw_read8(adapter, REG_CCK_CHECK_8822C) | BIT_CHECK_CCK_EN_8822C));
+			ret = config_phydm_switch_bandwidth_8822c(p_dm_odm, pri_ch_idx, CHANNEL_WIDTH_10);
+		} else if (adapter->registrypriv.rtw_nb_config == RTW_NB_CONFIG_WIDTH_5) {
+			rtw_write8(adapter, REG_CCK_CHECK_8822C,
+				(rtw_read8(adapter, REG_CCK_CHECK_8822C) | BIT_CHECK_CCK_EN_8822C));
+			ret = config_phydm_switch_bandwidth_8822c(p_dm_odm, pri_ch_idx, CHANNEL_WIDTH_5);
+		} else
+#endif
 		ret = config_phydm_switch_bandwidth_8822c(p_dm_odm, pri_ch_idx, hal->current_channel_bw);
 		hal->bSetChnlBW = _FALSE;
 

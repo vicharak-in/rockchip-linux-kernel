@@ -28,6 +28,151 @@ atomic_t _malloc_size = ATOMIC_INIT(0);
 #endif /* DBG_MEMORY_LEAK */
 
 
+#ifdef DBG_MEM_ERR_FREE
+
+#if (KERNEL_VERSION(3, 7, 0) <= LINUX_VERSION_CODE)
+
+#define DBG_MEM_HASHBITS 10
+
+#define DBG_MEM_TYPE_PHY 0
+#define DBG_MEM_TYPE_VIR 1
+
+/*
+ * DBG_MEM_ERR_FREE is only for the debug purpose.
+ *
+ * There is the limitation that this mechanism only can
+ * support one wifi device, and has problem if there
+ * are two or more wifi devices with one driver on
+ * the same system. It's because dbg_mem_ht is global
+ * variable, and if we move this dbg_mem_ht into struct
+ * dvobj_priv to support more wifi devices, the memory
+ * allocation functions, like rtw_malloc(), need to have
+ * the parameter dvobj to get relative hash table, and
+ * then it is the huge changes for the driver currently.
+ *
+ */
+struct hlist_head dbg_mem_ht[1 << DBG_MEM_HASHBITS];
+
+struct hash_mem {
+	void *mem;
+	int sz;
+	int type;
+	struct hlist_node node;
+};
+
+#endif /* LINUX_VERSION_CODE */
+
+void rtw_dbg_mem_init(void)
+{
+#if (KERNEL_VERSION(3, 7, 0) <= LINUX_VERSION_CODE)
+	hash_init(dbg_mem_ht);
+#endif /* LINUX_VERSION_CODE */
+}
+
+void rtw_dbg_mem_deinit(void)
+{
+#if (KERNEL_VERSION(3, 7, 0) <= LINUX_VERSION_CODE)
+	struct hlist_head *head;
+	struct hlist_node *p;
+	int i;
+
+	for (i = 0; i < HASH_SIZE(dbg_mem_ht); i++) {
+		head = &dbg_mem_ht[i];
+		p = head->first;
+		while (p) {
+			struct hlist_node *prev;
+			struct hash_mem *hm;
+
+			hm = container_of(p, struct hash_mem, node);
+			prev = p;
+			p = p->next;
+
+			RTW_ERR("%s: memory leak - 0x%x\n", __func__, hm->mem);
+			hash_del(prev);
+			kfree(hm);
+		}
+	}
+#endif /* LINUX_VERSION_CODE */
+}
+
+#if (KERNEL_VERSION(3, 7, 0) <= LINUX_VERSION_CODE)
+struct hash_mem *rtw_dbg_mem_find(void *mem)
+{
+	struct hash_mem *hm;
+	struct hlist_head *head;
+	struct hlist_node *p;
+
+	head = &dbg_mem_ht[hash_64((u64)(mem), DBG_MEM_HASHBITS)];
+
+	p = head->first;
+	while (p) {
+		hm = container_of(p, struct hash_mem, node);
+		if (hm->mem == mem)
+			goto out;
+		p = p->next;
+	}
+	hm = NULL;
+out:
+	return hm;
+}
+
+void rtw_dbg_mem_alloc(void *mem, int sz, int type)
+{
+	struct hash_mem *hm;
+
+	hm = rtw_dbg_mem_find(mem);
+	if (!hm) {
+		hm = (struct hash_mem *)kmalloc(sizeof(*hm), GFP_ATOMIC);
+		hm->mem = mem;
+		hm->sz = sz;
+		hm->type = type;
+		hash_add(dbg_mem_ht, &hm->node, (u64)(mem));
+	} else {
+		RTW_ERR("%s mem(%x) is in hash already\n", __func__, mem);
+		rtw_warn_on(1);
+	}
+}
+
+bool rtw_dbg_mem_free(void *mem, int sz, int type)
+{
+	struct hash_mem *hm;
+	bool ret;
+
+	hm = rtw_dbg_mem_find(mem);
+	if (!hm) {
+		RTW_ERR("%s cannot find allocated memory: %x\n",
+			__func__, mem);
+		rtw_warn_on(1);
+		return false;
+	}
+
+	if (hm->sz != sz) {
+		RTW_ERR("%s memory (%x) size mismatch free(%d) != alloc(%d)\n",
+			__func__, mem, sz, hm->sz);
+		rtw_warn_on(1);
+		ret = false;
+		goto out;
+	}
+
+	if (hm->type != type) {
+		RTW_ERR("%s memory (%x) type mismatch free(%d) != alloc(%d)\n",
+			__func__, mem, type, hm->type);
+		rtw_warn_on(1);
+		ret = false;
+		goto out;
+	}
+	ret = true;
+
+out:
+	hash_del(&hm->node);
+	kfree(hm);
+
+	return ret;
+}
+
+#endif /* LINUX_VERSION_CODE */
+#endif /* DBG_MEM_ERR_FREE */
+
 #if defined(PLATFORM_LINUX)
 /*
 * Translate the OS dependent @param error_code to OS independent RTW_STATUS_CODE
@@ -87,6 +232,11 @@ inline void *_rtw_vmalloc(u32 sz)
 	NdisAllocateMemoryWithTag(&pbuf, sz, RT_TAG);
 #endif
 
+#ifdef DBG_MEM_ERR_FREE
+	if (pbuf)
+		rtw_dbg_mem_alloc(pbuf, sz, DBG_MEM_TYPE_VIR);
+#endif /* DBG_MEM_ERR_FREE */
+
 #ifdef DBG_MEMORY_LEAK
 #ifdef PLATFORM_LINUX
 	if (pbuf != NULL) {
@@ -121,6 +271,11 @@ inline void *_rtw_zvmalloc(u32 sz)
 
 inline void _rtw_vmfree(void *pbuf, u32 sz)
 {
+#ifdef DBG_MEM_ERR_FREE
+	if (!rtw_dbg_mem_free(pbuf, sz, DBG_MEM_TYPE_VIR))
+		return;
+#endif /* DBG_MEM_ERR_FREE */
+
 #ifdef PLATFORM_LINUX
 	vfree(pbuf);
 #endif
@@ -161,6 +316,11 @@ void *_rtw_malloc(u32 sz)
 
 #endif
 
+#ifdef DBG_MEM_ERR_FREE
+	if (pbuf)
+		rtw_dbg_mem_alloc(pbuf, sz, DBG_MEM_TYPE_PHY);
+#endif /* DBG_MEM_ERR_FREE */
+
 #ifdef DBG_MEMORY_LEAK
 #ifdef PLATFORM_LINUX
 	if (pbuf != NULL) {
@@ -191,7 +351,6 @@ void *_rtw_zmalloc(u32 sz)
 #ifdef PLATFORM_WINDOWS
 		NdisFillMemory(pbuf, sz, 0);
 #endif
-
 	}
 
 	return pbuf;
@@ -200,6 +359,11 @@ void *_rtw_zmalloc(u32 sz)
 
 void _rtw_mfree(void *pbuf, u32 sz)
 {
+
+#ifdef DBG_MEM_ERR_FREE
+	if (!rtw_dbg_mem_free(pbuf, sz, DBG_MEM_TYPE_PHY))
+		return;
+#endif /* DBG_MEM_ERR_FREE */
 
 #ifdef PLATFORM_LINUX
 #ifdef RTK_DMP_PLATFORM
@@ -274,6 +438,38 @@ struct sk_buff *skb_clone(const struct sk_buff *skb)
 }
 
 #endif /* PLATFORM_FREEBSD */
+
+#ifdef CONFIG_PCIE_DMA_COHERENT
+struct sk_buff *dev_alloc_skb_coherent(struct pci_dev *pdev, unsigned int size)
+{
+	struct sk_buff *skb = NULL;
+	unsigned char *data = NULL;
+
+	/* skb = _rtw_zmalloc(sizeof(struct sk_buff)); */ /* for skb->len, etc. */
+
+	skb = _rtw_malloc(sizeof(struct sk_buff));
+	if (!skb)
+		goto out;
+
+	data = dma_alloc_coherent(&pdev->dev, size, (dma_addr_t *)&skb->cb, GFP_KERNEL);
+
+	if (!data)
+		goto nodata;
+
+	skb->head = data;
+	skb->data = data;
+	skb_reset_tail_pointer(skb);
+	skb->end = skb->tail + size;
+	skb->len = 0;
+out:
+	return skb;
+nodata:
+	_rtw_mfree(skb, sizeof(struct sk_buff));
+	skb = NULL;
+	goto out;
+
+}
+#endif
 
 inline struct sk_buff *_rtw_skb_alloc(u32 sz)
 {
@@ -2613,37 +2809,65 @@ int rtw_is_dir_readable(const char *path)
 static int retriveFromFile(const char *path, u8 *buf, u32 sz)
 {
 #if defined(CONFIG_RTW_ANDROID_GKI)
-	int ret = -1;
-	//char req_fw_buf[4096];
+	int ret = -EINVAL;
 	const struct firmware *fw = NULL;
 	char* const delim = "/";
-	char *name, *token, *cur, path_tmp[1024] = {0};
+	char *name, *token, *cur, *path_tmp = NULL;
 
-	if (path && buf) {
-		_rtw_memcpy(path_tmp, path, strlen(path));
-		cur = path_tmp;
 
+	if (path == NULL || buf == NULL) {
+		RTW_ERR("%s() NULL pointer\n", __func__);
+		goto err;
+	}
+
+	path_tmp = kstrdup(path, GFP_KERNEL);
+	if (path_tmp == NULL) {
+		RTW_ERR("%s() cannot copy path for parsing file name\n", __func__);
+		goto err;
+	}
+
+	/* parsing file name from path */
+	cur = path_tmp;
+	token = strsep(&cur, delim);
+	while (token != NULL) {
 		token = strsep(&cur, delim);
-		while (token != NULL) {
-			token = strsep(&cur, delim);
-			if(token)
-				name = token;
-		}
+		if(token)
+			name = token;
+	}
 
-		ret = request_firmware(&fw, name, NULL);
-		if (ret == 0) {
-			RTW_INFO("%s() success, file size : %zu\n", __func__, fw->size);
+	if (name == NULL) {
+		RTW_ERR("%s() parsing file name fail\n", __func__);
+		goto err;
+	}
+
+	/* request_firmware() will find file in /vendor/firmware but not in path */
+	ret = request_firmware(&fw, name, NULL);
+	if (ret == 0) {
+		RTW_INFO("%s() Success. retrieve file : %s, file size : %zu\n", __func__, name, fw->size);
+
+		if ((u32)fw->size < sz) {
 			_rtw_memcpy(buf, fw->data, (u32)fw->size);
 			ret = (u32)fw->size;
+			goto exit;
 		} else {
-			RTW_INFO("%s() fail, error : %d\n", __func__, ret);
+			RTW_ERR("%s() file size : %zu exceed buf size : %u\n", __func__, fw->size, sz);
+			ret = -EFBIG;
+			goto err;
 		}
-		if(fw)
-			release_firmware(fw);
-	}else {
-		RTW_INFO("%s NULL pointer\n", __FUNCTION__);
-		ret =  -EINVAL;
+	} else {
+		RTW_ERR("%s() Fail. retrieve file : %s, error : %d\n", __func__, name, ret);
+		goto err;
 	}
+
+
+
+err:
+	RTW_ERR("%s() Fail. retrieve file : %s, error : %d\n", __func__, path, ret);
+exit:
+	if (path_tmp)
+		kfree(path_tmp);
+	if (fw)
+		release_firmware(fw);
 	return ret;
 #else /* !defined(CONFIG_RTW_ANDROID_GKI) */
 	int ret = -1;
@@ -2995,7 +3219,7 @@ void rtw_buf_free(u8 **buf, u32 *buf_len)
 	}
 }
 
-void rtw_buf_update(u8 **buf, u32 *buf_len, u8 *src, u32 src_len)
+void rtw_buf_update(u8 **buf, u32 *buf_len, const u8 *src, u32 src_len)
 {
 	u32 ori_len = 0, dup_len = 0;
 	u8 *ori = NULL;
@@ -3417,6 +3641,20 @@ inline BOOLEAN is_eol(char c)
 inline BOOLEAN is_space(char c)
 {
 	if (c == ' ' || c == '\t')
+		return _TRUE;
+	else
+		return _FALSE;
+}
+
+/**
+* is_decimal -
+*
+* Return	TRUE if chTmp is represent for decimal digit
+*		FALSE otherwise.
+*/
+inline BOOLEAN is_decimal(char chTmp)
+{
+	if ((chTmp >= '0' && chTmp <= '9'))
 		return _TRUE;
 	else
 		return _FALSE;

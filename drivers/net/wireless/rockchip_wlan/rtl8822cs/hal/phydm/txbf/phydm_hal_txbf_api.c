@@ -55,7 +55,8 @@ u8 phydm_get_beamforming_sounding_info(void *dm_void, u16 *throughput,
 			if ((tx_rate[idx] >= ODM_RATEVHTSS2MCS7 &&
 			     tx_rate[idx] <= ODM_RATEVHTSS2MCS9))
 				snddecision = snddecision & ~(1 << idx);
-		} else if (dm->support_ic_type & (ODM_RTL8814B)) {
+		} else if (dm->support_ic_type &
+			   (ODM_RTL8814B | ODM_RTL8814C)) {
 			if ((tx_rate[idx] >= ODM_RATEVHTSS4MCS7 &&
 			     tx_rate[idx] <= ODM_RATEVHTSS4MCS9))
 				snddecision = snddecision & ~(1 << idx);
@@ -303,7 +304,7 @@ void phydm_txbf_rfmode(void *dm_void, u8 su_bfee_cnt, u8 mu_bfee_cnt)
 	}
 #endif
 #if (RTL8814B_SUPPORT)
-	if (dm->support_ic_type == ODM_RTL8814B) {
+	if (dm->support_ic_type & (ODM_RTL8814B | ODM_RTL8814C)) {
 		if (su_bfee_cnt > 0 || mu_bfee_cnt > 0) {
 			for (i = RF_PATH_A; i <= RF_PATH_D; i++) {
 				/*RF mode table write enable*/

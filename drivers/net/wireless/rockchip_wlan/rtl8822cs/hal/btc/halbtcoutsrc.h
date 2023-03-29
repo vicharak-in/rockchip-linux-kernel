@@ -798,6 +798,7 @@ struct btc_coex_sta {
 	boolean bt_ctr_ok;
 
 	boolean wl_under_lps;
+	boolean wl_in_lps_enter;
 	boolean wl_under_ips;
 	boolean wl_under_4way;
 	boolean	wl_hi_pri_task1;
@@ -877,6 +878,7 @@ struct btc_coex_sta {
 	u16	bt_reg_modem_a;
 	u16	bt_reg_rf_2;
 	u16	bt_reg_rf_9;
+	u16	bt_reg_le_200;
 	u16	wl_txlimit;
 
 	u32	score_board_BW_32bit;
@@ -1206,6 +1208,8 @@ typedef enum _BTC_NOTIFY_TYPE_IPS {
 typedef enum _BTC_NOTIFY_TYPE_LPS {
 	BTC_LPS_DISABLE							= 0x0,
 	BTC_LPS_ENABLE							= 0x1,
+	BTC_LPS_PRE							= 0x2,
+	BTC_LPS_RET							= 0x3,
 	BTC_LPS_MAX
 } BTC_NOTIFY_TYPE_LPS, *PBTC_NOTIFY_TYPE_LPS;
 typedef enum _BTC_NOTIFY_TYPE_SCAN {

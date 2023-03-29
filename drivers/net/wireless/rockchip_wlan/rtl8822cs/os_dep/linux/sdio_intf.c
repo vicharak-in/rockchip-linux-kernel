@@ -103,7 +103,8 @@ static const struct sdio_device_id sdio_ids[] = {
 #endif
 
 #ifdef CONFIG_RTL8723F
-	{SDIO_DEVICE(0x024c, 0xB733), .class = SDIO_CLASS_WLAN, .driver_data = RTL8723F},
+	{SDIO_DEVICE(0x024c, 0xB733), .class = SDIO_CLASS_WLAN, .driver_data = RTL8723F}, /* SDIO+UART */
+	{SDIO_DEVICE(0x024c, 0xB73A), .class = SDIO_CLASS_WLAN, .driver_data = RTL8723F}, /* SDIO multi */
 #endif
 
 #if defined(RTW_ENABLE_WIFI_CONTROL_FUNC) /* temporarily add this to accept all sdio wlan id */
@@ -183,10 +184,14 @@ int sdio_alloc_irq(struct dvobj_priv *dvobj)
 	sdio_claim_host(func);
 
 	err = sdio_claim_irq(func, &sd_sync_int_hdl);
-	if (err) {
+	if (err && err != -EBUSY) {
 		dvobj->drv_dbg.dbg_sdio_alloc_irq_error_cnt++;
 		RTW_PRINT("%s: sdio_claim_irq FAIL(%d)!\n", __func__, err);
+	} else if (err == -EBUSY) {
+		RTW_DBG("%s: sdio_claim_irq -EBUSY\n", __func__);
+		err = 0;
 	} else {
+		RTW_DBG("%s: sdio_claim_irq SUCCESS\n", __func__);
 		dvobj->drv_dbg.dbg_sdio_alloc_irq_cnt++;
 		dvobj->irq_alloc = 1;
 	}
@@ -212,8 +217,10 @@ void sdio_free_irq(struct dvobj_priv *dvobj)
 			if (err) {
 				dvobj->drv_dbg.dbg_sdio_free_irq_error_cnt++;
 				RTW_ERR("%s: sdio_release_irq FAIL(%d)!\n", __func__, err);
-			} else
+			} else {
+				RTW_DBG("%s: sdio_release_irq SUCCESS\n", __func__);
 				dvobj->drv_dbg.dbg_sdio_free_irq_cnt++;
+			}
 			sdio_release_host(func);
 		}
 		dvobj->irq_alloc = 0;
@@ -796,6 +803,10 @@ static void sd_intf_start(PADAPTER padapter)
 		return;
 	}
 
+#if (CONFIG_RTW_SDIO_RELEASE_IRQ >= 2)
+	sdio_alloc_irq(adapter_to_dvobj(padapter));
+#endif
+
 	/* hal dep */
 	rtw_hal_enable_interrupt(padapter);
 }
@@ -809,6 +820,10 @@ static void sd_intf_stop(PADAPTER padapter)
 
 	/* hal dep */
 	rtw_hal_disable_interrupt(padapter);
+
+#if (CONFIG_RTW_SDIO_RELEASE_IRQ >= 2)
+	sdio_free_irq(adapter_to_dvobj(padapter));
+#endif
 }
 
 
@@ -1062,8 +1077,10 @@ static int rtw_drv_init(
 	rtd2885_wlan_netlink_sendMsg("linkup", "8712");
 #endif
 
+#if (CONFIG_RTW_SDIO_RELEASE_IRQ <= 1)
 	if (sdio_alloc_irq(dvobj) != _SUCCESS)
 		goto os_ndevs_deinit;
+#endif
 
 #ifdef CONFIG_GPIO_WAKEUP
 #ifdef CONFIG_PLATFORM_ARM_SUN6I
@@ -1087,7 +1104,9 @@ static int rtw_drv_init(
 
 	status = _SUCCESS;
 
+#if (CONFIG_RTW_SDIO_RELEASE_IRQ <= 1)
 os_ndevs_deinit:
+#endif
 	if (status != _SUCCESS)
 		rtw_os_ndevs_deinit(dvobj);
 free_if_vir:
@@ -1410,3 +1429,6 @@ int rtw_sdio_set_power(int on)
 
 module_init(rtw_drv_entry);
 module_exit(rtw_drv_halt);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
+MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
+#endif

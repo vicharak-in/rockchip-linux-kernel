@@ -26,8 +26,8 @@
 #define __INC_PHYDM_API_H_8822C__
 
 #if (RTL8822C_SUPPORT)
-/*2020.02.25: Add dis low rate DPD in channel API with iot table for LG TV*/
-#define PHY_CONFIG_VERSION_8822C "1.8.8"
+/*2021.02.05: Let the auto_nbi_detect th be 0x1 due to technicolor issue*/
+#define PHY_CONFIG_VERSION_8822C "1.8.9"
 /*#define CONFIG_TXAGC_DEBUG_8822C*/
 
 #define INVALID_RF_DATA 0xffffffff

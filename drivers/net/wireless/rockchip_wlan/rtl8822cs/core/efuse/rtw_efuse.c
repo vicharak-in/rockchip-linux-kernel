@@ -79,6 +79,16 @@ BOOLEAN efuse_IsBT_Masked(PADAPTER pAdapter, u16 Offset)
 		return (IS_BT_MASKED(8822C, _MSDIO, Offset)) ? TRUE : FALSE;
 #endif
 #endif /*#ifdef CONFIG_RTL8822C*/
+#ifdef CONFIG_RTL8723F
+#ifdef CONFIG_USB_HCI
+		if (IS_HARDWARE_TYPE_8723F(pAdapter))
+			return (IS_BT_MASKED(8723F, _MUSB, Offset)) ? TRUE : FALSE;
+#endif
+#ifdef CONFIG_SDIO_HCI
+		if (IS_HARDWARE_TYPE_8723F(pAdapter))
+			return (IS_BT_MASKED(8723F, _MSDIO, Offset)) ? TRUE : FALSE;
+#endif
+#endif /*#ifdef CONFIG_RTL8723F*/
 #endif /* CONFIG_BT_EFUSE_MASK */
 	return FALSE;
 }
@@ -102,6 +112,16 @@ if (IS_HARDWARE_TYPE_8822CU(pAdapter))
 		GET_BT_MASK_ARRAY(8822C, _MSDIO, pArray);
 #endif
 #endif /*#ifdef CONFIG_RTL8822C*/
+#ifdef CONFIG_RTL8723F
+#ifdef CONFIG_USB_HCI
+	if (IS_HARDWARE_TYPE_8723FU(pAdapter))
+			GET_BT_MASK_ARRAY(8723F, _MUSB, pArray);
+#endif
+#ifdef CONFIG_SDIO_HCI
+		if (IS_HARDWARE_TYPE_8723FS(pAdapter))
+			GET_BT_MASK_ARRAY(8723F, _MSDIO, pArray);
+#endif
+#endif /*#ifdef CONFIG_RTL8723F*/
 #endif /* CONFIG_BT_EFUSE_MASK */
 
 }
@@ -125,6 +145,16 @@ u16 rtw_get_bt_efuse_mask_arraylen(PADAPTER pAdapter)
 		return GET_BT_MASK_ARRAY_LEN(8822C, _MSDIO);
 #endif
 #endif /*#ifdef CONFIG_RTL8822C*/
+#ifdef CONFIG_RTL8723F
+#ifdef CONFIG_USB_HCI
+		if (IS_HARDWARE_TYPE_8723FU(pAdapter))
+			return GET_BT_MASK_ARRAY_LEN(8723F, _MUSB);
+#endif
+#ifdef CONFIG_SDIO_HCI
+		if (IS_HARDWARE_TYPE_8723FS(pAdapter))
+			return GET_BT_MASK_ARRAY_LEN(8723F, _MSDIO);
+#endif
+#endif /*CONFIG_RTL8723F*/
 #endif /* CONFIG_BT_EFUSE_MASK */
 
 	return 0;
@@ -940,7 +970,7 @@ void rtw_efuse_analyze(PADAPTER	padapter, u8 Type, u8 Fake)
 	for (i = 0; i < mapLen; i++) {
 		if (i % 16 == 0)
 			RTW_PRINT_SEL(RTW_DBGDUMP, "0x%03x: ", i);
-			_RTW_PRINT_SEL(RTW_DBGDUMP, "%02X%s"
+		_RTW_PRINT_SEL(RTW_DBGDUMP, "%02X%s"
 				, pEfuseHal->fakeEfuseInitMap[i]
 				, ((i + 1) % 16 == 0) ? "\n" : (((i + 1) % 8 == 0) ? "	  " : " ")
 			);

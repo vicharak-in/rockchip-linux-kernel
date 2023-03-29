@@ -175,7 +175,7 @@ static void * aes_gcm_init_hash_subkey(const u8 *key, size_t key_len, u8 *H)
 {
 	void *aes;
 
-	aes = aes_encrypt_init(key, key_len);
+	aes = aes_rtl8822cs_encrypt_init(key, key_len);
 	if (aes == NULL)
 		return NULL;
 
@@ -275,7 +275,7 @@ int aes_gcm_ae(const u8 *key, size_t key_len, const u8 *iv, size_t iv_len,
 
 	/* Return (C, T) */
 
-	aes_encrypt_deinit(aes);
+	aes_rtl8822cs_encrypt_deinit(aes);
 
 	return 0;
 }
@@ -307,7 +307,7 @@ int aes_gcm_ad(const u8 *key, size_t key_len, const u8 *iv, size_t iv_len,
 	/* T' = MSB_t(GCTR_K(J_0, S)) */
 	aes_gctr(aes, J0, S, sizeof(S), T);
 
-	aes_encrypt_deinit(aes);
+	aes_rtl8822cs_encrypt_deinit(aes);
 
 	if (os_memcmp_const(tag, T, 16) != 0) {
 		wpa_printf(_MSG_EXCESSIVE_, "GCM: Tag mismatch");

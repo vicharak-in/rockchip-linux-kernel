@@ -2055,6 +2055,7 @@ void phydm_get_physts_0_jgr3(struct dm_struct *dm, u8 *phy_status_inf,
 	dbg_i->is_stbc_pkt = false;
 
 	/*cck channel has hw bug, [WLANBB-1429]*/
+	phy_info->rx_count = (rx_cnt > 0) ? rx_cnt - 1 : 0; /*from 1~4 to 0~3 */
 	phy_info->channel = 0;
 	phy_info->rx_power = rx_pwr_db_max;
 	phy_info->recv_signal_power = rx_pwr_db_max;
@@ -2227,6 +2228,7 @@ void phydm_get_physts_6_jgr3(struct dm_struct *dm, u8 *phy_status_inf,
 	dbg_i->is_stbc_pkt = false;
 
 	/*cck channel has hw bug, [WLANBB-1429]*/
+	phy_info->rx_count = (rx_cnt > 0) ? rx_cnt - 1 : 0; /*from 1~4 to 0~3 */
 	phy_info->channel = 0;
 	phy_info->rx_power = rx_pwr_db_max;
 	phy_info->recv_signal_power = rx_pwr_db_max;

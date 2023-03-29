@@ -59,7 +59,9 @@ static const struct btc_coex_table_para table_sant_8822c[] = {
 				{0xffffffff, 0x5aaa5aaa},
 				{0x56555555, 0x5a5a5aaa},
 				{0xdaffdaff, 0xdaffdaff},
-				{0x6a555a5a, 0x5a5a5a5a} };
+				{0x6a555a5a, 0x5a5a5a5a},
+				{0xe5555555, 0xe5555555}, /*case-35*/
+				{0xea5a5a5a, 0xea5a5a5a} };
 
 /* Non-Shared-Antenna Coex Table */
 static const struct btc_coex_table_para table_nsant_8822c[] = {
@@ -86,7 +88,8 @@ static const struct btc_coex_table_para table_nsant_8822c[] = {
 				{0xffffffff, 0xaaaaaaaa},/*case-120*/
 				{0x55ff55ff, 0x5afa5afa},
 				{0x55ff55ff, 0xaaaaaaaa},
-				{0x55ff55ff, 0x55ff55ff} };
+				{0x55ff55ff, 0x55ff55ff},
+				{0x6a555a5a, 0xfafafafa} };
 
 /* Shared-Antenna TDMA*/
 static const struct btc_tdma_para tdma_sant_8822c[] = {
@@ -147,7 +150,8 @@ static const struct btc_tdma_para tdma_nsant_8822c[] = {
 				{ {0x61, 0x30, 0x03, 0x10, 0x11} },
 				{ {0x61, 0x08, 0x03, 0x10, 0x11} },
 				{ {0x61, 0x08, 0x07, 0x10, 0x14} },
-				{ {0x61, 0x08, 0x03, 0x10, 0x10} } }; /*case-125*/
+				{ {0x61, 0x08, 0x03, 0x10, 0x10} }, /*case-125*/
+				{ {0x61, 0x08, 0x03, 0x11, 0x15} } };
 
 /* wl_tx_dec_power, bt_tx_dec_power, wl_rx_gain, bt_rx_lna_constrain */
 static const struct btc_rf_para rf_para_tx_8822c[] = {
@@ -210,10 +214,10 @@ const struct btc_5g_afh_map afh_5g_8822c[] = { {0, 0, 0} };
 
 const struct btc_chip_para btc_chip_para_8822c = {
 	"8822c",				/*.chip_name */
-	20210504,				/*.para_ver_date */
-	0x23,					/*.para_ver */
+	20211210,				/*.para_ver_date */
+	0x27,					/*.para_ver */
 	0x20,					/* bt_desired_ver */
-	0x70012,				/* wl_desired_ver */
+	0x7001c,				/* wl_desired_ver */
 	TRUE,					/* scbd_support */
 	0xaa,					/* scbd_reg*/
 	BTC_SCBD_16_BIT,			/* scbd_bit_num */
@@ -231,9 +235,9 @@ const struct btc_chip_para btc_chip_para_8822c = {
 	ARRAY_SIZE(bt_rssi_step_8822c),		/*.bt_rssi_step_num */
 	bt_rssi_step_8822c,			/*.bt_rssi_step */
 	ARRAY_SIZE(table_sant_8822c),		/*.table_sant_num */
-	table_sant_8822c,			/*.table_sant = */ 
+	table_sant_8822c,			/*.table_sant = */
 	ARRAY_SIZE(table_nsant_8822c),		/*.table_nsant_num */
-	table_nsant_8822c,			/*.table_nsant = */ 
+	table_nsant_8822c,			/*.table_nsant = */
 	ARRAY_SIZE(tdma_sant_8822c),		/*.tdma_sant_num */
 	tdma_sant_8822c,			/*.tdma_sant = */
 	ARRAY_SIZE(tdma_nsant_8822c),		/*.tdma_nsant_num */
@@ -498,12 +502,46 @@ void halbtc8822c_cfg_wl_rx_gain(struct btc_coexist *btc)
 	u8 i;
 
 	/* WL Rx Low gain on  */
-	static const u32	wl_rx_gain_on_HT20[] = {0x00000000};
-	static const u32	wl_rx_gain_on_HT40[] = {0x00000000};
+	static const u32	wl_rx_gain_on_HT20[] = {0xff000003,
+		0xbd120003, 0xbe100003, 0xbf080003, 0xbf060003, 0xbf050003,
+		0xbc140003, 0xbb160003, 0xba180003, 0xb91a0003, 0xb81c0003,
+		0xb71e0003, 0xb4200003, 0xb5220003, 0xb4240003, 0xb3260003,
+		0xb2280003, 0xb12a0003, 0xb02c0003, 0xaf2e0003, 0xae300003,
+		0xad320003, 0xac340003, 0xab360003, 0x8d380003, 0x8c3a0003,
+		0x8b3c0003, 0x8a3e0003, 0x6e400003, 0x6d420003, 0x6c440003,
+		0x6b460003, 0x6a480003, 0x694a0003, 0x684c0003, 0x674e0003,
+		0x66500003, 0x65520003, 0x64540003, 0x64560003, 0x007e0403};
+
+	static const u32	wl_rx_gain_on_HT40[] = {0xff000003,
+		0xbd120003, 0xbe100003, 0xbf080003, 0xbf060003, 0xbf050003,
+		0xbc140003, 0xbb160003, 0xba180003, 0xb91a0003, 0xb81c0003,
+		0xb71e0003, 0xb4200003, 0xb5220003, 0xb4240003, 0xb3260003,
+		0xb2280003, 0xb12a0003, 0xb02c0003, 0xaf2e0003, 0xae300003,
+		0xad320003, 0xac340003, 0xab360003, 0x8d380003, 0x8c3a0003,
+		0x8b3c0003, 0x8a3e0003, 0x6e400003, 0x6d420003, 0x6c440003,
+		0x6b460003, 0x6a480003, 0x694a0003, 0x684c0003, 0x674e0003,
+		0x66500003, 0x65520003, 0x64540003, 0x64560003, 0x007e0403};
 
 	/* WL Rx Low gain off  */
-	static const u32	wl_rx_gain_off_HT20[] = {0x00000000};
-	static const u32	wl_rx_gain_off_HT40[] = {0x00000000};
+	static const u32	wl_rx_gain_off_HT20[] = {0xff000003,
+		0xf4120003, 0xf5100003, 0xf60e0003, 0xf70c0003, 0xf80a0003,
+		0xf3140003, 0xf2160003, 0xf1180003, 0xf01a0003, 0xef1c0003,
+		0xee1e0003, 0xed200003, 0xec220003, 0xeb240003, 0xea260003,
+		0xe9280003, 0xe82a0003, 0xe72c0003, 0xe62e0003, 0xe5300003,
+		0xc8320003, 0xc7340003, 0xc6360003, 0xc5380003, 0xc43a0003,
+		0xc33c0003, 0xc23e0003, 0xc1400003, 0xc0420003, 0xa5440003,
+		0xa4460003, 0xa3480003, 0xa24a0003, 0xa14c0003, 0x834e0003,
+		0x82500003, 0x81520003, 0x80540003, 0x65560003, 0x007e0403};
+
+	static const u32	wl_rx_gain_off_HT40[] = {0xff000003,
+		0xf4120003, 0xf5100003, 0xf60e0003, 0xf70c0003, 0xf80a0003,
+		0xf3140003, 0xf2160003, 0xf1180003, 0xf01a0003, 0xef1c0003,
+		0xee1e0003, 0xed200003, 0xec220003, 0xeb240003, 0xea260003,
+		0xe9280003, 0xe82a0003, 0xe72c0003, 0xe62e0003, 0xe5300003,
+		0xc8320003, 0xc7340003, 0xc6360003, 0xc5380003, 0xc43a0003,
+		0xc33c0003, 0xc23e0003, 0xc1400003, 0xc0420003, 0xa5440003,
+		0xa4460003, 0xa3480003, 0xa24a0003, 0xa14c0003, 0x834e0003,
+		0x82500003, 0x81520003, 0x80540003, 0x65560003, 0x007e0403};
 
 	u32		*wl_rx_gain_on, *wl_rx_gain_off;
 

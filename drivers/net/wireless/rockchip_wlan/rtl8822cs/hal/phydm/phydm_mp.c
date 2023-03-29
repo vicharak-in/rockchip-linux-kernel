@@ -105,17 +105,20 @@ void phydm_mp_set_single_tone_jgr3(void *dm_void, boolean is_single_tone,
 	if (is_single_tone) {
 		/*Disable CCA*/
 		if (is_2g_ch) { /*CCK RxIQ weighting = [0,0]*/
-			if(dm->support_ic_type & ODM_RTL8723F) {
-				odm_set_bb_reg(dm, R_0x2a24, BIT(13), 0x1); /*CCK*/
-			} else {
+			if(!(dm->support_ic_type & ODM_RTL8723F)) {
 				odm_set_bb_reg(dm, R_0x1a9c, BIT(20), 0x0);
 				odm_set_bb_reg(dm, R_0x1a14, 0x300, 0x3);
 			}
 		}
-		odm_set_bb_reg(dm, R_0x1d58, 0xff8, 0x1ff); /*OFDM*/
+		/*Disable CCK CCA*/
+		if(dm->support_ic_type & ODM_RTL8723F)
+			odm_set_bb_reg(dm, R_0x2a24, BIT(13), 0x1);
+		/*Disable OFDM CCA*/
+		odm_set_bb_reg(dm, R_0x1d58, 0xff8, 0x1ff);
+
 		if (dm->support_ic_type & ODM_RTL8723F) {
-			odm_set_rf_reg(dm, RF_PATH_A, RF_0x5, BIT(0), 0x0);
 			for (i = start; i <= end; i++) {
+				odm_set_rf_reg(dm, i, RF_0x5, BIT(0), 0x0);
 				mp->rf0[i] = odm_get_rf_reg(dm, i, RF_0x0, RFREG_MASK);
 				/*Tx mode: RF0x00[19:16]=4'b0010 */
 				odm_set_rf_reg(dm, i, RF_0x0, 0xF0000, 0x2);
@@ -138,7 +141,7 @@ void phydm_mp_set_single_tone_jgr3(void *dm_void, boolean is_single_tone,
 		}
 		
 		#if (RTL8814B_SUPPORT)
-		if (dm->support_ic_type & ODM_RTL8814B) {
+		if (dm->support_ic_type & (ODM_RTL8814B | ODM_RTL8814C)) {
 			mp->rf0_syn[RF_SYN0] = config_phydm_read_syn_reg_8814b(
 					       dm, RF_SYN0, RF_0x0, RFREG_MASK);
 			/*Lowest RF gain index: RF_0x0[4:0] = 0x0*/
@@ -164,14 +167,16 @@ void phydm_mp_set_single_tone_jgr3(void *dm_void, boolean is_single_tone,
 	} else {
 		/*Enable CCA*/
 		if (is_2g_ch) { /*CCK RxIQ weighting = [1,1]*/
-			if(dm->support_ic_type & ODM_RTL8723F) {
-				odm_set_bb_reg(dm, R_0x2a24, BIT(13), 0x0); /*CCK*/ 
-			} else {
+			if(!(dm->support_ic_type & ODM_RTL8723F)) {
 				odm_set_bb_reg(dm, R_0x1a9c, BIT(20), 0x1);
 				odm_set_bb_reg(dm, R_0x1a14, 0x300, 0x0);
 			}
 		}
-		odm_set_bb_reg(dm, R_0x1d58, 0xff8, 0x0); /*OFDM*/
+		/*Enable CCK CCA*/
+		if(dm->support_ic_type & ODM_RTL8723F)
+			odm_set_bb_reg(dm, R_0x2a24, BIT(13), 0x0);
+		/*Enable OFDM CCA*/
+		odm_set_bb_reg(dm, R_0x1d58, 0xff8, 0x0);
 
 		if(dm->support_ic_type & ODM_RTL8723F) {
 			for (i = start; i <= end; i++) {
@@ -179,8 +184,8 @@ void phydm_mp_set_single_tone_jgr3(void *dm_void, boolean is_single_tone,
 				odm_set_rf_reg(dm, i, RF_0x1, RFREG_MASK, mp->rf1[i]);
 				/*RF LO disabled */
 				odm_set_rf_reg(dm, i, RF_0x58, BIT(1), 0x0);
+				odm_set_rf_reg(dm, i, RF_0x5, BIT(0), 0x1);
 			}
-			odm_set_rf_reg(dm, RF_PATH_A, RF_0x5, BIT(0), 0x1);
 		} else {
 			for (i = start; i <= end; i++) {
 				odm_set_rf_reg(dm, i, RF_0x0, RFREG_MASK, mp->rf0[i]);
@@ -189,7 +194,7 @@ void phydm_mp_set_single_tone_jgr3(void *dm_void, boolean is_single_tone,
 			}
 		}
 		#if (RTL8814B_SUPPORT)
-		if (dm->support_ic_type & ODM_RTL8814B) {
+		if (dm->support_ic_type & (ODM_RTL8814B | ODM_RTL8814C)) {
 			config_phydm_write_rf_syn_8814b(dm, RF_SYN0, RF_0x0,
 							RFREG_MASK,
 							mp->rf0_syn[RF_SYN0]);

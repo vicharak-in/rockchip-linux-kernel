@@ -336,12 +336,20 @@ struct registry_priv {
 	u8 tx_nss;
 	u8 rx_nss;
 
+#ifdef CONFIG_ACTIVE_TPC_REPORT
+	u8 active_tpc_report;
+#endif
+
 #ifdef CONFIG_REGD_SRC_FROM_OS
 	enum regd_src_t regd_src;
 #endif
 	char alpha2[2];
 	u8	channel_plan;
-	u8	excl_chs[MAX_CHANNEL_NUM];
+	u8	excl_chs[MAX_CHANNEL_NUM_2G_5G];
+#if CONFIG_IEEE80211_BAND_6GHZ
+	u8 channel_plan_6g;
+	u8 excl_chs_6g[MAX_CHANNEL_NUM_6G];
+#endif
 	u8	full_ch_in_p2p_handshake; /* 0: reply only softap channel, 1: reply full channel list*/
 
 #ifdef CONFIG_BT_COEXIST
@@ -379,12 +387,15 @@ struct registry_priv {
 #endif
 
 #ifdef CONFIG_80211D
-	u8 enable80211d;
+	u8 country_ie_slave_en_role;
+	u8 country_ie_slave_en_ifbmp;
 #endif
 
 	u8 ifname[16];
 	u8 if2name[16];
-
+#if defined(CONFIG_PLATFORM_ANDROID) && (CONFIG_IFACE_NUMBER > 2)
+	u8 if3name[16];
+#endif
 	u8 notch_filter;
 
 	/* for pll reference clock selction */
@@ -559,6 +570,9 @@ struct registry_priv {
 	u8 unassoc_sta_mode_of_stype[UNASOC_STA_SRC_NUM];
 	u16 max_unassoc_sta_cnt;
 #endif
+#if defined(CONFIG_CONCURRENT_MODE) && defined(CONFIG_AP_MODE)
+	u8 ap_csa_cnt;
+#endif
 	u8 nbi_en;
 };
 
@@ -601,6 +615,14 @@ struct registry_priv {
 #define REGSTY_IS_11AC_ENABLE(regsty) 0
 #define REGSTY_IS_11AC_AUTO(regsty) 0
 #define REGSTY_IS_11AC_24G_ENABLE(regsty) 0
+#endif
+
+#ifdef CONFIG_ACTIVE_TPC_REPORT
+#define REGSTY_IS_ACTIVE_TPC_REPORT_CAPABLE(regsty) ((regsty)->active_tpc_report != 0)
+#define REGSTY_IS_ACTIVE_TPC_REPORT_AUTO(regsty) ((regsty)->active_tpc_report == 2)
+#else
+#define REGSTY_IS_ACTIVE_TPC_REPORT_CAPABLE(regsty) 0
+#define REGSTY_IS_ACTIVE_TPC_REPORT_AUTO(regsty) 0
 #endif
 
 #ifdef CONFIG_REGD_SRC_FROM_OS
@@ -1009,10 +1031,57 @@ struct macid_ctl_t {
 
 #define TPC_MANUAL_CONSTRAINT_MAX 600 /* mB */
 
+#define COUNTRY_IE_SLAVE_EN_ROLE_STA	BIT0 /* pure STA mode */
+#define COUNTRY_IE_SLAVE_EN_ROLE_GC		BIT1 /* P2P group client */
+
+#define MAX_CSA_CNT 10
+
 struct rf_ctl_t {
+	bool disable_sw_chplan;
 	enum regd_src_t regd_src;
-	const struct country_chplan *country_ent;
+	enum rtw_regd_inr regd_inr;
+	char alpha2[2];
 	u8 ChannelPlan;
+#if CONFIG_IEEE80211_BAND_6GHZ
+	u8 chplan_6g;
+#endif
+	u8 edcca_mode_2g_override;
+#if CONFIG_IEEE80211_BAND_5GHZ
+	u8 edcca_mode_5g_override;
+#endif
+#if CONFIG_IEEE80211_BAND_6GHZ
+	u8 edcca_mode_6g_override;
+#endif
+#if CONFIG_TXPWR_LIMIT
+	u8 txpwr_lmt_override;
+#endif
+
+#if defined(CONFIG_80211AX_HE) || defined(CONFIG_80211AC_VHT)
+	u8 proto_en;
+#endif
+
+	/* initial channel plan selectors */
+	char init_alpha2[2];
+	u8 init_ChannelPlan;
+#if CONFIG_IEEE80211_BAND_6GHZ
+	u8 init_chplan_6g;
+#endif
+
+	/* channel plan selectors by user */
+	char user_alpha2[2]; /* "\x00\x00" is not set */
+	u8 user_ChannelPlan;
+#if CONFIG_IEEE80211_BAND_6GHZ
+	u8 user_chplan_6g;
+#endif
+
+#ifdef CONFIG_80211D
+	u8 country_ie_slave_en_role;
+	u8 country_ie_slave_en_ifbmp;
+
+	struct country_ie_slave_record cisr[CONFIG_IFACE_NUMBER];
+	u8 effected_cisr_id;
+#endif
+
 	u8 max_chan_nums;
 	RT_CHANNEL_INFO channel_set[MAX_CHANNEL_NUM];
 	struct op_class_pref_t **spt_op_class_ch;
@@ -1048,8 +1117,8 @@ struct rf_ctl_t {
 	_list reg_exc_list;
 	u8 regd_exc_num;
 	_list txpwr_lmt_list;
-	u8 txpwr_regd_num;
-	const char *regd_name;
+	u8 txpwr_lmt_num;
+	const char *txpwr_lmt_name[BAND_MAX];
 
 	u8 txpwr_lmt_2g_cck_ofdm_state;
 	#if CONFIG_IEEE80211_BAND_5GHZ
@@ -1062,6 +1131,24 @@ struct rf_ctl_t {
 
 	bool ch_sel_within_same_band;
 
+	u8 adaptivity_en; /* runtime status, hook to phydm */
+	u8 edcca_mode_2g;
+#if CONFIG_IEEE80211_BAND_5GHZ
+	u8 edcca_mode_5g;
+#endif
+#if CONFIG_IEEE80211_BAND_6GHZ
+	u8 edcca_mode_6g;
+#endif
+
+	u8 ap_csa_ch;
+	u8 ap_csa_switch_cnt;
+	u8 ap_csa_ch_offset;
+	u8 ap_csa_ch_width;
+	u8 ap_csa_en;
+#if defined(CONFIG_CONCURRENT_MODE) && defined(CONFIG_AP_MODE)
+	u8 ap_csa_cnt_input; /* Input from proc, default value is DEFAULT_CSA_CNT */
+#endif
+
 #if CONFIG_DFS
 	u8 csa_ch;
 	u8 csa_switch_cnt;
@@ -1069,6 +1156,10 @@ struct rf_ctl_t {
 	u8 csa_ch_width;
 	u8 csa_ch_freq_seg0; /* Channel Center Frequency Segment 0 */
 	u8 csa_ch_freq_seg1; /* Channel Center Frequency Segment 1 */
+#ifdef CONFIG_ECSA
+	u8 ecsa_mode;
+	u8 ecsa_op_class;
+#endif
 
 #ifdef CONFIG_DFS_MASTER
 	u8 dfs_region_domain;
@@ -1103,6 +1194,22 @@ struct wow_ctl_t {
 };
 
 #define WOW_CAP_TKIP_OL BIT0
+#define WOW_CAP_HALMAC_ACCESS_PATTERN_IN_TXFIFO BIT1
+
+#define RFCTL_REG_WORLDWIDE(rfctl) (IS_ALPHA2_WORLDWIDE(rfctl->alpha2))
+#define RFCTL_REG_ALPHA2_UNSPEC(rfctl) (IS_ALPHA2_UNSPEC(rfctl->alpha2)) /* ex: only domain code is specified */
+
+#ifdef CONFIG_80211AC_VHT
+#define RFCTL_REG_EN_11AC(rfctl) (((rfctl)->proto_en & CHPLAN_PROTO_EN_AC) ? 1 : 0)
+#else
+#define RFCTL_REG_EN_11AC(rfctl) 0
+#endif
+
+#ifdef CONFIG_80211AX_HE
+#define RFCTL_REG_EN_11AX(rfctl) (((rfctl)->proto_en & CHPLAN_PROTO_EN_AX) ? 1 : 0)
+#else
+#define RFCTL_REG_EN_11AX(rfctl) 0
+#endif
 
 #define RTW_CAC_STOPPED 0
 #ifdef CONFIG_DFS_MASTER
@@ -1501,9 +1608,13 @@ struct dvobj_priv {
 #define dvobj_to_macidctl(dvobj) (&(dvobj->macid_ctl))
 #define dvobj_to_sec_camctl(dvobj) (&(dvobj->cam_ctl))
 #define dvobj_to_regsty(dvobj) (&(dvobj->padapters[IFACE_ID0]->registrypriv))
-#if defined(CONFIG_IOCTL_CFG80211) && defined(RTW_SINGLE_WIPHY)
+#ifdef CONFIG_IOCTL_CFG80211
+#ifdef RTW_SINGLE_WIPHY
 #define dvobj_to_wiphy(dvobj) ((dvobj)->wiphy)
+#else
+#define dvobj_to_wiphy(dvobj) (adapter_to_wiphy(dvobj_get_primary_adapter(dvobj)))
 #endif
+#endif /* CONFIG_IOCTL_CFG80211 */
 #define dvobj_to_rfctl(dvobj) (&(dvobj->rf_ctl))
 #define rfctl_to_dvobj(rfctl) container_of((rfctl), struct dvobj_priv, rf_ctl)
 
@@ -1927,7 +2038,7 @@ struct _ADAPTER {
 #endif
 
 #define adapter_mac_addr(adapter) (adapter->mac_addr)
-#ifdef CONFIG_RTW_CFGVENDOR_RANDOM_MAC_OUI
+#if defined(CONFIG_RTW_CFGVENDOR_RANDOM_MAC_OUI) || defined(CONFIG_RTW_SCAN_RAND)
 #define adapter_pno_mac_addr(adapter) \
 	((adapter_wdev_data(adapter))->pno_mac_addr)
 #endif

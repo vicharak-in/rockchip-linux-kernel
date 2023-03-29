@@ -14,7 +14,6 @@
  *****************************************************************************/
 
 #include "mp_precomp.h"
-#define ODM_WIN 0x08
 #if (DM_ODM_SUPPORT_TYPE == ODM_WIN)
 #if RT_PLATFORM == PLATFORM_MACOSX
 #include "phydm_precomp.h"
@@ -28,7 +27,7 @@
 #if (RTL8822C_SUPPORT == 1)
 
 #if 1
-u32 array_mp_8822c_cal_init[] = {
+u32 array_mp_8822c_cal_init[] = {	
 	0x1b00, 0x00000008,
 	0x1b00, 0x00A70008,
 	0x1b00, 0x00150008,
@@ -2515,7 +2514,7 @@ void odm_read_and_config_mp_8822c_cal_init(void *dm_void)
 	while ((i + 1) < array_len) {
 		v1 = array[i];
 		v2 = array[i + 1];
-		odm_config_bb_phy_8822c(dm, v1, MASKDWORD, v2);
+		odm_config_bb_phy_8822c(dm, v1, MASKDWORD, v2);		
 		RF_DBG(dm, DBG_RF_IQK, "v1 = 0x%x, v2 = 0x%x \n",v1,v2);
 		i = i + 2;
 	}

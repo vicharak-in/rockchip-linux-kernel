@@ -182,6 +182,9 @@ struct security_priv {
 	u8 owe_ie[MAX_OWE_IE_LEN];/* added in assoc req */
 	int owe_ie_len;
 
+	u8 rsnx_ie[MAX_RSNX_IE_LEN];
+	int rsnx_ie_len;
+
 	u8	binstallGrpkey;
 #ifdef CONFIG_GTK_OL
 	u8	binstallKCK_KEK;
@@ -366,7 +369,7 @@ void rtw_seccalctkipmic(
 	u8 *Miccode,
 	u8   priority);
 
-u32 rtw_aes_encrypt(_adapter *padapter, u8 *pxmitframe);
+u32 rtw_aes_rtl8822cs_encrypt(_adapter *padapter, u8 *pxmitframe);
 u32 rtw_tkip_encrypt(_adapter *padapter, u8 *pxmitframe);
 void rtw_wep_encrypt(_adapter *padapter, u8  *pxmitframe);
 
