@@ -355,8 +355,7 @@ static void Hal_EfuseParseChnlPlan(PADAPTER adapter, u8 *map, u8 autoloadfail)
 		adapter,
 		map ? &map[EEPROM_COUNTRY_CODE_8822C] : NULL,
 		map ? map[EEPROM_ChannelPlan_8822C] : 0xFF,
-		adapter->registrypriv.alpha2,
-		adapter->registrypriv.channel_plan,
+		RTW_CHPLAN_6G_NULL,
 		autoloadfail
 	);
 }
@@ -1056,9 +1055,10 @@ static void xmit_status_check(PADAPTER p)
 				if (diff_time > 4000) {
 
 					RTW_INFO("%s tx hang %s\n", __FUNCTION__,
-						(rtw_odm_adaptivity_needed(p)) ? "ODM_BB_ADAPTIVITY" : "");
+						!adapter_to_rfctl(p)->adaptivity_en ? "" :
+							rtw_edcca_mode_str(rtw_get_edcca_mode(adapter_to_dvobj(p), hal->current_band_type)));
 
-					if (!rtw_odm_adaptivity_needed(p)) {
+					if (!adapter_to_rfctl(p)->adaptivity_en) {
 						psrtpriv->self_dect_tx_cnt++;
 						psrtpriv->self_dect_case = 1;
 						rtw_hal_sreset_reset(p);
@@ -1923,7 +1923,7 @@ void hw_var_set_dl_rsvd_page(PADAPTER adapter, u8 mstatus)
 	u8 DLBcnCount = 0;
 	u32 poll = 0;
 	u8 val8;
-	u8 restore[2];
+	u8 restore[3];
 	u8 hw_port = rtw_hal_get_port(adapter);
 
 	RTW_INFO(FUNC_ADPT_FMT ":+ hw_port=%d mstatus(%x)\n",
@@ -1950,7 +1950,12 @@ void hw_var_set_dl_rsvd_page(PADAPTER adapter, u8 mstatus)
 		 */
 		val8 = rtw_read8(adapter, REG_BCN_CTRL_8822C);
 		restore[1] = val8;
-		val8 &= ~BIT_EN_BCN_FUNCTION_8822C;
+		/* val8 &= ~BIT_EN_BCN_FUNCTION_8822C; */
+		restore[2] = rtw_read8(adapter, REG_FWHW_TXQ_CTRL_8822C + 2);
+		if (restore[2] & BIT(6)) {
+			rtw_write8(adapter, REG_FWHW_TXQ_CTRL_8822C + 2,
+				(restore[2] & ~BIT(6)));
+		}
 		val8 |= BIT_DIS_TSF_UDT_8822C;
 		rtw_write8(adapter, REG_BCN_CTRL_8822C, val8);
 
@@ -2000,6 +2005,7 @@ void hw_var_set_dl_rsvd_page(PADAPTER adapter, u8 mstatus)
 				 ADPT_ARG(adapter), DLBcnCount, poll);
 		}
 
+		rtw_write8(adapter, REG_FWHW_TXQ_CTRL_8822C + 2, restore[2]);
 		rtw_write8(adapter, REG_BCN_CTRL, restore[1]);
 		rtw_write8(adapter,  REG_CR + 1, restore[0]);
 #if 0
@@ -2270,11 +2276,11 @@ u8 rtl8822c_sethwreg(PADAPTER adapter, u8 variable, u8 *val)
 
 	case HW_VAR_RESP_SIFS:
 		/* RESP_SIFS for CCK */
-		rtw_write8(adapter, REG_RESP_SIFS_CCK_8822C, val[0]);
-		rtw_write8(adapter, REG_RESP_SIFS_CCK_8822C + 1, val[1]);
+		rtw_write8(adapter, REG_RESP_SIFS_CCK_8822C, 0x08);
+		rtw_write8(adapter, REG_RESP_SIFS_CCK_8822C + 1, 0x08);
 		/* RESP_SIFS for OFDM */
-		rtw_write8(adapter, REG_RESP_SIFS_OFDM_8822C, val[2]);
-		rtw_write8(adapter, REG_RESP_SIFS_OFDM_8822C + 1, val[3]);
+		rtw_write8(adapter, REG_RESP_SIFS_OFDM_8822C, 0x0a);
+		rtw_write8(adapter, REG_RESP_SIFS_OFDM_8822C + 1, 0x0a);
 		break;
 
 	case HW_VAR_ACK_PREAMBLE:
@@ -2439,6 +2445,7 @@ u8 rtl8822c_sethwreg(PADAPTER adapter, u8 variable, u8 *val)
 					break;
 
 				RTW_INFO("[HW_VAR_FIFO_CLEARN_UP] val=%x times:%d\n", val32, trycnt);
+				rtw_yield_os();
 			} while (--trycnt);
 			if (trycnt == 0)
 				RTW_INFO("[HW_VAR_FIFO_CLEARN_UP] Stop RX DMA failed!\n");
@@ -2561,7 +2568,6 @@ u8 rtl8822c_sethwreg(PADAPTER adapter, u8 variable, u8 *val)
 	case HW_VAR_TX_RPT_MAX_MACID:
 	case HW_VAR_CHK_HI_QUEUE_EMPTY:
 	case HW_VAR_AMPDU_MAX_TIME:
-	case HW_VAR_WIRELESS_MODE:
 	case HW_VAR_USB_MODE:
 		break;
 */
@@ -2658,6 +2664,25 @@ u8 rtl8822c_sethwreg(PADAPTER adapter, u8 variable, u8 *val)
 #endif
 		break;
 
+#ifdef CONFIG_WAKE_ON_BT
+	case HW_VAR_WAKE_ON_BT_GPIO_SWITCH: {
+		int status = 0;
+		u8 enable = *val;
+
+		if (enable) {
+			/* Should disable wl_led control at first
+			halmac will check if wl_led is enabled before switch BT wake GPIO */
+			status = rtw_halmac_led_cfg(adapter_to_dvobj(adapter), _FALSE, 3);
+			status = rtw_halmac_bt_wake_cfg(adapter_to_dvobj(adapter), *val);
+			if (status)
+				RTW_INFO("[WakeOnBT] Enable BT control fail, status: %d\n", status);
+		} else {
+			status = rtw_halmac_bt_wake_cfg(adapter_to_dvobj(adapter), *val);
+			status = rtw_halmac_led_cfg(adapter_to_dvobj(adapter), _TRUE, 3);
+		}
+	}
+		break;
+#endif
 	default:
 		ret = SetHwReg(adapter, variable, val);
 		break;
@@ -2995,7 +3020,6 @@ void rtl8822c_gethwreg(PADAPTER adapter, u8 variable, u8 *val)
 /*
 	case HW_VAR_DL_BCN_SEL:
 	case HW_VAR_AMPDU_MAX_TIME:
-	case HW_VAR_WIRELESS_MODE:
 	case HW_VAR_USB_MODE:
 	case HW_VAR_PORT_SWITCH:
 	case HW_VAR_DO_IQK:

@@ -426,7 +426,7 @@ C2HTxRPTHandler_8822c(
 
 	psta->sta_stats.tx_ok_cnt = TxOK;
 	psta->sta_stats.tx_fail_cnt = TxFail;
-
+	psta->sta_stats.tx_fail_cnt_sum += TxFail;
 }
 
 static void
@@ -461,7 +461,11 @@ C2HSPC_STAT_8822c(
 		return;
 	}
 	psta->sta_stats.tx_retry_cnt = (C2H_SPECIAL_STATISTICS_GET_DATA3(CmdBuf) << 8) | C2H_SPECIAL_STATISTICS_GET_DATA2(CmdBuf);
+	psta->sta_stats.tx_retry_cnt_sum += psta->sta_stats.tx_retry_cnt;
+
+	enter_critical_bh(&pstapriv->tx_rpt_lock);
 	rtw_sctx_done(&pstapriv->gotc2h);
+	exit_critical_bh(&pstapriv->tx_rpt_lock);
 }
 #ifdef CONFIG_FW_HANDLE_TXBCN
 #define C2H_SUB_CMD_ID_FW_TBTT_RPT  0X23

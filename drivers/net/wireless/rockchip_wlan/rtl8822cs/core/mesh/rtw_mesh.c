@@ -3694,7 +3694,7 @@ int rtw_mesh_addr_resolve(_adapter *adapter, u16 os_qid, struct xmit_frame *xfra
 				, etherhdr.h_dest, adapter_mac_addr(adapter), ae_need, NULL, 0
 				, os_qid, b2u_list, &b2u_num, &b2u_mseq);
 			if (bmc_need == _FALSE) {
-				res = RTW_BMC_NO_NEED;
+				res = RTW_ORI_NO_NEED;
 				goto exit;
 			}
 		}
@@ -3916,7 +3916,7 @@ int rtw_mesh_rx_data_validate_hdr(_adapter *adapter, union recv_frame *rframe, s
 			stop_sta_xmit(adapter, *sta);
 	} else {
 		if ((*sta)->state & WIFI_SLEEP_STATE)
-			wakeup_sta_to_xmit(adapter, *sta);
+			wakeup_sta_to_xmit(adapter, *sta, ALL_FRAME);
 	}
 
 	if (is_ra_bmc)
@@ -4086,7 +4086,7 @@ int rtw_mesh_rx_msdu_act_check(union recv_frame *rframe
 	int act = 0;
 	u8 ae_need;
 #if CONFIG_RTW_MESH_DATA_BMC_TO_UC
-	bool bmc_need = _TRUE;
+	bool ori_need = _TRUE;
 	u8 b2u_num = 0;
 #endif
 
@@ -4318,12 +4318,12 @@ fwd_chk:
 	if (is_mda_bmc
 		&& rtw_mfwd_b2u_policy_chk(mcfg->b2u_flags_mfwd, mda, rattrib->to_fr_ds == 3)
 	) {
-		bmc_need = rtw_mesh_data_bmc_to_uc(adapter
+		ori_need = rtw_mesh_data_bmc_to_uc(adapter
 			, da, sa, mda, msa, ae_need, rframe->u.hdr.psta->cmn.mac_addr, mctrl->ttl - 1
 			, os_qid, b2u_list, &b2u_num, &fwd_mseq);
 	}
 
-	if (bmc_need == _TRUE)
+	if (ori_need == _TRUE)
 #endif
 	{
 		xframe = rtw_alloc_xmitframe(&adapter->xmitpriv, os_qid);
@@ -4362,12 +4362,17 @@ fwd_chk:
 		*fwd_frame = xframe;
 	}
 
-	act |= RTW_RX_MSDU_ACT_FORWARD;
-	if (is_mda_bmc)
-		minfo->mshstats.fwded_mcast++;
-	else
-		minfo->mshstats.fwded_unicast++;
-	minfo->mshstats.fwded_frames++;
+#if CONFIG_RTW_MESH_DATA_BMC_TO_UC
+	if (ori_need || b2u_num)
+#endif
+	{
+		act |= RTW_RX_MSDU_ACT_FORWARD;
+		if (is_mda_bmc)
+			minfo->mshstats.fwded_mcast++;
+		else
+			minfo->mshstats.fwded_unicast++;
+		minfo->mshstats.fwded_frames++;
+	}
 
 exit:
 	return act;

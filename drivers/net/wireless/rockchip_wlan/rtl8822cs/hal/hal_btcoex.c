@@ -2410,7 +2410,7 @@ void halbtcoutsrc_Write_scbd_32bit(void *pBtcContext, u32 bitpos, u8 state)
 	if (!chip_para->scbd_support)
 		return;
 
-	val = val | coex_sta->score_board_WB;
+	val = val | coex_sta->score_board_WB_32bit;
 
 	/* for 8822b, Scoreboard[10]: 0: CQDDR off, 1: CQDDR on
 	 * for 8822c, Scoreboard[10]: 0: CQDDR on, 1:CQDDR fix 2M

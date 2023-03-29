@@ -315,6 +315,8 @@ u32	_rtw_init_sta_priv(struct	sta_priv *pstapriv)
 	rtw_pre_link_sta_ctl_init(pstapriv);
 #endif
 
+	_rtw_spinlock_init(&pstapriv->tx_rpt_lock);
+
 #if defined(DBG_ROAMING_TEST) || defined(CONFIG_RTW_REPEATER_SON)
 	rtw_set_rx_chk_limit(adapter,1);
 #elif defined(CONFIG_ACTIVE_KEEP_ALIVE_CHECK) && !defined(CONFIG_LPS_LCLK_WD_TIMER)
@@ -388,7 +390,9 @@ void rtw_mfree_stainfo(struct sta_info *psta);
 void rtw_mfree_stainfo(struct sta_info *psta)
 {
 
-	_rtw_spinlock_free(&psta->lock);
+	if (&psta->lock != NULL)
+		_rtw_spinlock_free(&psta->lock);
+
 	_rtw_free_sta_xmit_priv_lock(&psta->sta_xmitpriv);
 	_rtw_free_sta_recv_priv_lock(&psta->sta_recvpriv);
 
@@ -479,6 +483,8 @@ u32	_rtw_free_sta_priv(struct	sta_priv *pstapriv)
 #if CONFIG_RTW_PRE_LINK_STA
 		rtw_pre_link_sta_ctl_deinit(pstapriv);
 #endif
+
+		_rtw_spinlock_free(&pstapriv->tx_rpt_lock);
 
 		if (pstapriv->pallocated_stainfo_buf)
 			rtw_vmfree(pstapriv->pallocated_stainfo_buf,

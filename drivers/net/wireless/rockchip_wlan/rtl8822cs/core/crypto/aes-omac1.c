@@ -50,7 +50,7 @@ int omac1_aes_vector(const u8 *key, size_t key_len, size_t num_elem,
 	if (TEST_FAIL())
 		return -1;
 
-	ctx = aes_encrypt_init(key, key_len);
+	ctx = aes_rtl8822cs_encrypt_init(key, key_len);
 	if (ctx == NULL)
 		return -1;
 	os_memset(cbc, 0, AES_BLOCK_SIZE);
@@ -111,7 +111,7 @@ int omac1_aes_vector(const u8 *key, size_t key_len, size_t num_elem,
 	for (i = 0; i < AES_BLOCK_SIZE; i++)
 		pad[i] ^= cbc[i];
 	aes_rtl8822cs_encrypt(ctx, pad, mac);
-	aes_encrypt_deinit(ctx);
+	aes_rtl8822cs_encrypt_deinit(ctx);
 	return 0;
 }
 

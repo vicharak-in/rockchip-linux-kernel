@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright(c) 2015 - 2019 Realtek Corporation.
+ * Copyright(c) 2015 - 2021 Realtek Corporation.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of version 2 of the GNU General Public License as
@@ -728,8 +728,6 @@ static u8 _halmac_event_indication(void *p, enum halmac_feature_id feature_id,
 				u8 *buf, u32 size)
 {
 	struct dvobj_priv *d;
-	PADAPTER adapter;
-	PHAL_DATA_TYPE hal;
 	struct halmac_indicator *tbl, *indicator;
 	struct submit_ctx *sctx;
 	u32 cpsz;
@@ -737,8 +735,6 @@ static u8 _halmac_event_indication(void *p, enum halmac_feature_id feature_id,
 
 
 	d = (struct dvobj_priv *)p;
-	adapter = dvobj_get_primary_adapter(d);
-	hal = GET_HAL_DATA(adapter);
 	tbl = d->hmpriv.indicator;
 
 	/* Filter(Skip) middle status indication */
@@ -1209,8 +1205,8 @@ void rtw_halmac_get_version(char *str, u32 len)
 	if (status != HALMAC_RET_SUCCESS)
 		return;
 
-	rtw_sprintf(str, len, "V%d_%02d_%02d",
-		    ver.major_ver, ver.prototype_ver, ver.minor_ver);
+	rtw_sprintf(str, len, "V%d_%02d_%02d_%02d",
+		    ver.major_ver, ver.prototype_ver, ver.minor_ver, HALMAC_PATCH_VER);
 }
 
 int rtw_halmac_init_adapter(struct dvobj_priv *d, struct halmac_platform_api *pf_api)
@@ -2392,59 +2388,58 @@ out:
  */
 int rtw_halmac_set_aid(struct dvobj_priv *d, enum _hw_port hwport, u16 aid)
 {
+	int err = -1;
+#if 0
 	struct halmac_adapter *halmac;
 	struct halmac_api *api;
 	enum halmac_portid port;
 	enum halmac_ret_status status;
-	int err = -1;
 
 
 	halmac = dvobj_to_halmac(d);
 	api = HALMAC_GET_API(halmac);
 	port = _hw_port_drv2halmac(hwport);
 
-#if 0
 	status = api->halmac_cfg_aid(halmac, port, aid);
 	if (status != HALMAC_RET_SUCCESS)
 		goto out;
 #else
-{
 	struct _ADAPTER *a;
 	u32 addr;
 	u16 val;
 
 	a = dvobj_get_primary_adapter(d);
 
-	switch (port) {
-	case 0:
+	switch (hwport) {
+	case HW_PORT0:
 		addr = REG_BCN_PSR_RPT;
 		val = rtw_read16(a, addr);
 		val = BIT_SET_PS_AID_0(val, aid);
 		rtw_write16(a, addr, val);
 		break;
 
-	case 1:
+	case HW_PORT1:
 		addr = REG_BCN_PSR_RPT1;
 		val = rtw_read16(a, addr);
 		val = BIT_SET_PS_AID_1(val, aid);
 		rtw_write16(a, addr, val);
 		break;
 
-	case 2:
+	case HW_PORT2:
 		addr = REG_BCN_PSR_RPT2;
 		val = rtw_read16(a, addr);
 		val = BIT_SET_PS_AID_2(val, aid);
 		rtw_write16(a, addr, val);
 		break;
 
-	case 3:
+	case HW_PORT3:
 		addr = REG_BCN_PSR_RPT3;
 		val = rtw_read16(a, addr);
 		val = BIT_SET_PS_AID_3(val, aid);
 		rtw_write16(a, addr, val);
 		break;
 
-	case 4:
+	case HW_PORT4:
 		addr = REG_BCN_PSR_RPT4;
 		val = rtw_read16(a, addr);
 		val = BIT_SET_PS_AID_4(val, aid);
@@ -2454,7 +2449,6 @@ int rtw_halmac_set_aid(struct dvobj_priv *d, enum _hw_port hwport, u16 aid)
 	default:
 		goto out;
 	}
-}
 #endif
 
 	err = 0;
@@ -2768,6 +2762,21 @@ int rtw_halmac_poweron(struct dvobj_priv *d)
 		 * Work around for warm reboot but device not power off,
 		 * but it would also fall into this case when auto power on is enabled.
 		 */
+#ifdef CONFIG_NARROWBAND_SUPPORTING
+		{
+			struct registry_priv *regsty = dvobj_to_regsty(d);
+			u32 bw_type;
+
+			if (regsty->rtw_nb_config == RTW_NB_CONFIG_WIDTH_10)
+				bw_type = HALMAC_BW_10;
+			else if (regsty->rtw_nb_config == RTW_NB_CONFIG_WIDTH_5)
+				bw_type = HALMAC_BW_5;
+			else
+				bw_type = HALMAC_BW_20;
+
+			api->halmac_set_hw_value(dvobj_to_halmac(d), HALMAC_HW_BANDWIDTH, &bw_type);
+		}
+#endif
 		_power_switch(halmac, api, HALMAC_MAC_POWER_OFF);
 		status = _power_switch(halmac, api, HALMAC_MAC_POWER_ON);
 		RTW_WARN("%s: Power state abnormal, try to recover...%s\n",
@@ -2872,13 +2881,19 @@ static enum halmac_drv_rsvd_pg_num _rsvd_page_num_drv2halmac(u16 num)
 		return HALMAC_RSVD_PG_NUM64;
 	if (num <= 128)
 		return HALMAC_RSVD_PG_NUM128;
+	if (num <= 256)
+		return HALMAC_RSVD_PG_NUM256;
+	if (num <= 512)
+		return HALMAC_RSVD_PG_NUM512;
+	if (num <= 1024)
+		return HALMAC_RSVD_PG_NUM1024;
 
-	if (num > 256)
+	if (num > 1460)
 		RTW_WARN("%s: Fail to allocate RSVD page(%d)!!"
-			 " The MAX RSVD page number is 256...\n",
+			 " The MAX RSVD page number is 1460...\n",
 			 __FUNCTION__, num);
 
-	return HALMAC_RSVD_PG_NUM256;
+	return HALMAC_RSVD_PG_NUM1460;
 }
 
 static u16 _rsvd_page_num_halmac2drv(enum halmac_drv_rsvd_pg_num rsvd_page_number)
@@ -2913,6 +2928,18 @@ static u16 _rsvd_page_num_halmac2drv(enum halmac_drv_rsvd_pg_num rsvd_page_numbe
 
 	case HALMAC_RSVD_PG_NUM256:
 		num = 256;
+		break;
+
+	case HALMAC_RSVD_PG_NUM512:
+		num = 512;
+		break;
+
+	case HALMAC_RSVD_PG_NUM1024:
+		num = 1024;
+		break;
+
+	case HALMAC_RSVD_PG_NUM1460:
+		num = 1460;
 		break;
 	}
 
@@ -3229,12 +3256,16 @@ static void _debug_dlfw_fail(struct dvobj_priv *d)
 
 static enum halmac_ret_status _enter_cpu_sleep_mode(struct dvobj_priv *d)
 {
+#if defined(CONFIG_RTL8822B) || defined(CONFIG_RTL8821C)
 	struct hal_com_data *hal;
+#endif
 	struct halmac_adapter *mac;
 	struct halmac_api *api;
 
 
+#if defined(CONFIG_RTL8822B) || defined(CONFIG_RTL8821C)
 	hal = GET_HAL_DATA(dvobj_get_primary_adapter(d));
+#endif
 	mac = dvobj_to_halmac(d);
 	api = HALMAC_GET_API(mac);
 
@@ -3451,8 +3482,6 @@ exit:
 
 static int init_mac_flow(struct dvobj_priv *d)
 {
-	PADAPTER p;
-	struct hal_com_data *hal;
 	struct halmac_adapter *halmac;
 	struct halmac_api *api;
 	enum halmac_drv_rsvd_pg_num rsvd_page_number;
@@ -3464,14 +3493,12 @@ static int init_mac_flow(struct dvobj_priv *d)
 	int err, err_ret = -1;
 
 
-	p = dvobj_get_primary_adapter(d);
-	hal = GET_HAL_DATA(p);
 	halmac = dvobj_to_halmac(d);
 	api = HALMAC_GET_API(halmac);
 
 #ifdef CONFIG_SUPPORT_TRX_SHARED
 	status = api->halmac_cfg_rxff_expand_mode(halmac,
-						  _rtw_get_trx_share_mode(p));
+			_rtw_get_trx_share_mode(dvobj_get_primary_adapter(d)));
 	if (status != HALMAC_RET_SUCCESS)
 		goto out;
 #endif
@@ -4046,14 +4073,12 @@ int rtw_halmac_dlfw_from_file(struct dvobj_priv *d, u8 *fwpath)
  */
 int rtw_halmac_phy_power_switch(struct dvobj_priv *d, u8 enable)
 {
-	PADAPTER adapter;
 	struct halmac_adapter *halmac;
 	struct halmac_api *api;
 	enum halmac_ret_status status;
 	u8 on;
 
 
-	adapter = dvobj_get_primary_adapter(d);
 	halmac = dvobj_to_halmac(d);
 	if (!halmac)
 		return -1;
@@ -4648,7 +4673,9 @@ _exit:
 int rtw_halmac_rx_agg_switch(struct dvobj_priv *d, u8 enable)
 {
 	struct _ADAPTER *adapter;
+#ifdef RTW_RX_AGGREGATION
 	struct hal_com_data *hal;
+#endif
 	struct halmac_adapter *halmac;
 	struct halmac_api *api;
 	struct halmac_rxagg_cfg rxaggcfg;
@@ -4656,7 +4683,9 @@ int rtw_halmac_rx_agg_switch(struct dvobj_priv *d, u8 enable)
 
 
 	adapter = dvobj_get_primary_adapter(d);
+#ifdef RTW_RX_AGGREGATION
 	hal = GET_HAL_DATA(adapter);
+#endif
 	halmac = dvobj_to_halmac(d);
 	api = HALMAC_GET_API(halmac);
 	_rtw_memset((void *)&rxaggcfg, 0, sizeof(rxaggcfg));
@@ -5318,7 +5347,7 @@ static int _halmac_scanoffload(struct dvobj_priv *d, u32 enable, u8 nlo,
 		if (ssid) {
 			if (ssid_len > sizeof(pnossid.SSID)) {
 				RTW_ERR("%s: SSID length(%d) is too long(>%d)!!\n",
-					__FUNCTION__, ssid_len, sizeof(pnossid.SSID));
+					__FUNCTION__, ssid_len, WLAN_SSID_MAXLEN);
 				return -1;
 			}
 
@@ -5505,7 +5534,6 @@ int rtw_halmac_preinit_sdio_io_indirect(struct dvobj_priv *d, bool enable)
  */
 int rtw_halmac_query_tx_page_num(struct dvobj_priv *d)
 {
-	PADAPTER adapter;
 	struct halmacpriv *hmpriv;
 	struct halmac_adapter *halmac;
 	struct halmac_api *api;
@@ -5516,7 +5544,6 @@ int rtw_halmac_query_tx_page_num(struct dvobj_priv *d)
 	u8 i;
 
 
-	adapter = dvobj_get_primary_adapter(d);
 	hmpriv = &d->hmpriv;
 	halmac = dvobj_to_halmac(d);
 	api = HALMAC_GET_API(halmac);
@@ -5742,18 +5769,16 @@ static inline enum halmac_usb_mode _usb_mode_drv2halmac(enum RTW_USB_SPEED usb_m
 
 u8 rtw_halmac_switch_usb_mode(struct dvobj_priv *d, enum RTW_USB_SPEED usb_mode)
 {
-	PADAPTER adapter;
 	struct halmac_adapter *mac;
 	struct halmac_api *api;
 	enum halmac_ret_status status;
 	enum halmac_usb_mode halmac_usb_mode;
 
-	adapter = dvobj_get_primary_adapter(d);
+
 	mac = dvobj_to_halmac(d);
 	api = HALMAC_GET_API(mac);
 	halmac_usb_mode = _usb_mode_drv2halmac(usb_mode);
 	status = api->halmac_set_hw_value(mac, HALMAC_HW_USB_MODE, (void *)&halmac_usb_mode);
-
 	if (HALMAC_RET_SUCCESS != status)
 		return _FAIL;
 

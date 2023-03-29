@@ -8,7 +8,7 @@ EXTRA_CFLAGS += -O1
 #EXTRA_CFLAGS += -Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes
 
 EXTRA_CFLAGS += -Wno-unused-variable
-EXTRA_CFLAGS += -Wno-fortify-source
+EXTRA_CFLAGS += -Wno-address
 #EXTRA_CFLAGS += -Wno-unused-value
 #EXTRA_CFLAGS += -Wno-unused-label
 #EXTRA_CFLAGS += -Wno-unused-parameter
@@ -21,10 +21,17 @@ ifeq ($(GCC_VER_49),1)
 EXTRA_CFLAGS += -Wno-date-time	# Fix compile error && warning on gcc 4.9 and later
 endif
 
-EXTRA_CFLAGS += -I$(srctree)/drivers/net/wireless/rockchip_wlan/rtl8822cs/include
-EXTRA_CFLAGS += -I$(srctree)/drivers/net/wireless/rockchip_wlan/rtl8822cs/hal/phydm
-EXTRA_CFLAGS += -I$(srctree)/drivers/net/wireless/rockchip_wlan/rtl8822cs/core/crypto
-EXTRA_CFLAGS += -I$(srctree)/drivers/net/wireless/rockchip_wlan/rtl8822cs/platform
+
+ifeq ($(CONFIG_ARCH_ROCKCHIP), y)
+DRV_PATH = $(shell pwd)/$(srctree)/$(src)
+
+EXTRA_CFLAGS += -I$(DRV_PATH)/include
+EXTRA_CFLAGS += -I$(DRV_PATH)/hal/phydm
+EXTRA_CFLAGS += -I$(DRV_PATH)/core/crypto
+EXTRA_CFLAGS += -I$(DRV_PATH)/platform
+else
+EXTRA_CFLAGS += -I$(src)/include
+endif
 
 EXTRA_LDFLAGS += --strip-debug
 
@@ -48,6 +55,7 @@ CONFIG_RTL8710B = n
 CONFIG_RTL8192F = n
 CONFIG_RTL8822C = y
 CONFIG_RTL8814B = n
+CONFIG_RTL8814C = n
 CONFIG_RTL8723F = n
 ######################### Interface ###########################
 CONFIG_USB_HCI = n
@@ -73,9 +81,10 @@ CONFIG_TXPWR_BY_RATE = y
 CONFIG_TXPWR_BY_RATE_EN = y
 CONFIG_TXPWR_LIMIT = y
 CONFIG_TXPWR_LIMIT_EN = n
-CONFIG_RTW_CHPLAN = 0xFF
+CONFIG_RTW_CHPLAN = 0xFFFF
 CONFIG_RTW_ADAPTIVITY_EN = disable
 CONFIG_RTW_ADAPTIVITY_MODE = normal
+CONFIG_80211D = n
 CONFIG_SIGNAL_SCALE_MAPPING = n
 CONFIG_80211W = y
 CONFIG_REDUCE_TX_CPU_LOADING = n
@@ -94,9 +103,9 @@ CONFIG_IP_R_MONITOR = n #arp VOQ and high rate
 # user priority mapping rule : tos, dscp
 CONFIG_RTW_UP_MAPPING_RULE = tos
 CONFIG_RTW_MBO = n
+CONFIG_WAKE_ON_BT = n
 CONFIG_RTW_NBI = n
-# AMSDU in security network
-CONFIG_SEC_AMSDU_MODE = non-spp
+
 ########################## Android ###########################
 # CONFIG_RTW_ANDROID - 0: no Android, 4/5/6/7/8/9/10/11 : Android version
 CONFIG_RTW_ANDROID = 0
@@ -116,8 +125,8 @@ CONFIG_PROC_DEBUG = n
 
 ######################## Wake On Lan ##########################
 CONFIG_WOWLAN = n
-#bit3: ARP enable, bit2: deauth, bit1: unicast, bit0: magic pkt.
-CONFIG_WAKEUP_TYPE = 0xf
+#bit2: deauth, bit1: unicast, bit0: magic pkt.
+CONFIG_WAKEUP_TYPE = 0x7
 CONFIG_WOW_LPS_MODE = default
 #bit0: disBBRF off, #bit1: Wireless remote controller (WRC)
 CONFIG_SUSPEND_TYPE = 0
@@ -134,13 +143,20 @@ CONFIG_PNO_SUPPORT = n
 CONFIG_PNO_SET_DEBUG = n
 CONFIG_AP_WOWLAN = n
 ######### Notify SDIO Host Keep Power During Syspend ##########
-CONFIG_RTW_SDIO_PM_KEEP_POWER = n
+CONFIG_RTW_SDIO_PM_KEEP_POWER = y
 ###################### MP HW TX MODE FOR VHT #######################
 CONFIG_MP_VHT_HW_TX_MODE = n
 ###################### ROAMING #####################################
 CONFIG_LAYER2_ROAMING = y
 #bit0: ROAM_ON_EXPIRED, #bit1: ROAM_ON_RESUME, #bit2: ROAM_ACTIVE
 CONFIG_ROAMING_FLAG = 0x3
+####################### Security Memory ############################
+# Define for using dma_declare_coherent_memory DMA API.
+# User Must set the SECURITY_MEM_ADDR and SECURITY_MEM_SIZE.
+# If SECURITY_MEM_ADDR is NULL, driver will show WARN_ON for notification.
+CONFIG_SECURITY_MEM = n
+CONFIG_SECURITY_MEM_ADDR = 0
+CONFIG_SECURITY_MEM_SIZE = 3686400
 ###################### Platform Related #######################
 CONFIG_PLATFORM_I386_PC = n
 CONFIG_PLATFORM_ANDROID_X86 = n
@@ -209,7 +225,7 @@ CONFIG_CUSTOMER_HUAWEI_GENERAL = n
 
 CONFIG_DRVEXT_MODULE = n
 
-export TopDIR ?= $(srctree)
+export TopDIR ?= $(shell pwd)
 
 ########### COMMON  #################################
 ifeq ($(CONFIG_GSPI_HCI), y)
@@ -1009,11 +1025,15 @@ endif
 ########### HAL_RTL8814B #################################
 ifeq ($(CONFIG_RTL8814B), y)
 RTL871X := rtl8814b
+ifeq ($(CONFIG_RTL8814C), y)
+MODULE_NAME = 8814ce
+else
 ifeq ($(CONFIG_USB_HCI), y)
 MODULE_NAME = 8814bu
 endif
 ifeq ($(CONFIG_PCI_HCI), y)
 MODULE_NAME = 8814be
+endif
 endif
 
 endif
@@ -1153,7 +1173,7 @@ else ifeq ($(CONFIG_TXPWR_LIMIT_EN), auto)
 EXTRA_CFLAGS += -DCONFIG_TXPWR_LIMIT_EN=2
 endif
 
-ifneq ($(CONFIG_RTW_CHPLAN), 0xFF)
+ifneq ($(CONFIG_RTW_CHPLAN), 0xFFFF)
 EXTRA_CFLAGS += -DCONFIG_RTW_CHPLAN=$(CONFIG_RTW_CHPLAN)
 endif
 
@@ -1169,12 +1189,18 @@ ifeq ($(CONFIG_RTW_ADAPTIVITY_EN), disable)
 EXTRA_CFLAGS += -DCONFIG_RTW_ADAPTIVITY_EN=0
 else ifeq ($(CONFIG_RTW_ADAPTIVITY_EN), enable)
 EXTRA_CFLAGS += -DCONFIG_RTW_ADAPTIVITY_EN=1
+else ifeq ($(CONFIG_RTW_ADAPTIVITY_EN), auto)
+EXTRA_CFLAGS += -DCONFIG_RTW_ADAPTIVITY_EN=2
 endif
 
 ifeq ($(CONFIG_RTW_ADAPTIVITY_MODE), normal)
 EXTRA_CFLAGS += -DCONFIG_RTW_ADAPTIVITY_MODE=0
 else ifeq ($(CONFIG_RTW_ADAPTIVITY_MODE), carrier_sense)
 EXTRA_CFLAGS += -DCONFIG_RTW_ADAPTIVITY_MODE=1
+endif
+
+ifeq ($(CONFIG_80211D), y)
+EXTRA_CFLAGS += -DCONFIG_80211D
 endif
 
 ifeq ($(CONFIG_SIGNAL_SCALE_MAPPING), y)
@@ -1336,16 +1362,18 @@ EXTRA_CFLAGS += -DCONFIG_RTW_MBO -DCONFIG_RTW_80211K -DCONFIG_RTW_WNM -DCONFIG_R
 EXTRA_CFLAGS += -DCONFIG_RTW_80211R
 endif
 
+ifeq ($(CONFIG_WAKE_ON_BT), y)
+EXTRA_CFLAGS += -DCONFIG_WAKE_ON_BT
+endif
+
 ifeq ($(CONFIG_RTW_NBI), y)
 EXTRA_CFLAGS += -DCONFIG_RTW_NBI
 endif
 
-ifeq ($(CONFIG_SEC_AMSDU_MODE), non-spp)
-EXTRA_CFLAGS += -DRTW_AMSDU_MODE=0
-else ifeq ($(CONFIG_SEC_AMSDU_MODE), spp)
-EXTRA_CFLAGS += -DRTW_AMSDU_MODE=1
-else ifeq ($(CONFIG_SEC_AMSDU_MODE), disable)
-EXTRA_CFLAGS += -DRTW_AMSDU_MODE=2
+ifeq ($(CONFIG_SECURITY_MEM), y)
+EXTRA_CFLAGS += -DCONFIG_SECURITY_MEM
+EXTRA_CFLAGS += -DSECURITY_MEM_ADDR=$(CONFIG_SECURITY_MEM_ADDR)
+EXTRA_CFLAGS += -DSECURITY_MEM_SIZE=$(CONFIG_SECURITY_MEM_SIZE)
 endif
 
 ifeq ($(CONFIG_PLATFORM_I386_PC), y)
@@ -1719,19 +1747,14 @@ EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN -DCONFIG_PLATFORM_ANDROID -DCONFIG_PLATFO
 # default setting for Android 4.1, 4.2, 4.3, 4.4
 EXTRA_CFLAGS += -DCONFIG_IOCTL_CFG80211 -DRTW_USE_CFG80211_STA_EVENT
 EXTRA_CFLAGS += -DCONFIG_CONCURRENT_MODE
-EXTRA_CFLAGS += -DCONFIG_RESUME_IN_WORKQUEUE
-# default setting for Power control
-#EXTRA_CFLAGS += -DRTW_ENABLE_WIFI_CONTROL_FUNC
-EXTRA_CFLAGS += -DCONFIG_PLATFORM_OPS
 ifeq ($(CONFIG_SDIO_HCI), y)
 EXTRA_CFLAGS += -DRTW_SUPPORT_PLATFORM_SHUTDOWN
-_PLATFORM_FILES += platform/platform_rockchips_sdio.o
 endif
 # default setting for Special function
 ARCH := arm
 CROSS_COMPILE := /home/android_sdk/Rockchip/Rk3188/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-
 KSRC := /home/android_sdk/Rockchip/Rk3188/kernel
-MODULE_NAME := 8822cs
+MODULE_NAME := RTL8822CS
 endif
 
 ifeq ($(CONFIG_PLATFORM_ARM_RK3066), y)
@@ -1936,6 +1959,7 @@ KSRC:= $(CFGDIR)/../../kernel/linux-$(KERNEL_VER)
 endif
 
 ifeq ($(CONFIG_PLATFORM_ARM_RTD299X), y)
+EXTRA_CFLAGS += -DCONFIG_PLATFORM_ARM_RTD299X
 EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN
 EXTRA_CFLAGS += -DCONFIG_CONCURRENT_MODE
 EXTRA_CFLAGS += -DCONFIG_IOCTL_CFG80211 -DRTW_USE_CFG80211_STA_EVENT
@@ -2349,6 +2373,7 @@ MODULE_NAME := $(USER_MODULE_NAME)
 endif
 
 ifneq ($(KERNELRELEASE),)
+export CONFIG_RTL8822CS = y
 
 ########### this part for *.mk ############################
 include $(src)/hal/phydm/phydm.mk
@@ -2373,6 +2398,9 @@ ifeq ($(CONFIG_RTL8814B), y)
 include $(src)/rtl8814b.mk
 endif
 
+ifeq ($(CONFIG_RTL8814C), y)
+EXTRA_CFLAGS += -DCONFIG_RTL8814C
+endif
 ########### HAL_RTL8723F #################################
 ifeq ($(CONFIG_RTL8723F), y)
 include $(src)/rtl8723f.mk

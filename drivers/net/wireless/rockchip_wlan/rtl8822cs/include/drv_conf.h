@@ -19,9 +19,9 @@
 
 #define CONFIG_RSSI_PRIORITY
 
-/*
+/* 
  * RTW_BUSY_DENY_SCAN control if scan would be denied by busy traffic.
- * When this defined, BUSY_TRAFFIC_SCAN_DENY_PERIOD would be used to judge if
+ * When this defined, BUSY_TRAFFIC_SCAN_DENY_PERIOD would be used to judge if 
  * scan request coming from scan UI. Scan request from scan UI would be
  * exception and never be denied by busy traffic.
  */
@@ -72,6 +72,11 @@
 
 #endif
 
+#ifdef CONFIG_LAYER2_ROAMING
+/*#define CONFIG_RTW_ROAM_QUICKSCAN	*/	/* active_roaming is required. i.e CONFIG_ROAMING_FLAG[bit2] MUST be enabled */
+/*#define CONFIG_RTW_ROAM_QUICKSCAN_TH           60*/
+#endif
+
 /* Default enable single wiphy if driver ver >= 5.9 */
 #define RTW_SINGLE_WIPHY
 
@@ -79,10 +84,14 @@
 
 	#include <linux/version.h>
 
+	#ifndef CONFIG_PLATFORM_ANDROID
+	#define CONFIG_PLATFORM_ANDROID
+	#endif
+	
 	#ifndef CONFIG_IOCTL_CFG80211
 	#define CONFIG_IOCTL_CFG80211
 	#endif
-
+	
 	#ifndef RTW_USE_CFG80211_STA_EVENT
 	#define RTW_USE_CFG80211_STA_EVENT
 	#endif
@@ -127,12 +136,18 @@
 	#ifndef CONFIG_RTW_WIFI_HAL_DEBUG
 	//#define CONFIG_RTW_WIFI_HAL_DEBUG
 	#endif
+	#if (CONFIG_RTW_ANDROID < 11)
 	#ifndef CONFIG_RTW_CFGVENDOR_LLSTATS
 	#define CONFIG_RTW_CFGVENDOR_LLSTATS
+	#endif
 	#endif
 	#if (CONFIG_RTW_ANDROID < 11)
 	#ifndef CONFIG_RTW_CFGVENDOR_RANDOM_MAC_OUI
 	#define CONFIG_RTW_CFGVENDOR_RANDOM_MAC_OUI
+	#endif
+	#else
+	#ifndef CONFIG_RTW_SCAN_RAND
+	#define CONFIG_RTW_SCAN_RAND
 	#endif
 	#endif
 	#ifndef CONFIG_RTW_CFGVENDOR_RSSIMONITOR
@@ -164,6 +179,12 @@
 	/* Android expect dbm as the rx signal strength unit */
 	#define CONFIG_SIGNAL_DISPLAY_DBM
 
+#else // for Linux
+
+	#ifndef CONFIG_RTW_SCAN_RAND
+	#define CONFIG_RTW_SCAN_RAND
+	#endif
+
 #endif // CONFIG_RTW_ANDROID
 
 /*
@@ -176,14 +197,14 @@
 	#warning "You have CONFIG_ANDROID_POWER enabled in your system, we disable CONFIG_RESUME_IN_WORKQUEUE automatically"
 	#undef CONFIG_RESUME_IN_WORKQUEUE
 #endif
+*/
 
-#ifdef CONFIG_RESUME_IN_WORKQUEUE
+#ifdef CONFIG_RESUME_IN_WORKQUEUE /* this can be removed, because there is no case for this... */
 	#if !defined(CONFIG_WAKELOCK) && !defined(CONFIG_ANDROID_POWER)
 		#error "enable CONFIG_RESUME_IN_WORKQUEUE without CONFIG_WAKELOCK or CONFIG_ANDROID_POWER will suffer from the danger of wifi's unfunctionality..."
 		#error "If you still want to enable CONFIG_RESUME_IN_WORKQUEUE in this case, mask this preprossor checking and GOOD LUCK..."
 	#endif
 #endif
-*/
 
 /* About USB VENDOR REQ */
 #if defined(CONFIG_USB_VENDOR_REQ_BUFFER_PREALLOC) && !defined(CONFIG_USB_VENDOR_REQ_MUTEX)
@@ -236,6 +257,10 @@
 	#endif
 	#ifndef CONFIG_RTW_AP_FWD_B2U_FLAGS
 	#define CONFIG_RTW_AP_FWD_B2U_FLAGS 0x8 /* see RTW_AP_B2U_XXX */
+	#endif
+
+	#ifndef CONFIG_ACTIVE_TPC_REPORT
+	#define CONFIG_ACTIVE_TPC_REPORT
 	#endif
 #endif
 
@@ -310,7 +335,6 @@
 
 #define RTW_SCAN_SPARSE_MIRACAST 1
 #define RTW_SCAN_SPARSE_BG 0
-#define RTW_SCAN_SPARSE_ROAMING_ACTIVE 1
 
 #ifndef CONFIG_TX_AC_LIFETIME
 #define CONFIG_TX_AC_LIFETIME 1
@@ -352,6 +376,18 @@
 	#define CONFIG_RTW_EXCL_CHS {0}
 #endif
 
+#ifndef CONFIG_RTW_EXCL_CHS_6G
+	#define CONFIG_RTW_EXCL_CHS_6G {0}
+#endif
+
+#ifndef CONFIG_RTW_COUNTRY_IE_SLAVE_EN_ROLE
+#define CONFIG_RTW_COUNTRY_IE_SLAVE_EN_ROLE 0x03 /* BIT0 for pure STA mode, BIT1 for P2P group client */
+#endif
+
+#ifndef CONFIG_RTW_COUNTRY_IE_SLAVE_EN_IFBMP
+#define CONFIG_RTW_COUNTRY_IE_SLAVE_EN_IFBMP 0xFF /* all iface */
+#endif
+
 #ifndef CONFIG_IEEE80211_BAND_5GHZ
 	#if defined(CONFIG_RTL8821A) || defined(CONFIG_RTL8821C) \
 		|| defined(CONFIG_RTL8812A) || defined(CONFIG_RTL8822B) || defined(CONFIG_RTL8822C) \
@@ -362,8 +398,13 @@
 	#endif
 #endif
 
+#ifndef CONFIG_IEEE80211_BAND_6GHZ
+#define CONFIG_IEEE80211_BAND_6GHZ 0
+#endif
+
 #ifndef CONFIG_DFS
 #define CONFIG_DFS 1
+#define CONFIG_ECSA 1
 #endif
 
 #if CONFIG_IEEE80211_BAND_5GHZ && CONFIG_DFS && defined(CONFIG_AP_MODE)
@@ -392,7 +433,11 @@
 #endif
 
 #ifndef CONFIG_RTW_CHPLAN
-#define CONFIG_RTW_CHPLAN 0xFF /* RTW_CHPLAN_UNSPECIFIED */
+#define CONFIG_RTW_CHPLAN 0xFFFF /* RTW_CHPLAN_IOCTL_UNSPECIFIED */
+#endif
+
+#ifndef CONFIG_RTW_CHPLAN_6G
+#define CONFIG_RTW_CHPLAN_6G 0xFFFF /* RTW_CHPLAN_IOCTL_UNSPECIFIED */
 #endif
 
 /* compatible with old fashion configuration */
@@ -428,6 +473,10 @@
 	#define CONFIG_TXPWR_LIMIT 1
 #endif
 
+#ifndef CONFIG_RTW_ACTIVE_TPC_REPORT
+#define CONFIG_RTW_ACTIVE_TPC_REPORT 1 /* 0:incapable, 1:capable, 2:auto enable */
+#endif
+
 #ifndef CONFIG_RTW_REGD_SRC
 #define CONFIG_RTW_REGD_SRC 1 /* 0:RTK_PRIV, 1:OS */
 #endif
@@ -453,7 +502,7 @@
 	#define NR_TBTX_SLOT			4
 	#define NR_MAXSTA_INSLOT		5
 	#define TBTX_TX_DURATION		30
-
+	
 	#define MAX_TXPAUSE_DURATION	(TBTX_TX_DURATION*NR_TBTX_SLOT)
 #endif
 
@@ -558,7 +607,7 @@ defined(CONFIG_RTL8723F) /*|| defined(CONFIG_RTL8814A)*/
 #define CONFIG_HWMPCAP_GEN3
 #endif
 
-#if defined(CONFIG_HWMPCAP_GEN1) && (CONFIG_IFACE_NUMBER > 2)
+#if defined(CONFIG_HWMPCAP_GEN1) && (CONFIG_IFACE_NUMBER > 2) 
 	#ifdef CONFIG_POWER_SAVING
 	/*#warning "Disable PS when CONFIG_IFACE_NUMBER > 2"*/
 	#undef CONFIG_POWER_SAVING
@@ -676,8 +725,15 @@ defined(CONFIG_RTL8723F) /*|| defined(CONFIG_RTL8814A)*/
 /*#define CONFIG_DOSCAN_IN_BUSYTRAFFIC	*/
 /*#define CONFIG_PHDYM_FW_FIXRATE		*/	/*	Another way to fix tx rate	*/
 
-/*Don't release SDIO irq in suspend/resume procedure*/
-#define CONFIG_RTW_SDIO_KEEP_IRQ	0
+/*
+* CONFIG_RTW_SDIO_RELEASE_IRQ
+* == 0: static allocated
+* >= 1: release when suspend
+* >= 2: release when IPS
+*/
+#ifndef CONFIG_RTW_SDIO_RELEASE_IRQ
+#define CONFIG_RTW_SDIO_RELEASE_IRQ	2
+#endif
 
 /*
  * Add by Lucas@2016/02/15
@@ -728,7 +784,7 @@ defined(CONFIG_RTL8723F) /*|| defined(CONFIG_RTL8814A)*/
 		#define RTW_LPS_MODE 1
 	#else
 		#define RTW_LPS_MODE 0
-	#endif
+	#endif 
 #endif /* !RTW_LPS_MODE */
 
 #if (RTW_LPS_MODE > 3 || RTW_LPS_MODE < 0)
@@ -784,11 +840,11 @@ defined(CONFIG_RTL8723F) /*|| defined(CONFIG_RTL8814A)*/
 #endif
 #endif
 
-#define CONFIG_RTW_TPT_MODE
+#define CONFIG_RTW_TPT_MODE 
 
 #ifdef CONFIG_PCI_BCN_POLLING
 #define CONFIG_BCN_ICF
-#endif
+#endif 
 
 #ifndef CONFIG_RTW_MGMT_QUEUE
 	#define CONFIG_RTW_MGMT_QUEUE
@@ -807,10 +863,6 @@ defined(CONFIG_RTL8723F) /*|| defined(CONFIG_RTL8814A)*/
 /* Debug related compiler flags */
 #define DBG_THREAD_PID	/* Add thread pid to debug message prefix */
 #define DBG_CPU_INFO	/* Add CPU info to debug message prefix */
-#endif
-
-#ifndef RTW_AMSDU_MODE
-#define RTW_AMSDU_MODE 0 /* 0:non-SPP, 1:spp mode, 2:All drop */
 #endif
 
 #endif /* __DRV_CONF_H__ */

@@ -694,10 +694,13 @@ int rtw_mp_txpower(struct net_device *dev,
 	u32 idx_a = 0, idx_b = 0, idx_c = 0, idx_d = 0;
 	int MsetPower = 1;
 	u8 input[RTW_IWD_MAX_LEN];
+	char pout_str_buf[7];
 	u8 res = 0;
+	char *pextra;
 
 	PADAPTER padapter = rtw_netdev_priv(dev);
 	PMPT_CONTEXT		pMptCtx = &(padapter->mppriv.mpt_ctx);
+	struct mp_priv *pmppriv = &padapter ->mppriv;
 
 	if (rtw_do_mp_iwdata_len_chk(__func__, wrqu->length))
 		return -EFAULT;
@@ -707,10 +710,10 @@ int rtw_mp_txpower(struct net_device *dev,
 
 	MsetPower = strncmp(input, "off", 3);
 	if (MsetPower == 0) {
-		padapter->mppriv.bSetTxPower = 0;
+		pmppriv->bSetTxPower = 0;
 		sprintf(extra, "MP Set power off");
 	} else {
-			res = sscanf(input, "patha=%d,pathb=%d,pathc=%d,pathd=%d", &idx_a, &idx_b, &idx_c, &idx_d);
+		if (sscanf(input, "patha=%d,pathb=%d,pathc=%d,pathd=%d", &idx_a, &idx_b, &idx_c, &idx_d) >= 1) {
 			if (res < 1) {
 				if(isdigit(input[0])){
 					idx_a = rtw_atoi(input);
@@ -718,22 +721,104 @@ int rtw_mp_txpower(struct net_device *dev,
 				} else
 					RTW_INFO("Invalid format on %s !, Get patha=%d,pathb=%d,pathc=%d,pathd=%d\n", input , idx_a , idx_b , idx_c , idx_d);
 			}
-		if (res > 0 || idx_a !=0)
-			sprintf(extra, "Set power level path_A:%d path_B:%d path_C:%d path_D:%d", idx_a , idx_b , idx_c , idx_d);
-		else
-			sprintf(extra, "Invalid format on string :%s ", input);
+			pmppriv->txpoweridx = (u8)idx_a;
+			pMptCtx->TxPwrLevel[RF_PATH_A] = (u8)idx_a;
+			pMptCtx->TxPwrLevel[RF_PATH_B] = (u8)idx_b;
+			pMptCtx->TxPwrLevel[RF_PATH_C] = (u8)idx_c;
+			pMptCtx->TxPwrLevel[RF_PATH_D]  = (u8)idx_d;
+			padapter->mppriv.bSetTxPower = 1;
 
-		padapter->mppriv.txpoweridx = (u8)idx_a;
+			SetTxPower(padapter);
+		} else if (sscanf(input, "a_dbm=%d", &idx_a) >= 1) {
+			s32 db_temp = 0;
+			s16 pout  = 0;
+			u32 poutdbm  = 0;
+			u32 poutdbm_int;
+			u32 poutdbm_dec;
+			if (idx_a < 9 || idx_a >= 22) {
+				sprintf(extra, "Error input:%d,Tune dBm range is 9-22\n", idx_a);
+				goto invalid_turn_dbm;
+			}
 
-		pMptCtx->TxPwrLevel[RF_PATH_A] = (u8)idx_a;
-		pMptCtx->TxPwrLevel[RF_PATH_B] = (u8)idx_b;
-		pMptCtx->TxPwrLevel[RF_PATH_C] = (u8)idx_c;
-		pMptCtx->TxPwrLevel[RF_PATH_D]  = (u8)idx_d;
-		padapter->mppriv.bSetTxPower = 1;
+			db_temp = (s16)hal_mpt_tssi_turn_target_power(padapter, pout, RF_PATH_A);
+			RTW_INFO("%s: mpt_tssi_turn_target_power db_temp=%d\n", __func__, db_temp);
 
-		SetTxPower(padapter);
+			pout = idx_a*100 - db_temp;
+			poutdbm = hal_mpt_tssi_turn_target_power(padapter, pout, RF_PATH_A);
+			sprintf(extra, "Path A Set power dbm :%d\n", idx_a);
+
+			pmppriv->bSetTxPower = 1;
+		} else if (sscanf(input, "b_dbm=%d", &idx_b) >= 1) {
+			s32 db_temp = 0;
+			s16 pout  = 0;
+			u32 poutdbm  = 0;
+
+			if (idx_b < 9 || idx_b >= 22) {
+				sprintf(extra, "Error input:%d,Tune dBm range is 9-22\n", idx_b);
+				goto invalid_turn_dbm;
+			}
+			db_temp = (s16)hal_mpt_tssi_turn_target_power(padapter, pout, RF_PATH_B);
+			RTW_INFO("%s: mpt_tssi_turn_target_power db_temp=%d\n", __func__, db_temp);
+
+			pout = idx_b*100 - db_temp;
+			poutdbm = hal_mpt_tssi_turn_target_power(padapter, pout, RF_PATH_B);
+			sprintf(extra, "Path B Set power dbm :%d\n", idx_b);
+
+			pmppriv->bSetTxPower = 1;
+		} else if (strncmp(input, "dbm_tune", 8) == 0) {
+			u8 signed_flag = 0;
+			u8 rfpath;
+			int int_num;
+			u32 dec_num;
+			s16 pout;
+			int i;
+			u32 poutdbm;
+			u8 poutdbm_int;
+			u8 poutdbm_dec;
+
+			sscanf(input+8, "%hhu %7s", &rfpath, pout_str_buf);
+			if(pout_str_buf[0] == '-')
+				signed_flag = 1;
+			i = sscanf(pout_str_buf, "%d.%3u", &int_num, &dec_num);
+			pout = int_num * 100;
+			if(i == 2) {
+				dec_num = (dec_num < 10) ? dec_num * 10 : dec_num;
+				pout += ((pout < 0 || signed_flag == 1) ? -dec_num : dec_num);
+			}
+			if (pout % 25 != 0)
+				goto invalid_param_format;
+
+			if (pout < -125 || pout > 125)
+				goto invalid_param_format;
+
+			//sprintf(extra, "Set power dbm offset :%d\n", pout);
+			pmppriv->txpower_dbm_offset = pout;
+			pmppriv->bSetTxPower = 1;
+			poutdbm = hal_mpt_tssi_turn_target_power(padapter, pout, rfpath);
+			
+			poutdbm_int = poutdbm/100;
+			poutdbm_dec = poutdbm%100;
+			if (poutdbm_int < 9 || poutdbm_int >= 22)
+				sprintf(extra, "Error power dBm :%d.%d ,Tune dBm range is 9-22\n", poutdbm_int, poutdbm_dec);
+			else
+				sprintf(extra, "Tune power dBm :%d.%d OK\n", poutdbm_int, poutdbm_dec);
+			
+		} else {
+			if (res > 0 || idx_a !=0)
+				sprintf(extra, "Set power level path_A:%d path_B:%d path_C:%d path_D:%d", idx_a , idx_b , idx_c , idx_d);
+			else
+				sprintf(extra, "Invalid format on string :%s ", input);
+		}
 	}
-
+	wrqu->length = strlen(extra);
+	return 0;
+invalid_param_format:
+	sprintf(extra, "Invalid command format Error,\n CMD: dbm_tune [RF Path] [dBm power scale] \n"
+			"Please indicate [RF path]: 0/1/2/3\n");
+	pextra = extra + strlen(extra);
+	sprintf(pextra, "[dbm power scale] each scale step value must 0.25 or -0.25\n"
+			"scale limit range is -1.25 - 1.25");
+invalid_turn_dbm:
 	wrqu->length = strlen(extra);
 	return 0;
 }
@@ -1597,7 +1682,11 @@ int rtw_mp_SetRFPath(struct net_device *dev,
 	} else {
 		bMain = MP_PHY_QueryRFPathSwitch(padapter);
 		RTW_INFO("%s:Query RF Path = %s\n", __func__, (bMain ? "Main":"Aux"));
-		sprintf(extra, "RF Path %s\n" , (bMain ? "1":"0"));
+		if (IS_HARDWARE_TYPE_8821C(padapter))
+			sprintf(extra, "RF Path %s\n" ,
+				(bMain ? "ANT1/S0/PathB Mode: 0":"ANT2/S1/PathA Mode: 1"));
+		else
+			sprintf(extra, "RF Path %s\n" , (bMain ? "1":"0"));
 	}
 
 	wrqu->length = strlen(extra);
@@ -1906,13 +1995,13 @@ int rtw_mp_get_tsside(struct net_device *dev,
 #endif
 
 	if (rfpath == 0)
-		sprintf(extra, "patha=%d", tssi_de);
+		sprintf(extra, "patha=%d hex=%02x", tssi_de, (u8)tssi_de);
 	else if (rfpath == 1)
-		sprintf(extra, "pathb=%d", tssi_de);
+		sprintf(extra, "pathb=%d hex=%02x", tssi_de, (u8)tssi_de);
 	else if (rfpath == 2)
-		sprintf(extra, "pathc=%d", tssi_de);
+		sprintf(extra, "pathc=%d hex=%02x", tssi_de, (u8)tssi_de);
 	else if (rfpath == 3)
-		sprintf(extra, "pathd=%d", tssi_de);
+		sprintf(extra, "pathd=%d hex=%02x", tssi_de, (u8)tssi_de);
 
 	wrqu->length = strlen(extra);
 	return 0;
@@ -2114,9 +2203,11 @@ int rtw_mp_pretx_proc(PADAPTER padapter, u8 bStartTest, char *extra)
 			is_supported_ht(padapter->registrypriv.wireless_mode))
 			pmp_priv->tx.attrib.ht_en = 1;
 #endif
-		pmp_priv->tx.stop = 0;
-		pmp_priv->tx.count = 1;
-		SetPacketTx(padapter);
+		if (!IS_HARDWARE_TYPE_JAGUAR3(padapter)) {
+			pmp_priv->tx.stop = 0;
+			pmp_priv->tx.count = 1;
+			SetPacketTx(padapter);
+		}
 	} else
 		pmp_priv->mode = MP_ON;
 
@@ -2590,7 +2681,6 @@ int rtw_mp_hwtx(struct net_device *dev,
 
 #if defined(CONFIG_RTL8814A) || defined(CONFIG_RTL8821B) || defined(CONFIG_RTL8822B) \
 	|| defined(CONFIG_RTL8821C) || defined(CONFIG_RTL8822C) || defined(CONFIG_RTL8723F)
-/* todo: 8723F */
 	if (copy_from_user(extra, wrqu->data.pointer, wrqu->data.length))
 		return -EFAULT;
 	*(extra + wrqu->data.length) = '\0';

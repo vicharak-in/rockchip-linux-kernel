@@ -123,6 +123,7 @@ static void _init_mp_priv_(struct mp_priv *pmp_priv)
 	pmp_priv->prime_channel_offset = HAL_PRIME_CHNL_OFFSET_DONT_CARE;
 	pmp_priv->rateidx = RATE_1M;
 	pmp_priv->txpoweridx = 0x2A;
+	pmp_priv->txpower_dbm_offset = 0;
 
 	pmp_priv->antenna_tx = ANTENNA_A;
 	pmp_priv->antenna_rx = ANTENNA_AB;
@@ -2465,9 +2466,9 @@ u32 mp_query_psd(PADAPTER pAdapter, u8 *data)
 	data[0] = '\0';
 	pdata = data;
 
-	if (psd_stop > 1792 || psd_stop < 1) {
+	if (psd_stop > 1920 || psd_stop < 1) {
 		rtw_warn_on(1);
-		psd_stop = 1792;
+		psd_stop = 1920;
 	}
 
 	if (IS_HARDWARE_TYPE_8822C(pAdapter) || IS_HARDWARE_TYPE_8723F(pAdapter)) {

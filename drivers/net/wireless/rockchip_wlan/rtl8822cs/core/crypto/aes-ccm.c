@@ -155,7 +155,7 @@ int aes_ccm_ae(const u8 *key, size_t key_len, const u8 *nonce,
 	if (aad_len > 30 || M > AES_BLOCK_SIZE)
 		return -1;
 
-	aes = aes_encrypt_init(key, key_len);
+	aes = aes_rtl8822cs_encrypt_init(key, key_len);
 	if (aes == NULL)
 		return -1;
 
@@ -167,7 +167,7 @@ int aes_ccm_ae(const u8 *key, size_t key_len, const u8 *nonce,
 	aes_ccm_encr(aes, L, plain, plain_len, crypt, a);
 	aes_ccm_encr_auth(aes, M, x, a, auth);
 
-	aes_encrypt_deinit(aes);
+	aes_rtl8822cs_encrypt_deinit(aes);
 
 	return 0;
 }
@@ -186,7 +186,7 @@ int aes_ccm_ad(const u8 *key, size_t key_len, const u8 *nonce,
 	if (aad_len > 30 || M > AES_BLOCK_SIZE)
 		return -1;
 
-	aes = aes_encrypt_init(key, key_len);
+	aes = aes_rtl8822cs_encrypt_init(key, key_len);
 	if (aes == NULL)
 		return -1;
 
@@ -200,7 +200,7 @@ int aes_ccm_ad(const u8 *key, size_t key_len, const u8 *nonce,
 	aes_ccm_auth_start(aes, M, L, nonce, aad, aad_len, crypt_len, x);
 	aes_ccm_auth(aes, plain, crypt_len, x);
 
-	aes_encrypt_deinit(aes);
+	aes_rtl8822cs_encrypt_deinit(aes);
 
 	if (os_memcmp_const(x, t, M) != 0) {
 		wpa_printf(_MSG_EXCESSIVE_, "CCM: Auth mismatch");

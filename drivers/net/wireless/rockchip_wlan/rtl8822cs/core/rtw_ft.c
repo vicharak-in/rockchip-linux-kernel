@@ -286,6 +286,8 @@ void rtw_ft_update_bcn(_adapter *padapter, union recv_frame *precv_frame)
 			check_assoc_AP(pframe+sizeof(struct rtw_ieee80211_hdr_3addr),
 				(len - sizeof(struct rtw_ieee80211_hdr_3addr)));
 
+		rtw_phydm_update_ap_vendor_ie(padapter);
+
 		/* update TSF Value */
 		update_TSF(pmlmeext, pframe, len);
 		pmlmeext->bcn_cnt = 0;
