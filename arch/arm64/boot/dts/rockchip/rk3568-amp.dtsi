@@ -7,7 +7,8 @@
 	rockchip_amp: rockchip-amp {
 		compatible = "rockchip,rk3568-amp";
 		clocks = <&cru SCLK_UART4>, <&cru PCLK_UART4>,
-			<&cru PCLK_TIMER>, <&cru CLK_TIMER4>, <&cru CLK_TIMER5>;
+			 <&cru PCLK_TIMER>, <&cru CLK_TIMER4>, <&cru CLK_TIMER5>,
+			 <&cru ACLK_MCU>;
 		clock-names = "baudclk", "apb_pclk", "pclk", "timer";
 		assigned-clocks = <&cru SCLK_UART4>,
 				<&cru CLK_TIMER4>,
@@ -58,6 +59,12 @@
 		rpmsg_dma_reserved: rpmsg-dma@8000000 {
 			compatible = "shared-dma-pool";
 			reg = <0x0 0x8000000 0x0 0x100000>;
+			no-map;
+		};
+
+		/* mcu address */
+		mcu_reserved: mcu@8200000 {
+			reg = <0x0 0x8200000 0x0 0x100000>;
 			no-map;
 		};
 	};
