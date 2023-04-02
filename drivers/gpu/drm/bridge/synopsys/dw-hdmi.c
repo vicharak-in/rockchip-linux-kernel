@@ -49,6 +49,7 @@
 #define DDC_SEGMENT_ADDR	0x30
 
 #define HDMI_EDID_LEN		512
+#define HDMI_EDID_BLOCK_LEN	128
 
 /* DW-HDMI Controller >= 0x200a are at least compliant with SCDC version 1 */
 #define SCDC_MIN_SOURCE_VERSION	0x1
@@ -572,7 +573,8 @@ static int dw_hdmi_i2c_read(struct dw_hdmi *hdmi,
 			    unsigned char *buf, unsigned int length)
 {
 	struct dw_hdmi_i2c *i2c = hdmi->i2c;
-	int stat, retry;
+	int stat, retry, i;
+	bool read_edid = false;
 
 	if (!i2c->is_regaddr) {
 		dev_dbg(hdmi->dev, "set read register address to 0\n");
@@ -580,9 +582,21 @@ static int dw_hdmi_i2c_read(struct dw_hdmi *hdmi,
 		i2c->is_regaddr = true;
 	}
 
-	while (length--) {
+	/* edid reads are in 128 bytes. scdc reads are in 1 byte */
+	if (length == HDMI_EDID_BLOCK_LEN)
+		read_edid = true;
+
+	while (length > 0) {
 		retry = 100;
-		hdmi_writeb(hdmi, i2c->slave_reg++, HDMI_I2CM_ADDRESS);
+		hdmi_writeb(hdmi, i2c->slave_reg, HDMI_I2CM_ADDRESS);
+
+		if (read_edid) {
+			i2c->slave_reg += 8;
+			length -= 8;
+		} else {
+			i2c->slave_reg++;
+			length--;
+		}
 
 		while (retry > 0) {
 			if (!(hdmi_readb(hdmi, HDMI_PHY_STAT0) & HDMI_PHY_HPD)) {
@@ -594,41 +608,55 @@ static int dw_hdmi_i2c_read(struct dw_hdmi *hdmi,
 				return -EPERM;
 			}
 			reinit_completion(&i2c->cmp);
-
-			if (i2c->is_segment)
-				hdmi_writeb(hdmi, HDMI_I2CM_OPERATION_READ_EXT,
-					    HDMI_I2CM_OPERATION);
-			else
-				hdmi_writeb(hdmi, HDMI_I2CM_OPERATION_READ,
-					    HDMI_I2CM_OPERATION);
-
+			if (i2c->is_segment) {
+				if (read_edid)
+					hdmi_writeb(hdmi, HDMI_I2CM_OPERATION_READ8_EXT,
+						    HDMI_I2CM_OPERATION);
+				else
+					hdmi_writeb(hdmi, HDMI_I2CM_OPERATION_READ_EXT,
+						    HDMI_I2CM_OPERATION);
+			} else {
+				if (read_edid)
+					hdmi_writeb(hdmi, HDMI_I2CM_OPERATION_READ8,
+						    HDMI_I2CM_OPERATION);
+				else
+					hdmi_writeb(hdmi, HDMI_I2CM_OPERATION_READ,
+						    HDMI_I2CM_OPERATION);
+			}
 			stat = wait_for_completion_timeout(&i2c->cmp, HZ / 10);
 			if (!stat) {
 				dev_dbg(hdmi->dev, "ddc read time out\n");
 				hdmi_writeb(hdmi, 0, HDMI_I2CM_SOFTRSTZ);
+				hdmi_writeb(hdmi, HDMI_I2CM_OPERATION_BUS_CLEAR,
+					    HDMI_I2CM_OPERATION);
 				retry -= 10;
 				continue;
 			}
-
 			/* Check for error condition on the bus */
 			if (i2c->stat & HDMI_IH_I2CM_STAT0_ERROR) {
 				dev_dbg(hdmi->dev, "ddc read err\n");
 				hdmi_writeb(hdmi, 0, HDMI_I2CM_SOFTRSTZ);
+				hdmi_writeb(hdmi, HDMI_I2CM_OPERATION_BUS_CLEAR,
+					    HDMI_I2CM_OPERATION);
 				retry--;
 				usleep_range(10000, 11000);
 				continue;
 			}
-
 			/* read success */
 			break;
 		}
-
 		if (retry <= 0) {
 			dev_err(hdmi->dev, "ddc read failed\n");
 			return -EIO;
 		}
-		*buf++ = hdmi_readb(hdmi, HDMI_I2CM_DATAI);
+
+		if (read_edid)
+			for (i = 0; i < 8; i++)
+				*buf++ = hdmi_readb(hdmi, HDMI_I2CM_READ_BUFF0 + i);
+		else
+			*buf++ = hdmi_readb(hdmi, HDMI_I2CM_DATAI);
 	}
+
 	i2c->is_segment = false;
 
 	return 0;
@@ -671,6 +699,8 @@ static int dw_hdmi_i2c_write(struct dw_hdmi *hdmi,
 			if (!stat) {
 				dev_dbg(hdmi->dev, "ddc write time out\n");
 				hdmi_writeb(hdmi, 0, HDMI_I2CM_SOFTRSTZ);
+				hdmi_writeb(hdmi, HDMI_I2CM_OPERATION_BUS_CLEAR,
+					    HDMI_I2CM_OPERATION);
 				retry -= 10;
 				continue;
 			}
@@ -679,6 +709,8 @@ static int dw_hdmi_i2c_write(struct dw_hdmi *hdmi,
 			if (i2c->stat & HDMI_IH_I2CM_STAT0_ERROR) {
 				dev_dbg(hdmi->dev, "ddc write err\n");
 				hdmi_writeb(hdmi, 0, HDMI_I2CM_SOFTRSTZ);
+				hdmi_writeb(hdmi, HDMI_I2CM_OPERATION_BUS_CLEAR,
+					    HDMI_I2CM_OPERATION);
 				retry--;
 				usleep_range(10000, 11000);
 				continue;
@@ -3724,14 +3756,14 @@ static const struct regmap_config hdmi_regmap_8bit_config = {
 	.reg_bits	= 32,
 	.val_bits	= 8,
 	.reg_stride	= 1,
-	.max_register	= HDMI_I2CM_FS_SCL_LCNT_0_ADDR,
+	.max_register	= HDMI_I2CM_SCDC_UPDATE1,
 };
 
 static const struct regmap_config hdmi_regmap_32bit_config = {
 	.reg_bits	= 32,
 	.val_bits	= 32,
 	.reg_stride	= 4,
-	.max_register	= HDMI_I2CM_FS_SCL_LCNT_0_ADDR << 2,
+	.max_register	= HDMI_I2CM_SCDC_UPDATE1 << 2,
 };
 
 static int dw_hdmi_status_show(struct seq_file *s, void *v)
