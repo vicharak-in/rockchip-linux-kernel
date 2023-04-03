@@ -398,6 +398,12 @@
 					remote-endpoint = <&vp2_out_dp1>;
 					status = "disabled";
 				};
+
+				dp1_in_vp3: endpoint@3 {
+					reg = <3>;
+					remote-endpoint = <&vp3_out_dp1>;
+					status = "disabled";
+				};
 			};
 		};
 	};
@@ -963,5 +969,12 @@
 	vp2_out_hdmi1: endpoint@7 {
 		reg = <7>;
 		remote-endpoint = <&hdmi1_in_vp2>;
+	};
+};
+
+&vp3 {
+	vp3_out_dp1: endpoint@4 {
+		reg = <4>;
+		remote-endpoint = <&dp1_in_vp3>;
 	};
 };
