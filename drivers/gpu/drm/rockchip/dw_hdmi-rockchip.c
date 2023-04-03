@@ -128,6 +128,7 @@ struct rockchip_hdmi {
 	struct clk *grf_clk;
 	struct clk *hclk_vio;
 	struct clk *hclk_vop;
+	struct clk *dclk_vop;
 	struct dw_hdmi *hdmi;
 
 	struct phy *phy;
@@ -644,6 +645,12 @@ static int rockchip_hdmi_parse_dt(struct rockchip_hdmi *hdmi)
 	} else if (IS_ERR(hdmi->hclk_vop)) {
 		dev_err(hdmi->dev, "failed to get hclk_vop clock\n");
 		return PTR_ERR(hdmi->hclk_vop);
+	}
+
+	hdmi->dclk_vop = devm_clk_get_optional(hdmi->dev, "dclk_vop");
+	if (IS_ERR(hdmi->dclk_vop)) {
+		dev_err(hdmi->dev, "failed to get dclk_vop\n");
+		return PTR_ERR(hdmi->dclk_vop);
 	}
 
 	ret = of_property_read_u32(np, "max-tmdsclk",
@@ -1300,6 +1307,25 @@ static void dw_hdmi_rockchip_set_ddc_io(void *data, bool enable)
 		if (pinctrl_select_state(hdmi->p, hdmi->default_state))
 			dev_err(hdmi->dev, "could not select default state\n");
 	}
+}
+
+static int dw_hdmi_rockchip_dclk_set(void *data, bool enable, int vp_id)
+{
+	struct rockchip_hdmi *hdmi = (struct rockchip_hdmi *)data;
+	int ret = 0;
+
+	if (!hdmi->dclk_vop)
+		return 0;
+
+	if (enable) {
+		ret = clk_prepare_enable(hdmi->dclk_vop);
+		if (ret < 0)
+			dev_err(hdmi->dev, "failed to enable dclk_vop\n");
+	} else {
+		clk_disable_unprepare(hdmi->dclk_vop);
+	}
+
+	return ret;
 }
 
 static const struct drm_prop_enum_list color_depth_enum_list[] = {
@@ -1981,6 +2007,8 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
 		dw_hdmi_rockchip_set_prev_bus_format;
 	plat_data->set_ddc_io =
 		dw_hdmi_rockchip_set_ddc_io;
+	plat_data->dclk_set =
+		dw_hdmi_rockchip_dclk_set;
 	plat_data->property_ops = &dw_hdmi_rockchip_property_ops;
 
 	encoder = &hdmi->encoder;

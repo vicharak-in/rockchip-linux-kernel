@@ -184,6 +184,7 @@ struct dw_hdmi_plat_data {
 	bool (*check_hdr_color_change)(struct drm_connector_state *conn_state, void *data);
 	void (*set_prev_bus_format)(void *data, unsigned long bus_format);
 	void (*set_ddc_io)(void *data, bool enable);
+	int (*dclk_set)(void *data, bool enable, int vp_id);
 
 	/* Vendor Property support */
 	const struct dw_hdmi_property_ops *property_ops;
