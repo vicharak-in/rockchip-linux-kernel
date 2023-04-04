@@ -92,7 +92,8 @@
 			<0x35  KEY_BLUE>,
 			<0x36  KEY_YELLOW>,
 			<0x37  KEY_GREEN>,
-			<0x38  KEY_RED>;
+			<0x38  KEY_RED>,
+			<0x00  KEY_AUTOPAIR>;
 	};
 
 	ir_key3 {
