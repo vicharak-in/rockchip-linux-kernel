@@ -803,6 +803,7 @@ static int rkisp_plat_probe(struct platform_device *pdev)
 	pm_runtime_enable(dev);
 	if (isp_dev->hw_dev->is_thunderboot && isp_dev->is_thunderboot)
 		pm_runtime_get_noresume(isp_dev->hw_dev->dev);
+	isp_dev->is_probe_end = true;
 	return 0;
 
 err_unreg_media_dev:

@@ -1028,6 +1028,9 @@ int rkisp_fh_open(struct file *filp)
 	struct rkisp_stream *stream = video_drvdata(filp);
 	int ret;
 
+	if (!stream->ispdev->is_probe_end)
+		return -EINVAL;
+
 	ret = v4l2_fh_open(filp);
 	if (!ret) {
 		ret = v4l2_pipeline_pm_use(&stream->vnode.vdev.entity, 1);

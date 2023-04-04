@@ -239,5 +239,6 @@ struct rkisp_device {
 	int rdbk_cnt_x3;
 	u32 rd_mode;
 	u8 filt_state[RDBK_F_MAX];
+	bool is_probe_end;
 };
 #endif
