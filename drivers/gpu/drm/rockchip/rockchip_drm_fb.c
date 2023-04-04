@@ -114,8 +114,6 @@ rockchip_fb_alloc(struct drm_device *dev, const struct drm_mode_fb_cmd2 *mode_cm
 {
 	struct rockchip_drm_fb *rockchip_fb;
 	struct rockchip_gem_object *rk_obj;
-	struct rockchip_drm_private *private = dev->dev_private;
-	struct drm_fb_helper *fb_helper = private->fbdev_helper;
 	int ret = 0;
 	int i;
 
@@ -141,9 +139,6 @@ rockchip_fb_alloc(struct drm_device *dev, const struct drm_mode_fb_cmd2 *mode_cm
 			rk_obj = to_rockchip_obj(obj[i]);
 			rockchip_fb->dma_addr[i] = rk_obj->dma_addr;
 			rockchip_fb->kvaddr[i] = rk_obj->kvaddr;
-			private->fbdev_bo = &rk_obj->base;
-			if (fb_helper && fb_helper->fbdev && rk_obj->kvaddr)
-				fb_helper->fbdev->screen_base = rk_obj->kvaddr;
 		}
 #ifndef MODULE
 	} else if (logo) {
