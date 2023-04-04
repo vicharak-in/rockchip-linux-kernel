@@ -61,6 +61,9 @@ struct rkvdec_link_info {
 	u32 tb_reg_int;
 	bool hack_setup;
 	u32 tb_reg_cycle;
+	u32 tb_reg_out;
+	u32 tb_reg_ref_s;
+	u32 tb_reg_ref_e;
 	struct rkvdec_link_status reg_status;
 };
 
@@ -171,9 +174,12 @@ struct rkvdec_link_info rkvdec_link_v2_hw_info = {
 		.reg_start = 258,
 		.reg_num = 30,
 	},
-	.tb_reg_int = 180,
-	.hack_setup = 0,
-	.tb_reg_cycle = 197,
+	.tb_reg_int	= 180,
+	.hack_setup	= 0,
+	.tb_reg_cycle	= 197,
+	.tb_reg_out	= 86,
+	.tb_reg_ref_s	= 104,
+	.tb_reg_ref_e	= 119,
 	.reg_status = {
 		.dec_num_mask = 0x000fffff,
 		.err_flag_base = 0x024,
@@ -431,8 +437,6 @@ static int rkvdec_link_write_task_to_slot(struct rkvdec_link_dev *dev, int idx,
 		memcpy(&tb_reg[off], &task->reg[s], n * sizeof(u32));
 	}
 
-	/* setup error mode flag */
-	tb_reg[9] |= BIT(18) | BIT(9);
 	tb_reg[info->tb_reg_second_en] |= RKVDEC_WAIT_RESET_EN;
 
 	/* memset read registers */
@@ -660,6 +664,7 @@ static int rkvdec_link_isr_recv_task(struct mpp_dev *mpp,
 
 		task = to_rkvdec2_task(mpp_task);
 		regs = table_base + idx * link_dec->link_reg_count;
+		link_dec->error_iova = regs[info->tb_reg_out];
 		irq_status = regs[info->tb_reg_int];
 		mpp_task->hw_cycles = regs[info->tb_reg_cycle];
 		mpp_time_diff_with_hw_time(mpp_task, dec->aclk_info.real_rate_hz);
@@ -771,6 +776,49 @@ static int rkvdec2_link_reset(struct mpp_dev *mpp)
 	return 0;
 }
 
+static void rkvdec2_check_err_ref(struct mpp_dev *mpp)
+{
+	struct rkvdec2_dev *dec = to_rkvdec2_dev(mpp);
+	struct rkvdec_link_dev *link_dec = dec->link_dec;
+	struct rkvdec_link_info *link_info = link_dec->info;
+	struct mpp_taskqueue *queue = mpp->queue;
+	struct mpp_task *mpp_task = NULL, *n;
+	struct rkvdec2_task *task;
+	int i;
+
+	if (!link_dec->error_iova || !dec->err_ref_hack)
+		return;
+
+	dev_err(mpp->dev, "err task iova %#08x\n", link_dec->error_iova);
+	list_for_each_entry_safe(mpp_task, n, &queue->running_list, queue_link) {
+		if (mpp_task) {
+			u32 *regs = NULL;
+			u32 *table_base = (u32 *)link_dec->table->vaddr;
+
+			task = to_rkvdec2_task(mpp_task);
+			regs = table_base + task->slot_idx * link_dec->link_reg_count;
+
+			for (i = link_info->tb_reg_ref_s; i <= link_info->tb_reg_ref_e; i++) {
+				if (regs[i] == link_dec->error_iova)
+					regs[i] = 0;
+			}
+		}
+	}
+
+	mutex_lock(&queue->pending_lock);
+	list_for_each_entry_safe(mpp_task, n, &queue->pending_list, queue_link) {
+		task = to_rkvdec2_task(mpp_task);
+
+		/* ref frame reg index start - end */
+		for (i = 164; i <= 179; i++) {
+			if (task->reg[i] == link_dec->error_iova)
+				task->reg[i] = 0;
+		}
+	}
+	mutex_unlock(&queue->pending_lock);
+	link_dec->error_iova = 0;
+}
+
 static int rkvdec2_link_irq(struct mpp_dev *mpp)
 {
 	struct rkvdec2_dev *dec = to_rkvdec2_dev(mpp);
@@ -866,6 +914,7 @@ static int rkvdec2_link_isr(struct mpp_dev *mpp)
 	goto done;
 
 do_reset:
+	rkvdec2_check_err_ref(mpp);
 	/* NOTE: irq may run with reset */
 	atomic_inc(&mpp->reset_request);
 	rkvdec2_link_reset(mpp);
@@ -894,6 +943,26 @@ done:
 	mpp_debug_leave();
 
 	return IRQ_HANDLED;
+}
+
+static int rkvdec2_link_iommu_handle(struct iommu_domain *iommu,
+			    struct device *iommu_dev,
+			    unsigned long iova,
+			    int status, void *arg)
+{
+	struct mpp_dev *mpp = (struct mpp_dev *)arg;
+
+	dev_err(iommu_dev, "fault addr 0x%08lx status %x arg %p\n",
+		iova, status, arg);
+
+	if (!mpp) {
+		dev_err(iommu_dev, "pagefault without device to handle\n");
+		return 0;
+	}
+
+	rk_iommu_mask_irq(mpp->dev);
+
+	return 0;
 }
 
 int rkvdec2_link_remove(struct mpp_dev *mpp, struct rkvdec_link_dev *link_dec)
@@ -1029,7 +1098,8 @@ int rkvdec2_link_init(struct platform_device *pdev, struct rkvdec2_dev *dec)
 
 	if (link_dec->info->hack_setup)
 		rkvdec2_link_hack_data_setup(dec->fix);
-
+	iommu_set_fault_handler(mpp->iommu_info->domain,
+				rkvdec2_link_iommu_handle, mpp);
 	link_dec->mpp = mpp;
 	link_dec->dev = dev;
 	atomic_set(&link_dec->task_timeout, 0);

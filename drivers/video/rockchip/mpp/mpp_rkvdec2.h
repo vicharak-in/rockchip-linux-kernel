@@ -207,6 +207,8 @@ struct rkvdec2_dev {
 	/* for link mode */
 	struct rkvdec_link_dev *link_dec;
 	struct mpp_dma_buffer *fix;
+
+	u32 err_ref_hack;
 };
 
 void *rkvdec2_alloc_task(struct mpp_session *session,

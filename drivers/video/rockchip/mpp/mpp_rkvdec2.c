@@ -565,6 +565,16 @@ static int rkvdec2_control(struct mpp_session *session, struct mpp_request *req)
 			}
 		}
 	} break;
+	case MPP_CMD_SET_ERR_REF_HACK: {
+		struct rkvdec2_dev *dec = to_rkvdec2_dev(session->mpp);
+		u32 err_ref_hack_en = 0;
+
+		if (copy_from_user(&err_ref_hack_en, req->data, sizeof(u32))) {
+			mpp_err("copy_from_user failed\n");
+			return -EINVAL;
+		}
+		dec->err_ref_hack = err_ref_hack_en;
+	} break;
 	default: {
 		mpp_err("unknown mpp ioctl cmd %x\n", req->cmd);
 	} break;

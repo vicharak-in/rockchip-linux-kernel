@@ -97,6 +97,8 @@ struct rkvdec_link_dev {
 	u32 task_cnt;
 	u64 stuff_cycle_sum;
 	u32 stuff_cnt;
+
+	u32 error_iova;
 };
 
 extern struct rkvdec_link_info rkvdec_link_rk3568_hw_info;
