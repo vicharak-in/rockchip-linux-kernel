@@ -505,7 +505,8 @@ static void hdmi_codec_shutdown(struct snd_pcm_substream *substream,
 	WARN_ON(hcp->current_stream != substream);
 
 	hcp->chmap_idx = HDMI_CODEC_CHMAP_IDX_UNKNOWN;
-	hcp->hcd.ops->audio_shutdown(dai->dev->parent, hcp->hcd.data);
+	if (hcp->hcd.ops->audio_shutdown)
+		hcp->hcd.ops->audio_shutdown(dai->dev->parent, hcp->hcd.data);
 
 	mutex_lock(&hcp->current_stream_lock);
 	hcp->current_stream = NULL;
@@ -929,8 +930,7 @@ static int hdmi_codec_probe(struct platform_device *pdev)
 	}
 
 	dai_count = hcd->i2s + hcd->spdif;
-	if (dai_count < 1 || !hcd->ops || !hcd->ops->hw_params ||
-	    !hcd->ops->audio_shutdown) {
+	if (dai_count < 1 || !hcd->ops || !hcd->ops->hw_params) {
 		dev_err(dev, "%s: Invalid parameters\n", __func__);
 		return -EINVAL;
 	}
