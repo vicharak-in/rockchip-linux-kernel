@@ -26,14 +26,14 @@
 
 	vcc3v3_pcie2x1l0l1: vcc3v3-pcie2x1l0 {
 		compatible = "regulator-fixed";
-		regulator-name = "vcc3v3_pcie2x1l0";
+		regulator-name = "vcc3v3_pcie2x1l0l1";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
-		regulator-always-on;
-		gpios = <&pca9554 PCA_IOE_0 GPIO_ACTIVE_HIGH>,
-				// PCIE_PWR_EN
-				<&gpio2 RK_PB2 GPIO_ACTIVE_HIGH>;
 		startup-delay-us = <5000>;
+		regulator-boot-on;
+		regulator-always-on;
+		enable-active-high;
+		gpios = <&pca9554 PCA_IOE_0 GPIO_ACTIVE_HIGH>;
 		vin-supply = <&vcc5v0_sys>;
 	};
 
@@ -72,23 +72,23 @@
 };
 
 // PCIE: {{{
-// fe190000: SATA only
+// fe190000: Standard SATA only (PCIE20_0)
 &pcie2x1l2 {
-	reset-gpios = <&gpio4 RK_PA5 GPIO_ACTIVE_HIGH>;
+	reset-gpios = <&pca9554 PCA_IOE_2 GPIO_ACTIVE_HIGH>;
 	vpcie3v3-supply = <&vcc3v3_pcie2x1l2>;
 	status = "okay";
 };
 
-// fe170000: SATA/PCIE 2.0
+// fe170000: (PCIE20_2)
 &pcie2x1l0 {
 	reset-gpios = <&gpio4 RK_PA2 GPIO_ACTIVE_HIGH>;
 	vpcie3v3-supply = <&vcc3v3_pcie2x1l0l1>;
 	status = "okay";
 };
 
-// fe180000: SATA/PCIE 2.0
+// fe180000: (PCIE20_1) Tested sata2
 &pcie2x1l1 {
-	reset-gpios = <&gpio4 RK_PA2 GPIO_ACTIVE_HIGH>;
+	reset-gpios = <&gpio4 RK_PA4 GPIO_ACTIVE_HIGH>;
 	vpcie3v3-supply = <&vcc3v3_pcie2x1l0l1>;
 	status = "okay";
 };
