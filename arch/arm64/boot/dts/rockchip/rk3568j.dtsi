@@ -85,7 +85,7 @@
 	/delete-node/ opp-1560000000;
 	opp-780000000 {
 		opp-hz = /bits/ 64 <780000000>;
-		opp-microvolt = <850000>;
+		opp-microvolt = <875000>;
 	};
 };
 
