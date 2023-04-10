@@ -3124,6 +3124,22 @@ static bool check_hdr_color_change(struct drm_connector_state *old_state,
 	return false;
 }
 
+static bool check_hdmi_format_change(struct drm_connector_state *old_state,
+				     struct drm_connector_state *new_state,
+				     struct drm_connector *connector,
+				     struct dw_hdmi *hdmi)
+{
+	bool hdr_change, color_change;
+
+	hdr_change = check_hdr_color_change(old_state, new_state, hdmi);
+	color_change = dw_hdmi_color_changed(connector);
+
+	if (hdr_change || color_change)
+		return true;
+
+	return false;
+}
+
 static int dw_hdmi_connector_atomic_check(struct drm_connector *connector,
 					  struct drm_atomic_state *state)
 {
@@ -3181,8 +3197,8 @@ static int dw_hdmi_connector_atomic_check(struct drm_connector *connector,
 		hdmi_enable_audio_clk(hdmi, hdmi->audio_enable);
 	}
 
-	if (check_hdr_color_change(old_state, new_state, hdmi) || hdmi->logo_plug_out ||
-	    dw_hdmi_color_changed(connector)) {
+	if (check_hdmi_format_change(old_state, new_state, connector, hdmi) ||
+	    hdmi->logo_plug_out) {
 		u32 mtmdsclk;
 
 		if (hdmi->plat_data->update_color_format)
