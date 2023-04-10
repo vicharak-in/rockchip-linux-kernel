@@ -29,5 +29,6 @@
 #define KEY_LAUNCH              269
 #define KEY_TRACK               270
 #define KEY_PORTAL              271
+#define KEY_AUTOPAIR            703//0x2BF
 
 #endif
