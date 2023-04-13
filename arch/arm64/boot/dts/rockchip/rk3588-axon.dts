@@ -124,6 +124,7 @@
 		reg = <0x24>;
 		gpio-controller;
 		#gpio-cells = <2>;
+		gpio-group-num = <300>;
 		status = "okay";
 	};
 };
