@@ -243,7 +243,7 @@
 			<0x0e   KEY_CH_CUT_BACK>;
 	};
 
-	/* for IPTV gd */
+	/* for CTC */
 	ir_key7 {
 		rockchip,usercode = <0x4cb3>;
 		rockchip,key_table =
@@ -272,16 +272,16 @@
 			<0x72   KEY_SETUP>,
 			<0x7a   KEY_CHANNEL_UP>,
 			<0x79   KEY_CHANNEL_DN>,
-			<0x77   KEY_HOME_PAGE>,
+			<0x77   KEY_MENU>,
 			<0x29   KEY_CH_CUT_BACK>,
 			<0x32   KEY_DIRECT_SEEDING>,
 			<0x6e   KEY_REVIEW>,
 			<0x7c   KEY_ON_DEMAND>,
-			<0x3c   KEY_INFO1>,
+			<0x3c   KEY_AUTOPAIR>,
 			<0x67   KEY_SOUND1>,
 			<0x25   KEY_X1>,
 			<0x2f   KEY_X2>,
-			<0x7d   KEY_LOCAL>,
+			<0x7d   KEY_HOME_PAGE>,
 			<0x6a   KEY_PLAYPAUSE>,
 			<0x0b   KEY_EQUAL>;
 	};
