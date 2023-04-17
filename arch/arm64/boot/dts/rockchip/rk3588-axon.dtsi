@@ -329,26 +329,6 @@
 &display_subsystem {
 	clocks = <&hdptxphy_hdmi_clk0>, <&hdptxphy_hdmi_clk1>;
 	clock-names = "hdmi0_phy_pll", "hdmi1_phy_pll";
-
-	route {
-		route_hdmi0: route-hdmi0 {
-			status = "okay";
-			logo,uboot = "logo.bmp";
-			logo,kernel = "logo_kernel.bmp";
-			logo,mode = "center";
-			charge_logo,mode = "center";
-			connect = <&vp0_out_hdmi0>;
-		};
-
-		route_hdmi1: route-hdmi1 {
-			status = "okay";
-			logo,uboot = "logo.bmp";
-			logo,kernel = "logo_kernel.bmp";
-			logo,mode = "center";
-			charge_logo,mode = "center";
-			connect = <&vp0_out_hdmi1>;
-		};
-	};
 };
 // End of Display }}}
 
@@ -390,10 +370,8 @@
 
 // HDMI 0: {{{
 &hdmi0 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&hdmim0_tx0_cec &hdmim0_tx0_hpd &hdmim0_tx0_scl &hdmim0_tx0_sda>;
 	enable-gpios = <&gpio1 RK_PB0 GPIO_ACTIVE_HIGH>;
-	cec-enable = "true";
+	cec-enable;
 	status = "okay";
 };
 
@@ -407,6 +385,7 @@
 
 &route_hdmi0 {
 	status = "okay";
+	connect = <&vp0_out_hdmi1>;
 };
 
 &hdmi0_sound {
@@ -425,7 +404,7 @@
 // HDMI 1: {{{
 &hdmi1 {
 	enable-gpios = <&gpio1 RK_PA7 GPIO_ACTIVE_HIGH>;
-    cec-enable = "true";
+	cec-enable;
 	status = "okay";
 };
 
@@ -439,6 +418,7 @@
 
 &route_hdmi1 {
 	status = "okay";
+	connect = <&vp1_out_hdmi1>;
 };
 
 &hdmi1_sound {
@@ -765,30 +745,6 @@
 		hdmi_rx_det: hdmi-rx-det {
 			rockchip,pins =
 				<4 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-
-		hdmim0_tx0_cec: hdmim0-tx0-cec {
-			rockchip,pins =
-				/* hdmim0_tx0_cec */
-				<4 RK_PC1 RK_FUNC_GPIO &pcfg_pull_up>;
-		};
-
-		hdmim0_tx0_hpd: hdmim0-tx0-hpd {
-			rockchip,pins =
-				/* hdmim0_tx0_hpd */
-				<1 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;
-		};
-
-		hdmim0_tx0_scl: hdmim0-tx0-scl {
-			rockchip,pins =
-				/* hdmim0_tx0_scl */
-				<4 RK_PB7 RK_FUNC_GPIO &pcfg_pull_up>;
-		};
-
-		hdmim0_tx0_sda: hdmim0-tx0-sda {
-			rockchip,pins =
-				/* hdmim0_tx0_sda */
-				<4 RK_PC0 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 	// Endi of HDMI }}}
