@@ -296,14 +296,6 @@
 };
 // End of COMBO PHY USB3.0 PCIE SATA }}}
 
-// PWM IR Receiver: {{{
-&pwm1 {
-	pinctrl-names = "active";
-	pinctrl-0 = <&pwm1m0_pins>;
-	status = "okay";
-};
-// End of PWM IR Receiver }}}
-
 // CPU Supply: {{{
 &cpu_l0 {
 	cpu-supply = <&vdd_cpu_lit_s0>;
