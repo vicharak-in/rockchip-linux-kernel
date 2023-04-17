@@ -563,79 +563,10 @@
 &i2c6 {
 	status = "okay";
 
-	// FUSB302 USB Type-C 1: {{{
-	usbc1: fusb302@22 {
+	// FUSB302 USB Type-C 0: {{{
+	usbc0: fusb302@22 {
 		compatible = "fcs,fusb302";
 		reg = <0x22>;
-		interrupt-parent = <&gpio0>;
-		interrupts = <RK_PD3 IRQ_TYPE_LEVEL_LOW>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&usbc1_int>;
-		vbus-supply = <&vcc12v_dcin>;
-		suspend-disable-irq;
-		status = "okay";
-
-		ports {
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			port@0 {
-				reg = <0>;
-				usbc1_role_sw: endpoint@0 {
-					remote-endpoint = <&dwc3_1_role_switch>;
-				};
-			};
-		};
-
-		usb_con1: connector {
-			compatible = "usb-c-connector";
-			label = "USB-C";
-			data-role = "dual";
-			power-role = "dual";
-			try-power-role = "sink";
-			op-sink-microwatt = <1000000>;
-			sink-pdos =
-				<PDO_FIXED(5000, 1000, PDO_FIXED_USB_COMM)>;
-			source-pdos =
-				<PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
-
-			altmodes {
-				#address-cells = <1>;
-				#size-cells = <0>;
-
-				altmode@0 {
-					reg = <0>;
-					svid = <0xff01>;
-					vdo = <0xffffffff>;
-				};
-			};
-
-			ports {
-				#address-cells = <1>;
-				#size-cells = <0>;
-
-				port@0 {
-					reg = <0>;
-					usbc1_orien_sw: endpoint {
-						remote-endpoint = <&usbdp1_phy1_orientation_switch>;
-					};
-				};
-
-				port@1 {
-					reg = <1>;
-					dp1_altmode_mux: endpoint {
-						remote-endpoint = <&usbdp1_phy1_dp1_altmode_mux>;
-					};
-				};
-			};
-		};
-	};
-	// End of FUSB302 USB Type-C 1 }}}
-
-	// FUSB302 USB Type-C 0: {{{
-	usbc0: fusb302@23 {
-		compatible = "fcs,fusb302";
-		reg = <0x23>;
 		interrupt-parent = <&gpio0>;
 		interrupts = <RK_PB7 IRQ_TYPE_LEVEL_LOW>;
 		pinctrl-names = "default";
@@ -658,7 +589,7 @@
 
 		usb_con0: connector {
 			compatible = "usb-c-connector";
-			label = "USB-C";
+			label = "USB-C0";
 			data-role = "dual";
 			power-role = "dual";
 			try-power-role = "sink";
@@ -700,6 +631,75 @@
 		};
 	};
 	// End of FUSB302 USB Type-C 0 }}}
+
+	// FUSB302 USB Type-C 1: {{{
+	usbc1: fusb302@23 {
+		compatible = "fcs,fusb302";
+		reg = <0x23>;
+		interrupt-parent = <&gpio0>;
+		interrupts = <RK_PD3 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&usbc1_int>;
+		vbus-supply = <&vcc12v_dcin>;
+		suspend-disable-irq;
+		status = "okay";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				usbc1_role_sw: endpoint@0 {
+					remote-endpoint = <&dwc3_1_role_switch>;
+				};
+			};
+		};
+
+		usb_con1: connector {
+			compatible = "usb-c-connector";
+			label = "USB-C1";
+			data-role = "dual";
+			power-role = "dual";
+			try-power-role = "sink";
+			op-sink-microwatt = <1000000>;
+			sink-pdos =
+				<PDO_FIXED(5000, 1000, PDO_FIXED_USB_COMM)>;
+			source-pdos =
+				<PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
+
+			altmodes {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				altmode@0 {
+					reg = <0>;
+					svid = <0xff01>;
+					vdo = <0xffffffff>;
+				};
+			};
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+					usbc1_orien_sw: endpoint {
+						remote-endpoint = <&usbdp1_phy1_orientation_switch>;
+					};
+				};
+
+				port@1 {
+					reg = <1>;
+					dp1_altmode_mux: endpoint {
+						remote-endpoint = <&usbdp1_phy1_dp1_altmode_mux>;
+					};
+				};
+			};
+		};
+	};
+	// End of FUSB302 USB Type-C 1 }}}
 };
 // End of I2C 6 }}}
 
