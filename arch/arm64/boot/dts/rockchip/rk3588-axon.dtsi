@@ -212,13 +212,13 @@
 	// End of HDMI Sound }}}
 
 	// Leds: {{{
-	leds {
+	gpio_leds: gpio-leds {
 		compatible = "gpio-leds";
 		status = "okay";
 		pinctrl-names = "default";
-		pinctrl-0 = <&led0_gpio &led1_gpio>;
+		pinctrl-0 = <&power_led_gpio &status_led_gpio>;
 
-		led0 {
+		power_led: power-led {
 			label = "power";
 			gpios = <&gpio0 RK_PA0 GPIO_ACTIVE_HIGH>;
 			default-state = "on";
@@ -226,12 +226,12 @@
 			linux,default-trigger = "default-on";
 		};
 
-		led1 {
-			label = "activity";
+		status_led: status-led {
+			label = "status";
 			gpios = <&gpio0 RK_PB2 GPIO_ACTIVE_HIGH>;
 			default-state = "on";
 			retain-state-suspend;
-			linux,default-trigger = "disk-activity";
+			linux,default-trigger = "heartbeat";
 		};
 	};
 	// End of Leds }}}
@@ -801,19 +801,19 @@
 	};
 	// Endi of HDMI }}}
 
-// Leds: {{{
+	// Leds: {{{
 	leds {
-		led0_gpio: led0-gpio {
+		power_led_gpio: power-led-gpio {
 			rockchip,pins =
 						<0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
-		led1_gpio: led1-gpio {
+		status_led_gpio: status-led-gpio {
 			rockchip,pins =
 						<0 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
-// End of Leds }}}
+	// End of Leds }}}
 
 	// USB C: {{{
 	usb-typec {
