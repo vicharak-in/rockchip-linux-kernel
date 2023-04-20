@@ -152,6 +152,13 @@
 		enable-active-high;
 		vin-supply = <&vcc5v0_sys>;
 	};
+
+	vcc_phy: vcc-phy-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_phy";
+		regulator-always-on;
+		regulator-boot-on;
+	};
 	// End of Regulators }}}
 
 	// HDMI Sound: {{{
@@ -355,6 +362,7 @@
 	// rx_delay = <0x3f>;
 
 	phy-handle = <&rgmii_phy>;
+	phy-supply = <&vcc_phy>;
 	status = "okay";
 };
 
