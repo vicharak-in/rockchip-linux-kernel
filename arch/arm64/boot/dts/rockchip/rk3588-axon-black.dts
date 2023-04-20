@@ -1,0 +1,146 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (C) 2023 Vicharak India
+ */
+
+/dts-v1/;
+
+#include "rk3588-axon.dtsi"
+#include "rk3588-axon-mipi.dtsi"
+
+/ {
+	model = "Vicharak RK3588 AXON VO.1";
+	compatible = "vicharak,rk3588-axon", "rockchip,rk3588";
+
+	vcc3v3_pcie2x1l2: vcc3v3-pcie2x1l2 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_pcie2x1l2";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		startup-delay-us = <5000>;
+		regulator-boot-on;
+		regulator-always-on;
+		enable-active-high;
+		gpio = <&pca9554 PCA_IOE_2 GPIO_ACTIVE_HIGH>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
+	vcc3v3_pcie2x1l0l1: vcc3v3-pcie2x1l0 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_pcie2x1l0l1";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		startup-delay-us = <5000>;
+		regulator-boot-on;
+		regulator-always-on;
+		enable-active-high;
+		gpio = <&pca9554 PCA_IOE_0 GPIO_ACTIVE_HIGH>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
+	vcc3v3_pcie3x4: vcc3v3-pcie3x4 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_pcie3x4";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-boot-on;
+		regulator-always-on;
+		enable-active-high;
+		gpio = <&pca9554 PCA_IOE_1 GPIO_ACTIVE_HIGH>;
+		startup-delay-us = <5000>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
+	vcc5v0_typec1: vcc5v0-typec1-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc5v0_typec1";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		enable-active-high;
+		gpio = <&pca9554 PCA_IOE_4 GPIO_ACTIVE_HIGH>;
+		vin-supply = <&vcc5v0_usb>;
+	};
+
+	vcc5v0_typec0: vcc5v0-typec0-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc5v0_typec0";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		enable-active-high;
+		gpio = <&pca9554 PCA_IOE_6 GPIO_ACTIVE_HIGH>;
+		vin-supply = <&vcc5v0_usb>;
+	};
+
+	vcc3v3_pca9554: vcc3v3-pca9554 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_pca9554";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-boot-on;
+		regulator-always-on;
+		enable-active-high;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
+	vcc3v3_mipi: vcc3v3-mipi {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_mipi";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		startup-delay-us = <5000>;
+		regulator-boot-on;
+		regulator-always-on;
+		enable-active-high;
+		gpio = <&pca9554 PCA_IOE_3 GPIO_ACTIVE_HIGH>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+};
+
+// PCIE: {{{
+// fe190000: Standard SATA only (PCIE20_0)
+&pcie2x1l2 {
+	reset-gpios = <&pca9554 PCA_IOE_2 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc3v3_pcie2x1l2>;
+	status = "okay";
+};
+
+// fe170000: (PCIE20_2)
+&pcie2x1l0 {
+	reset-gpios = <&gpio4 RK_PA2 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc3v3_pcie2x1l0l1>;
+	status = "okay";
+};
+
+// fe180000: (PCIE20_1) Tested sata2
+&pcie2x1l1 {
+	reset-gpios = <&gpio4 RK_PA4 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc3v3_pcie2x1l0l1>;
+	status = "okay";
+};
+
+// PCIE 3.0 - 4 slots: {{{
+&pcie30phy {
+	status = "okay";
+};
+
+// fe150000: PCIE 3.0
+&pcie3x4 {
+	reset-gpios = <&gpio4 RK_PB6 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc3v3_pcie3x4>;
+	status = "okay";
+};
+// End of PCIE 3.0 - 4 slots }}}
+// End of PCIE }}}
+
+&i2c6 {
+	// PCA9554 GPIO Expander
+	pca9554: gpio@24 {
+		compatible = "nxp,pca9554";
+		reg = <0x24>;
+		vcc-supply = <&vcc3v3_pca9554>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		gpio-group-num = <300>;
+		status = "disabled";
+	};
+};
