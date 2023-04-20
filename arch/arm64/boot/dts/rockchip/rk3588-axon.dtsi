@@ -554,6 +554,10 @@
 		assigned-clock-rates = <12288000>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&i2s0_mclk>;
+		DVDD-supply = <&vcc_1v8_s3>;
+		AVDD-supply = <&vcc_1v8_s3>;
+		PVDD-supply = <&vcc_1v8_s3>;
+		HPVDD-supply = <&vcc_1v8_s3>;
 		status = "okay";
 	};
 };
