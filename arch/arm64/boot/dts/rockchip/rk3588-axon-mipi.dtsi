@@ -5,29 +5,50 @@
 
 / {
 	compatible = "vicharak,rk3588-axon", "rockchip,rk3588";
+
+	clk_cam_25m: external-camera-clock-24m {
+		status = "okay";
+		compatible = "fixed-clock";
+		clock-frequency = <25000000>;
+		clock-output-names = "clk_cam_25m";
+		#clock-cells = <0>;
+	};
+
+	vcc_mipidphy0: vcc-mipi-dphy0 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_mipidphy0";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&gpio2 RK_PC1 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam_pwdn_gpio>;
+		regulator-always-on;
+		regulator-boot-on;
+		enable-active-high;
+		vin-supply = <&vcc_3v3_s3>;
+		regulator-state-mem {
+			regulator-off-in-suspend;
+		};
+	};
 };
 
-&i2c3 {
-	status = "okay";
-
+&i2c1 {
 	ov5647: ov5647@36 {
 		status = "okay";
 		compatible = "ovti,ov5647";
 		reg = <0x36>;
-		clocks = <&cru CLK_MIPI_CAMARAOUT_M2>;
+		clocks = <&clk_cam_25m>;
 		clock-names = "xvclk";
 		pinctrl-names = "default";
-		pinctrl-0 = <&mipim0_camera3_clk>;
-		power-domains = <&power RK3588_PD_VI>;
-		pwdn-gpios = <&gpio1 RK_PB2 GPIO_ACTIVE_HIGH>;
-		rockchip,camera-module-index = <0>;
-		rockchip,camera-module-facing = "back";
+		pinctrl-0 = <&cam_clkout0>;
+		rockchip,camera-module-index = <1>;
+		rockchip,camera-module-facing = "front";
 		rockchip,camera-module-name = "ov5647";
-		rockchip,camera-module-lens-name = "DEFAULT";
+		rockchip,camera-module-lens-name = "default";
 
 		port {
 			ov5647_out0: endpoint {
-				remote-endpoint = <&mipi_in_ucam0>;
+				remote-endpoint = <&mipidphy0_in_ucam0>;
 				data-lanes = <1 2>;
 			};
 		};
@@ -39,7 +60,7 @@
 	status = "okay";
 };
 
-&csi2_dphy1 {
+&csi2_dphy0 {
 	status = "okay";
 
 	ports {
@@ -51,7 +72,7 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 
-			mipi_in_ucam0: endpoint@1 {
+			mipidphy0_in_ucam0: endpoint@1 {
 				reg = <1>;
 				remote-endpoint = <&ov5647_out0>;
 				data-lanes = <1 2>;
@@ -63,7 +84,7 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 
-			csidphy1_out: endpoint@0 {
+			csidphy0_out: endpoint@0 {
 				reg = <0>;
 				remote-endpoint = <&mipi2_csi2_input>;
 			};
@@ -85,7 +106,7 @@
 
 			mipi2_csi2_input: endpoint@1 {
 				reg = <1>;
-				remote-endpoint = <&csidphy1_out>;
+				remote-endpoint = <&csidphy0_out>;
 			};
 		};
 
@@ -140,7 +161,7 @@
 	status = "okay";
 };
 
-&rkisp0_vir2 {
+&rkisp0_vir0 {
 	status = "okay";
 
 	port {
@@ -154,3 +175,15 @@
 	};
 };
 // }}}
+
+&pinctrl {
+	camera {
+		cam_clkout0: cam-clkout0 {
+			rockchip,pins = <1 RK_PD6 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		cam_pwdn_gpio: cam-pwdn-gpio {
+			rockchip,pins = <2 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};
