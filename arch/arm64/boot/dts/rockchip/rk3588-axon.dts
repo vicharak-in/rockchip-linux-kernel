@@ -70,6 +70,17 @@
 		gpio = <&pca9554 PCA_IOE_6 GPIO_ACTIVE_HIGH>;
 		vin-supply = <&vcc5v0_usb>;
 	};
+
+	vcc3v3_pca9554: vcc3v3-pca9554 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_pca9554";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-boot-on;
+		regulator-always-on;
+		enable-active-high;
+		vin-supply = <&vcc5v0_sys>;
+	};
 };
 
 // PCIE: {{{
@@ -123,6 +134,7 @@
 	pca9554: gpio@24 {
 		compatible = "nxp,pca9554";
 		reg = <0x24>;
+		vcc-supply = <&vcc3v3_pca9554>;
 		gpio-controller;
 		#gpio-cells = <2>;
 		gpio-group-num = <300>;
