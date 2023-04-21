@@ -266,6 +266,11 @@ config ARCH_ROCKCHIP
 	  This enables support for the ARMv8 based Rockchip chipsets,
 	  like the RK3368.
 
+config ARCH_VICHARAK
+	bool "Vicharak Family"
+	help
+	  This enables support for Vicharak Family devices.
+
 config ARCH_SEATTLE
 	bool "AMD Seattle SoC Family"
 	help
