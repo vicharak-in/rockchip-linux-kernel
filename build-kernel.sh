@@ -19,15 +19,15 @@ OUT_DIR=$(pwd)/out
 
 FILENAME="${OUT_DIR}/boot-${DATE}.img"
 KERNEL_IMAGE="${OUT_DIR}/arch/arm64/boot/Image"
+DEFCONFIG="rockchip_linux_defconfig"
 
 # check if -axon flag is passed for axon
 if [[ "$@" =~ "axon"* ]]; then
 	echo -e "###### USING axon DTB #####"
 	DTB_FILE="${OUT_DIR}/arch/arm64/boot/dts/rockchip/rk3588-axon.dtb"
-	# DTB_FILE="${OUT_DIR}/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dtb"
 else
-	echo -e "###### USING ROCK PI 4B DTB #####"
-	DTB_FILE="${OUT_DIR}/arch/arm64/boot/dts/rockchip/rk3399-rock-pi-4b.dtb"
+	echo -e "###### USING VAAMAN DTB #####"
+	DTB_FILE="${OUT_DIR}/arch/arm64/boot/dts/rockchip/rk3399-vaaman.dtb"
 fi
 
 # check if -c flag is passed for clang
@@ -144,7 +144,7 @@ fi
 cleanup
 
 # Make defconfig
-make ${ARGS} rockchip_linux_defconfig
+make ${ARGS} ${DEFCONFIG}
 
 # Make kernel image
 if [ -f "$(which ccache)" ]; then
