@@ -1,4 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
+ifeq ($(CONFIG_ARCH_VICHARAK),y)
+dtb-$(CONFIG_BOARD_VICHARAK_AXON) += rk3588-axon.dtb
+else
 dtb-$(CONFIG_ARCH_ROCKCHIP) += px30-evb.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += px30-evb-ddr3-v10.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += px30-evb-ddr3-v10-avb.dtb
@@ -160,4 +163,4 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588s-evb8-lp4x-v10.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588s-tablet-rk806-single-v10.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588s-tablet-v10.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588s-tablet-v11.dtb
-dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-axon.dtb
+endif
