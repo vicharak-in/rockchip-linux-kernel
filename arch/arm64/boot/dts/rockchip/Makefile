@@ -1,4 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
+ifeq ($(CONFIG_ARCH_VICHARAK),y)
+	# Placeholder
+else
 dtb-$(CONFIG_ARCH_ROCKCHIP) += px30-ad-d6-anx6345.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += px30-ad-r35-mb-rk618-dual-lvds.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += px30-ad-r35-mb-rk618-hdmi.dtb
@@ -119,3 +122,4 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-nvr-demo-v12-linux.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-nvr-demo-v12-linux-spi-nand.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568j-core-ddr4-v10.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk630-rk3568-ddr3-v10.dtb
+endif
