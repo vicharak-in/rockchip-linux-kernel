@@ -290,6 +290,13 @@ config ARCH_VICHARAK
 	help
 	  This enables support for Vicharak SoC Family devices.
 
+if ARCH_VICHARAK
+config BOARD_VICHARAK_VAAMAN
+	bool "Vicharak RK3399 Vaaman board"
+	select ARCH_ROCKCHIP
+	help
+	  This enables support for Vicharak RK3399 Vaaman board.
+endif
 endmenu
 
 config ARCH_VULCAN
