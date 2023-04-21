@@ -303,6 +303,12 @@ config BOARD_VICHARAK_AXON
 	select ARCH_ROCKCHIP
 	help
 	  This enables support for Vicharak RK3588 Axon board.
+
+config BOARD_VICHARAK_VAAMAN
+	bool "Vicharak RK3399 Vaaman board"
+	select ARCH_ROCKCHIP
+	help
+	  This enables support for Vicharak RK3399 Vaaman board.
 endif
 endmenu
 
