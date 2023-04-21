@@ -291,6 +291,21 @@ config ARCH_VEXPRESS
 	  This enables support for the ARMv8 software model (Versatile
 	  Express).
 
+menu "Vicharak Family"
+config ARCH_VICHARAK
+	bool "Vicharak SoC Family"
+	help
+	  This enables support for Vicharak SoC Family devices.
+
+if ARCH_VICHARAK
+config BOARD_VICHARAK_AXON
+	bool "Vicharak RK3588 Axon board"
+	select ARCH_ROCKCHIP
+	help
+	  This enables support for Vicharak RK3588 Axon board.
+endif
+endmenu
+
 config ARCH_VISCONTI
 	bool "Toshiba Visconti SoC Family"
 	select PINCTRL
