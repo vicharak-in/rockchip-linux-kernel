@@ -284,6 +284,14 @@ config ARCH_VEXPRESS
 	  This enables support for the ARMv8 software model (Versatile
 	  Express).
 
+menu "Vicharak Family"
+config ARCH_VICHARAK
+	bool "Vicharak SoC Family"
+	help
+	  This enables support for Vicharak SoC Family devices.
+
+endmenu
+
 config ARCH_VULCAN
 	def_bool n
 
