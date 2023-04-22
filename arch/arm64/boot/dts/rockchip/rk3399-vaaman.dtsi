@@ -71,6 +71,15 @@
 	};
 	// End of Devfreq }}}
 
+	// DP Sound: {{{
+	dp_sound: dp-sound {
+		compatible = "rockchip,cdndp-sound";
+		rockchip,cpu = <&spdif>;
+		rockchip,codec = <&cdn_dp 1>;
+		status = "disabled";
+	};
+	// End of DP Sound }}}
+
 	// ES8316: {{{
 	es8316_sound: es8316-sound {
 		compatible = "rockchip,multicodecs-card";
@@ -265,6 +274,26 @@
 	};
 	// End of RTL8822CS WIFI and BT }}}
 
+	// SPDIF Sound: {{{
+	spdif_sound: spdif-sound {
+		status = "disabled";
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "ROCKCHIP,SPDIF";
+		simple-audio-card,cpu {
+			sound-dai = <&spdif>;
+		};
+		simple-audio-card,codec {
+			sound-dai = <&spdif_out>;
+		};
+	};
+
+	spdif_out: spdif-out {
+		status = "disabled";
+		compatible = "linux,spdif-dit";
+		#sound-dai-cells = <0>;
+	};
+	// End of SPDIF Sound }}}
+
 	// Test Power: {{{
 	test-power {
 		status = "okay";
@@ -339,6 +368,17 @@
 // Display: {{{
 &display_subsystem {
 	status = "okay";
+
+	route {
+		route_dp: route-dp {
+			status = "okay";
+			logo,uboot = "logo.bmp";
+			logo,kernel = "logo_kernel.bmp";
+			logo,mode = "center";
+			charge_logo,mode = "center";
+			connect = <&vopb_out_dp>;
+		};
+	};
 };
 
 &vopb {
@@ -348,6 +388,16 @@
 };
 
 &vopb_mmu {
+	status = "okay";
+};
+
+&vopl {
+	assigned-clocks = <&cru DCLK_VOP1_DIV>;
+	assigned-clock-parents = <&cru PLL_VPLL>;
+	status = "okay";
+};
+
+&vopl_mmu {
 	status = "okay";
 };
 // End of Display }}}
@@ -1022,8 +1072,37 @@
 	status = "okay";
 };
 
+&cdn_dp {
+	status = "okay";
+	extcon = <&usbc0>;
+	phys = <&tcphy0_dp>;
+};
+
+&dp_in_vopb {
+	status = "okay";
+};
+
+&vopb_out_dp {
+	status = "okay";
+};
+
+&route_dp {
+	status = "okay";
+	connect = <&vopb_out_dp>;
+};
+
+&spdif {
+	pinctrl-0 = <&spdif_bus_1>;
+	status = "okay";
+	#sound-dai-cells = <0>;
+};
+
 &tcphy0 {
 	extcon = <&usbc0>;
+	status = "okay";
+};
+
+&tcphy0_dp {
 	status = "okay";
 };
 
