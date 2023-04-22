@@ -714,6 +714,21 @@
 };
 // End of I2C 4 }}}
 
+// I2C 7: {{{
+&i2c7 {
+	status = "okay";
+
+	pca9570: gpio@24 {
+		status = "okay";
+		vcc-supply = <&vcc3v3_sys>;
+		compatible = "nxp,pca9570";
+		reg = <0x24>;
+		gpio-controller;
+		#gpio-cells = <2>;
+	};
+};
+// End of I2C 7 }}}
+
 // I2S audio channels: {{{
 &i2s0 {
 	status = "okay";
