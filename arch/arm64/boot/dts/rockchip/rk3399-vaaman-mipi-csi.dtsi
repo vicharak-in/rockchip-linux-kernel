@@ -1,0 +1,223 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (C) 2023 Vicharak India
+ */
+
+/ {
+	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+
+	// Camera Clock 24Mhz: {{{
+	clk_cam_24m: external-camera-clock-24m {
+		status = "okay";
+		compatible = "fixed-clock";
+		clock-frequency = <24000000>;
+		clock-output-names = "clk_cam_24m";
+		#clock-cells = <0>;
+	};
+	// }}}
+
+	// Camera Clock 25Mhz: {{{
+	clk_cam_25m: external-camera-clock-25m {
+		status = "okay";
+		compatible = "fixed-clock";
+		clock-frequency = <25000000>;
+		clock-output-names = "clk_cam_25m";
+		#clock-cells = <0>;
+	};
+	// }}}
+
+	// Camera Enable GPIO: {{{
+	camera_en_gpio: camera-en-gpio {
+		status = "okay";
+		compatible = "regulator-fixed";
+		regulator-name = "camera_en_gpio";
+		regulator-always-on;
+		regulator-boot-on;
+		enable-active-high;
+		gpio = <&gpio1 RK_PB5 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam_en_gpio>;
+	};
+	// }}}
+};
+
+// ISP 0: {{{
+&rkisp1_0 {
+	status = "okay";
+
+	port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		isp0_mipi_in: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&dphy_rx0_out>;
+		};
+	};
+};
+
+&isp0_mmu {
+	status = "okay";
+};
+// }}}
+
+// MIPI DPHY RX0: {{{
+&mipi_dphy_rx0 {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mipi_in_ucam0: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&ucam_out0>;
+				data-lanes = <1 2>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			dphy_rx0_out: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&isp0_mipi_in>;
+			};
+		};
+	};
+};
+// }}}
+
+// ISP 1: {{{
+&rkisp1_1 {
+	status = "okay";
+
+	port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		isp1_mipi_in: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&dphy_tx1rx1_out>;
+		};
+	};
+};
+
+&isp1_mmu {
+	status = "okay";
+};
+// }}}
+
+// MIPI DPHY TX1 RX1: {{{
+&mipi_dphy_tx1rx1 {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mipi_in_ucam1: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&ucam_out1>;
+				data-lanes = <1 2>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			dphy_tx1rx1_out: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&isp1_mipi_in>;
+			};
+		};
+	};
+};
+// }}}
+
+&i2c4 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	// Camera 1: {{{
+	camera_imx219: camera-imx219@10 {
+		status = "okay";
+		compatible = "sony,imx219";
+		reg = <0x10>;
+
+		clocks = <&clk_cam_24m>;
+		clock-names = "xvclk";
+
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "rpi-camera-v2";
+		rockchip,camera-module-lens-name = "default";
+
+		port {
+			ucam_out1: endpoint {
+				remote-endpoint = <&mipi_in_ucam1>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+	// }}}
+
+	// Camera 2: {{{
+	camera_ov5647: camera-ov5647@36 {
+		status = "okay";
+		compatible = "ovti,ov5647";
+		reg = <0x36>;
+
+		clocks = <&clk_cam_25m>;
+		clock-names = "xclk";
+
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "rpi-camera-v1p3";
+		rockchip,camera-module-lens-name = "default";
+
+		port {
+			ucam_out0: endpoint {
+				remote-endpoint = <&mipi_in_ucam0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+	// }}}
+};
+
+&pinctrl {
+	// I2C4: {{{
+	i2c4 {
+		i2c4_xfer: i2c4-xfer {
+			rockchip,pins =
+				<1 RK_PB3 1 &pcfg_pull_up>,
+				<1 RK_PB4 1 &pcfg_pull_up>;
+		};
+	};
+	// }}}
+
+	// Camera Enable: {{{
+	camera {
+		cam_en_gpio: cam-en-gpio {
+			rockchip,pins =
+				<1 RK_PB5 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+	// }}}
+};
