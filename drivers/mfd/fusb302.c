@@ -1312,6 +1312,7 @@ static int vdm_send_discoveryid(struct fusb30x_chip *chip, u32 evt)
 		chip->vdm_id = 0;
 		chip->tx_state = 0;
 		chip->vdm_send_state++;
+		fallthrough;
 	case 1:
 		tmp = policy_send_data(chip);
 		if (tmp == tx_success) {
@@ -1328,6 +1329,7 @@ static int vdm_send_discoveryid(struct fusb30x_chip *chip, u32 evt)
 
 		if (chip->vdm_send_state != 2)
 			break;
+		fallthrough;
 	default:
 		if (chip->vdm_id) {
 			chip->vdm_send_state = 0;
@@ -1354,6 +1356,7 @@ static int vdm_send_discoverysvid(struct fusb30x_chip *chip, u32 evt)
 		chip->vdm_svid_num = 0;
 		chip->tx_state = 0;
 		chip->vdm_send_state++;
+		fallthrough;
 	case 1:
 		tmp = policy_send_data(chip);
 		if (tmp == tx_success) {
@@ -1370,6 +1373,7 @@ static int vdm_send_discoverysvid(struct fusb30x_chip *chip, u32 evt)
 
 		if (chip->vdm_send_state != 2)
 			break;
+		fallthrough;
 	default:
 		if (chip->vdm_svid_num) {
 			chip->vdm_send_state = 0;
@@ -1396,6 +1400,7 @@ static int vdm_send_discoverymodes(struct fusb30x_chip *chip, u32 evt)
 				     VDM_TYPE_INIT, 0);
 			chip->tx_state = 0;
 			chip->vdm_send_state++;
+		fallthrough;
 		case 1:
 			tmp = policy_send_data(chip);
 			if (tmp == tx_success) {
@@ -1412,6 +1417,7 @@ static int vdm_send_discoverymodes(struct fusb30x_chip *chip, u32 evt)
 
 			if (chip->vdm_send_state != 2)
 				break;
+		fallthrough;
 		default:
 			if (chip->val_tmp & 1) {
 				chip->val_tmp &= 0xfe;
@@ -1445,6 +1451,7 @@ static int vdm_send_entermode(struct fusb30x_chip *chip, u32 evt)
 		chip->tx_state = 0;
 		chip->vdm_send_state++;
 		chip->notify.is_enter_mode = false;
+		fallthrough;
 	case 1:
 		tmp = policy_send_data(chip);
 		if (tmp == tx_success) {
@@ -1461,6 +1468,7 @@ static int vdm_send_entermode(struct fusb30x_chip *chip, u32 evt)
 
 		if (chip->vdm_send_state != 2)
 			break;
+		fallthrough;
 	default:
 		if (chip->val_tmp) {
 			chip->val_tmp = 0;
@@ -1486,6 +1494,7 @@ static int vdm_send_getdpstatus(struct fusb30x_chip *chip, u32 evt)
 		set_vdm_mesg(chip, VDM_DP_STATUS_UPDATE, VDM_TYPE_INIT, 1);
 		chip->tx_state = 0;
 		chip->vdm_send_state++;
+		fallthrough;
 	case 1:
 		tmp = policy_send_data(chip);
 		if (tmp == tx_success) {
@@ -1503,6 +1512,7 @@ static int vdm_send_getdpstatus(struct fusb30x_chip *chip, u32 evt)
 
 		if (chip->vdm_send_state != 2)
 			break;
+		fallthrough;
 	default:
 		if (chip->val_tmp) {
 			chip->val_tmp = 0;
@@ -1528,6 +1538,7 @@ static int vdm_send_dpconfig(struct fusb30x_chip *chip, u32 evt)
 		set_vdm_mesg(chip, VDM_DP_CONFIG, VDM_TYPE_INIT, 0);
 		chip->tx_state = 0;
 		chip->vdm_send_state++;
+		fallthrough;
 	case 1:
 		tmp = policy_send_data(chip);
 		if (tmp == tx_success) {
@@ -1544,6 +1555,7 @@ static int vdm_send_dpconfig(struct fusb30x_chip *chip, u32 evt)
 
 		if (chip->vdm_send_state != 2)
 			break;
+		fallthrough;
 	default:
 		if (chip->val_tmp) {
 			chip->val_tmp = 0;
@@ -1935,6 +1947,7 @@ static void fusb_state_src_send_caps(struct fusb30x_chip *chip, u32 evt)
 		chip->sub_state = 1;
 		chip->tx_state = tx_idle;
 		/* without break */
+		fallthrough;
 	case 1:
 		tmp = policy_send_data(chip);
 
@@ -1954,6 +1967,7 @@ static void fusb_state_src_send_caps(struct fusb30x_chip *chip, u32 evt)
 
 		if (!(evt & FLAG_EVENT))
 			break;
+		fallthrough;
 	default:
 		if (evt & EVENT_RX) {
 			if (PACKET_IS_DATA_MSG(chip->rec_head, DMT_REQUEST)) {
@@ -2001,6 +2015,7 @@ static void fusb_state_src_transition_supply(struct fusb30x_chip *chip,
 		chip->tx_state = tx_idle;
 		chip->sub_state++;
 		/* without break */
+		fallthrough;
 	case 1:
 		tmp = policy_send_data(chip);
 		if (tmp == tx_success) {
@@ -2045,6 +2060,7 @@ static void fusb_state_src_cap_response(struct fusb30x_chip *chip, u32 evt)
 		chip->tx_state = tx_idle;
 		chip->sub_state++;
 		/* without break */
+		fallthrough;
 	default:
 		tmp = policy_send_data(chip);
 		if (tmp == tx_success) {
@@ -2168,7 +2184,7 @@ static void fusb_state_send_simple_msg(struct fusb30x_chip *chip, u32 evt,
 		set_mesg(chip, cmd, is_DMT);
 		chip->tx_state = tx_idle;
 		chip->sub_state++;
-		/* fallthrough */
+		fallthrough;
 	case 1:
 		tmp = policy_send_data(chip);
 		if (tmp == tx_success)
@@ -2246,7 +2262,7 @@ static void fusb_state_vcs_wait_for_vconn(struct fusb30x_chip *chip,
 		fusb_timer_start(&chip->timer_state_machine,
 				 chip->timer_state);
 		chip->sub_state++;
-		/* fallthrough */
+		fallthrough;
 	case 1:
 		if (evt & EVENT_RX) {
 			if (PACKET_IS_CONTROL_MSG(chip->rec_head, CMT_PS_RDY))
@@ -2300,7 +2316,7 @@ static void fusb_state_src_prs_source_off(struct fusb30x_chip *chip, u32 evt)
 		set_mesg(chip, CMT_PS_RDY, CONTROLMESSAGE);
 		chip->tx_state = tx_idle;
 		chip->sub_state++;
-		/* fallthrough */
+		fallthrough;
 	case 1:
 		tmp = policy_send_data(chip);
 		if (tmp == tx_success) {
@@ -2315,6 +2331,7 @@ static void fusb_state_src_prs_source_off(struct fusb30x_chip *chip, u32 evt)
 		}
 		if (chip->sub_state != 3)
 			break;
+		fallthrough;
 	case 2:
 		if (evt & EVENT_RX) {
 			if (PACKET_IS_CONTROL_MSG(chip->rec_head,
@@ -2383,6 +2400,7 @@ static void fusb_state_src_get_sink_cap(struct fusb30x_chip *chip, u32 evt)
 		chip->tx_state = tx_idle;
 		chip->sub_state++;
 		/* without break */
+		fallthrough;
 	case 1:
 		tmp = policy_send_data(chip);
 		if (tmp == tx_success) {
@@ -2396,6 +2414,7 @@ static void fusb_state_src_get_sink_cap(struct fusb30x_chip *chip, u32 evt)
 
 		if (!(evt & FLAG_EVENT))
 			break;
+		fallthrough;
 	default:
 		if (evt & EVENT_RX) {
 			if (PACKET_IS_DATA_MSG(chip->rec_head,
@@ -2428,6 +2447,7 @@ static void fusb_state_src_send_hardreset(struct fusb30x_chip *chip, u32 evt)
 		chip->tx_state = tx_idle;
 		chip->sub_state++;
 		/* without break */
+		fallthrough;
 	default:
 		tmp = policy_send_hardrst(chip, evt);
 		if (tmp == tx_success) {
@@ -2451,6 +2471,7 @@ static void fusb_state_src_softreset(struct fusb30x_chip *chip)
 		chip->tx_state = tx_idle;
 		chip->sub_state++;
 		/* without break */
+		fallthrough;
 	default:
 		tmp = policy_send_data(chip);
 		if (tmp == tx_success) {
@@ -2473,6 +2494,7 @@ static void fusb_state_src_send_softreset(struct fusb30x_chip *chip, u32 evt)
 		chip->tx_state = tx_idle;
 		chip->sub_state++;
 		/* without break */
+		fallthrough;
 	case 1:
 		tmp = policy_send_data(chip);
 		if (tmp == tx_success) {
@@ -2486,6 +2508,7 @@ static void fusb_state_src_send_softreset(struct fusb30x_chip *chip, u32 evt)
 
 		if (!(evt & FLAG_EVENT))
 			break;
+		fallthrough;
 	default:
 		if (evt & EVENT_RX) {
 			if (PACKET_IS_CONTROL_MSG(chip->rec_head, CMT_ACCEPT)) {
@@ -2597,6 +2620,7 @@ static void fusb_state_snk_select_cap(struct fusb30x_chip *chip, u32 evt)
 		chip->sub_state = 1;
 		chip->tx_state = tx_idle;
 		/* without break */
+		fallthrough;
 	case 1:
 		tmp = policy_send_data(chip);
 
@@ -2612,6 +2636,7 @@ static void fusb_state_snk_select_cap(struct fusb30x_chip *chip, u32 evt)
 
 		if (!(evt & FLAG_EVENT))
 			break;
+		fallthrough;
 	default:
 		if (evt & EVENT_RX) {
 			if (!PD_HEADER_CNT(chip->rec_head)) {
@@ -2694,7 +2719,7 @@ static void fusb_state_snk_transition_default(struct fusb30x_chip *chip,
 			tcpm_set_msg_header(chip);
 
 		chip->sub_state++;
-		/* fallthrough */
+		fallthrough;
 	case 1:
 		if (!tcpm_check_vbus(chip)) {
 			chip->sub_state++;
@@ -2748,6 +2773,7 @@ static void fusb_state_snk_send_hardreset(struct fusb30x_chip *chip, u32 evt)
 	case 0:
 		chip->tx_state = tx_idle;
 		chip->sub_state++;
+		fallthrough;
 	default:
 		tmp = policy_send_hardrst(chip, evt);
 		if (tmp == tx_success) {
@@ -2769,7 +2795,7 @@ static void fusb_state_send_swap(struct fusb30x_chip *chip, u32 evt, int cmd)
 		set_mesg(chip, cmd, CONTROLMESSAGE);
 		chip->sub_state = 1;
 		chip->tx_state = tx_idle;
-		/* fallthrough */
+		fallthrough;
 	case 1:
 		tmp = policy_send_data(chip);
 
@@ -2839,7 +2865,7 @@ static void fusb_state_snk_prs_transition_to_off(struct fusb30x_chip *chip,
 		fusb_timer_start(&chip->timer_state_machine,
 				 chip->timer_state);
 		chip->sub_state++;
-		/* fallthrough */
+		fallthrough;
 	case 1:
 		if (evt & EVENT_RX) {
 			if (PACKET_IS_CONTROL_MSG(chip->rec_head,
@@ -2885,7 +2911,7 @@ static void fusb_state_snk_prs_source_on(struct fusb30x_chip *chip, u32 evt)
 		set_mesg(chip, CMT_PS_RDY, CONTROLMESSAGE);
 		chip->tx_state = tx_idle;
 		chip->sub_state++;
-		/* fallthrough */
+		fallthrough;
 	case 2:
 		tmp = policy_send_data(chip);
 		if (tmp == tx_success) {
@@ -2922,6 +2948,7 @@ static void fusb_state_snk_softreset(struct fusb30x_chip *chip)
 		chip->tx_state = tx_idle;
 		chip->sub_state++;
 		/* without break */
+		fallthrough;
 	default:
 		tmp = policy_send_data(chip);
 		if (tmp == tx_success) {
@@ -2946,6 +2973,7 @@ static void fusb_state_snk_send_softreset(struct fusb30x_chip *chip, u32 evt)
 		set_mesg(chip, CMT_SOFTRESET, CONTROLMESSAGE);
 		chip->tx_state = tx_idle;
 		chip->sub_state++;
+		fallthrough;
 	case 1:
 		tmp = policy_send_data(chip);
 		if (tmp == tx_success) {
@@ -2960,6 +2988,7 @@ static void fusb_state_snk_send_softreset(struct fusb30x_chip *chip, u32 evt)
 
 		if (!(evt & FLAG_EVENT))
 			break;
+		fallthrough;
 	default:
 		if (evt & EVENT_RX) {
 			if ((!PD_HEADER_CNT(chip->rec_head)) &&
@@ -3090,9 +3119,10 @@ static void state_machine_typec(struct fusb30x_chip *chip)
 		fusb_state_src_send_caps(chip, evt);
 		if (chip->conn_state != policy_src_negotiate_cap)
 			break;
+		fallthrough;
 	case policy_src_negotiate_cap:
 		fusb_state_src_negotiate_cap(chip, evt);
-
+		fallthrough;
 	case policy_src_transition_supply:
 		fusb_state_src_transition_supply(chip, evt);
 		break;
@@ -3131,6 +3161,7 @@ static void state_machine_typec(struct fusb30x_chip *chip)
 	case policy_snk_evaluate_caps:
 		fusb_state_snk_evaluate_caps(chip, evt);
 		/* without break */
+		fallthrough;
 	case policy_snk_select_cap:
 		fusb_state_snk_select_cap(chip, evt);
 		break;
