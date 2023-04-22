@@ -71,6 +71,30 @@
 	};
 	// End of Devfreq }}}
 
+	// ES8316: {{{
+	es8316_sound: es8316-sound {
+		compatible = "rockchip,multicodecs-card";
+		rockchip,card-name = "rockchip-es8316";
+		hp-det-gpio = <&gpio1 RK_PA0 GPIO_ACTIVE_HIGH>;
+		io-channels = <&saradc 2>;
+		io-channel-names = "adc-detect";
+		keyup-threshold-microvolt = <1800000>;
+		poll-interval = <100>;
+		rockchip,format = "i2s";
+		rockchip,mclk-fs = <256>;
+		rockchip,cpu = <&i2s0>;
+		rockchip,codec = <&es8316>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&hp_det>;
+
+		play-pause-key {
+			label = "playpause";
+			linux,code = <164>;
+			press-threshold-microvolt = <2000>;
+		};
+	};
+	// End of ES8388 }}}
+
 	// Ethernet Clock: {{{
 	clkin_gmac: external-gmac-clock {
 		compatible = "fixed-clock";
@@ -603,7 +627,34 @@
 };
 // End of I2C 0 }}}
 
+// I2C 1: {{{
+&i2c1 {
+	i2c-scl-rising-time-ns = <300>;
+	i2c-scl-falling-time-ns = <15>;
+	status = "okay";
+
+	es8316: es8316@11 {
+		compatible = "everest,es8316";
+		reg = <0x11>;
+		clocks = <&cru SCLK_I2S_8CH_OUT>;
+		clock-names = "mclk";
+		pinctrl-names = "default";
+		pinctrl-0 = <&i2s_8ch_mclk>;
+		#sound-dai-cells = <0>;
+	};
+};
+// End of I2C 1 }}}
+
 // I2S audio channels: {{{
+&i2s0 {
+	status = "okay";
+	rockchip,playback-channels = <2>;
+	rockchip,capture-channels = <2>;
+	#sound-dai-cells = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2s0_8ch_bus>;
+};
+
 &i2s1 {
 	status = "okay";
 	rockchip,playback-channels = <2>;
@@ -658,6 +709,15 @@
 
 // Pinctrl: {{{
 &pinctrl {
+	// Headphone Detect: {{{
+	headphone {
+		hp_det: hp-det {
+			rockchip,pins =
+				<1 RK_PA0 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+	// End of Headphone Detect }}}
+
 	// HDMI: {{{
 	hdmi {
 		hdmi_rx_det: hdmi-rx-det {
@@ -666,6 +726,24 @@
 		};
 	};
 	// Endi of HDMI }}}
+
+	// I2S 0: {{{
+	i2s0 {
+		i2s0_8ch_bus: i2s0-8ch-bus {
+			rockchip,pins =
+				<3 RK_PD0 1 &pcfg_pull_none>,
+				<3 RK_PD1 1 &pcfg_pull_none>,
+				<3 RK_PD2 1 &pcfg_pull_none>,
+				<3 RK_PD3 1 &pcfg_pull_none>,
+				<3 RK_PD7 1 &pcfg_pull_none>;
+		};
+
+		i2s_8ch_mclk: i2s-8ch-mclk {
+			rockchip,pins =
+				<4 RK_PA0 1 &pcfg_pull_none>;
+		};
+	};
+	// End of I2S 0 }}}
 
 	// Leds: {{{
 	leds {
