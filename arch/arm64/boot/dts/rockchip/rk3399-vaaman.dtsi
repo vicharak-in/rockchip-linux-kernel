@@ -645,6 +645,25 @@
 };
 // End of I2C 1 }}}
 
+// I2C 4: {{{
+&i2c4 {
+	i2c-scl-rising-time-ns = <160>;
+	i2c-scl-falling-time-ns = <30>;
+	clock-frequency = <400000>;
+	status = "okay";
+
+	usbc0: fusb302@22 {
+		compatible = "fairchild,fusb302";
+		reg = <0x22>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&usbc0_int>;
+		int-n-gpios = <&gpio1 RK_PA2 GPIO_ACTIVE_HIGH>;
+		vbus-5v-gpios = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+};
+// End of I2C 4 }}}
+
 // I2S audio channels: {{{
 &i2s0 {
 	status = "okay";
@@ -817,6 +836,15 @@
 		};
 	};
 	// End of USB 2 }}}
+
+	// USB C: {{{
+	usb-typec {
+		usbc0_int: usbc0-int {
+			rockchip,pins =
+				<1 RK_PA2 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+	// End of USB C }}}
 
 	// Wireless: {{{
 	wireless-bluetooth {
@@ -994,6 +1022,33 @@
 	status = "okay";
 };
 
+&tcphy0 {
+	extcon = <&usbc0>;
+	status = "okay";
+};
+
+&tcphy0_usb3 {
+	status = "okay";
+};
+
+&tcphy1 {
+	status = "okay";
+};
+
+&u2phy0 {
+	status = "okay";
+	extcon = <&usbc0>;
+
+	u2phy0_otg: otg-port {
+		status = "okay";
+	};
+
+	u2phy0_host: host-port {
+		phy-supply = <&vcc5v0_host>;
+		status = "okay";
+	};
+};
+
 &u2phy1 {
 	status = "okay";
 
@@ -1005,6 +1060,16 @@
 		phy-supply = <&vcc5v0_host>;
 		status = "okay";
 	};
+};
+
+&usbdrd3_0 {
+	extcon = <&usbc0>;
+	status = "okay";
+};
+
+&usbdrd_dwc3_0 {
+	dr_mode = "host";
+	status = "okay";
 };
 
 &usbdrd3_1 {
