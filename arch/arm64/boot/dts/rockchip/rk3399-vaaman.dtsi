@@ -205,6 +205,42 @@
 	};
 	// End of Leds }}}
 
+	// RTL8822CS WIFI and BT: {{{
+	wireless_bluetooth: wireless-bluetooth {
+		compatible = "bluetooth-platdata";
+		clocks = <&rk808 1>;
+		clock-names = "ext_clock";
+		uart_rts_gpios = <&gpio4 RK_PC4 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default", "rts_gpio";
+		pinctrl-0 = <&uart0_rts>;
+		pinctrl-1 = <&uart0_gpios>;
+		BT,wake_host_irq = <&gpio0 RK_PA4 GPIO_ACTIVE_HIGH>;
+		BT,wake_gpio     = <&gpio2 RK_PD3 GPIO_ACTIVE_HIGH>;
+		BT,reset_gpio    = <&gpio0 RK_PB1 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+
+	wireless_wlan: wireless-wlan {
+		compatible = "wlan-platdata";
+		wifi_chip_type = "rtl8822cs";
+		rockchip,grf = <&grf>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_host_wake_irq>;
+		WIFI,host_wake_irq = <&gpio0 RK_PA3 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+
+	sdio_pwrseq: sdio-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		clocks = <&rk808 1>;
+		clock-names = "ext_clock";
+		pinctrl-names = "default";
+		pinctrl-0 = <&sdio_reset_wifi>;
+		reset-gpios = <&gpio0 RK_PB2 GPIO_ACTIVE_LOW>;
+		status = "okay";
+	};
+	// End of RTL8822CS WIFI and BT }}}
+
 	// Test Power: {{{
 	test-power {
 		status = "okay";
@@ -673,6 +709,28 @@
 	};
 	// End of PMIC }}}
 
+	// SDIO: {{{
+	sdio0 {
+		sdio0_bus4: sdio0-bus4 {
+			rockchip,pins =
+				<2 RK_PC4 1 &pcfg_pull_up_20ma>,
+				<2 RK_PC5 1 &pcfg_pull_up_20ma>,
+				<2 RK_PC6 1 &pcfg_pull_up_20ma>,
+				<2 RK_PC7 1 &pcfg_pull_up_20ma>;
+		};
+
+		sdio0_cmd: sdio0-cmd {
+			rockchip,pins =
+				<2 RK_PD0 1 &pcfg_pull_up_20ma>;
+		};
+
+		sdio0_clk: sdio0-clk {
+			rockchip,pins =
+				<2 RK_PD1 1 &pcfg_pull_none_20ma>;
+		};
+	};
+	// End of SDIO }}}
+
 	// USB 2: {{{
 	usb2 {
 		vcc5v0_host_en: vcc5v0-host-en {
@@ -681,6 +739,29 @@
 		};
 	};
 	// End of USB 2 }}}
+
+	// Wireless: {{{
+	wireless-bluetooth {
+		uart0_gpios: uart0-gpios {
+			rockchip,pins =
+				<2 RK_PC3 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	wireless-wlan {
+		wifi_host_wake_irq: wifi-host-wake-irq {
+			rockchip,pins =
+				<0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	sdio-pwrseq {
+		sdio_reset_wifi: sdio-reset-wifi {
+			rockchip,pins =
+				<0 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+	// End of Wireless }}}
 };
 // End of Pinctrl }}}
 
@@ -779,6 +860,24 @@
 	vqmmc-supply = <&vcc_sdio>;
 	status = "okay";
 };
+
+&sdio0 {
+	clock-frequency = <150000000>;
+	clock-freq-min-max = <100000 150000000>;
+	no-sd;
+	no-mmc;
+	bus-width = <4>;
+	disable-wp;
+	cap-sd-highspeed;
+	cap-sdio-irq;
+	keep-power-in-suspend;
+	mmc-pwrseq = <&sdio_pwrseq>;
+	non-removable;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdio0_bus4 &sdio0_cmd &sdio0_clk>;
+	vqmmc-supply = <&vcc_sdio>;
+	status = "okay";
+};
 // End of SD/MMC/HCI/IO }}}
 
 // Thermal Sensor: {{{
@@ -791,6 +890,14 @@
 	rockchip,hw-tshut-polarity = <1>;
 };
 // End of Thermal Sensor }}}
+
+// UART 0: {{{
+&uart0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart0_xfer &uart0_cts>;
+	status = "okay";
+};
+// End of UART 0 }}}
 
 // USB {{{
 &usb_host0_ehci {
