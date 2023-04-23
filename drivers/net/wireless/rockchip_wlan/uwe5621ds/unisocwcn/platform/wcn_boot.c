@@ -17,11 +17,13 @@
 #include <linux/firmware.h>
 #include <linux/file.h>
 #include <linux/kernel.h>
+#include <linux/input.h>
 #include <linux/module.h>
 #include <linux/mfd/syscon.h>
 #include <linux/of_gpio.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
+#include <linux/proc_fs.h>
 #include <linux/regulator/consumer.h>
 #include <linux/regmap.h>
 #include <linux/slab.h>
@@ -430,6 +432,14 @@ EXPORT_SYMBOL_GPL(marlin_get_bt_wl_wake_host_en);
  * 0x5663000x: Marlin3E series
  * 0: read chipid fail or not unisoc module
  */
+
+#ifdef CONFIG_RK_BOARD
+#define PROC_DIR "bluetooth/sleep"
+static struct proc_dir_entry *bluetooth_dir, *sleep_dir;
+static struct input_dev *power_key_dev;
+static unsigned char enable_power_key = 0;
+#endif
+
 #define WCN_CHIPID_MASK (0xFFFFF000)
 unsigned int marlin_get_wcn_chipid(void)
 {
@@ -1418,12 +1428,111 @@ static void marlin_bt_wake_int_dis(void)
 	disable_irq(marlin_dev->bt_wake_host_int_num);
 }
 
+#if defined CONFIG_RK_BOARD
+static int rkbt_power_key_up(void)
+{
+	if (!power_key_dev)
+		return -ENODEV;
+	input_report_key(power_key_dev, KEY_POWER, 1);
+	input_sync(power_key_dev);
+	msleep(20);
+	input_report_key(power_key_dev, KEY_POWER, 0);
+	input_sync(power_key_dev);
+
+	return 0;
+}
+
+static irqreturn_t rkbt_wake_host_irq_thread(int irq, void *dev)
+{
+	rkbt_power_key_up();
+
+	return IRQ_HANDLED;
+}
+
+static ssize_t bluesleep_read_proc_powerupkey(struct file *file,
+					      char __user *buffer, size_t count,
+					      loff_t *data)
+{
+	char src[2];
+
+	if (*data >= 1)
+		return 0;
+
+	src[0] = enable_power_key ? '1' : '0';
+	src[1] = '\n';
+	if (copy_to_user(buffer, src, 2))
+		return -EFAULT;
+	*data = 1;
+
+	return 2;
+}
+
+static ssize_t bluesleep_write_proc_powerupkey(struct file *file,
+					       const char __user *buffer,
+					       size_t count, loff_t *data)
+{
+	char b;
+
+	if (count < 1)
+		return -EINVAL;
+
+	if (copy_from_user(&b, buffer, 1))
+		return -EFAULT;
+
+	if (b != '0')
+		enable_power_key = 1;
+	else
+		enable_power_key = 0;
+
+	return count;
+}
+
+static const struct file_operations bluesleep_powerupkey = {
+	.owner = THIS_MODULE,
+	.read = bluesleep_read_proc_powerupkey,
+	.write = bluesleep_write_proc_powerupkey,
+};
+
+static int rkbt_register_power_key(void)
+{
+	int ret = 0;
+
+	/* register input device */
+	power_key_dev = input_allocate_device();
+	if (!power_key_dev) {
+		WCN_ERR("ir_dev: not enough memory for input device\n");
+		return -ENOMEM;
+	}
+
+	power_key_dev->name = "bt-powerkey";
+	power_key_dev->id.bustype = BUS_HOST;
+
+	power_key_dev->evbit[0] = BIT_MASK(EV_KEY);
+	set_bit(KEY_POWER, power_key_dev->keybit);
+
+	ret = input_register_device(power_key_dev);
+	if (ret) {
+		input_free_device(power_key_dev);
+		WCN_ERR("ir_rx_init: register input device exception, exit\n");
+		return -EBUSY;
+	}
+
+	return ret;
+}
+#endif
+
 static irqreturn_t marlin_bt_wake_int_isr(int irq, void *para)
 {
 	static int bt_wake_cnt;
 
 	bt_wake_cnt++;
 	WCN_DEBUG("bt_wake_irq_cnt %d\n", bt_wake_cnt);
+
+	#if defined CONFIG_RK_BOARD
+	if (enable_power_key)
+		return IRQ_WAKE_THREAD;
+	#endif
+
 	return IRQ_HANDLED;
 }
 
@@ -1466,12 +1575,22 @@ static int marlin_registsr_bt_wake(struct device *dev, int bt_wake_host_gpio)
 		return ret;
 	}
 
+	#if defined CONFIG_RK_BOARD
+	ret = request_threaded_irq(marlin_dev->bt_wake_host_int_num,
+			  marlin_bt_wake_int_isr,
+			  rkbt_wake_host_irq_thread,
+			  IRQF_ONESHOT | IRQF_TRIGGER_RISING |
+			  IRQF_NO_SUSPEND,
+			  "bt_wake_isr",
+			  NULL);
+	#else
 	ret = request_irq(marlin_dev->bt_wake_host_int_num,
 			  marlin_bt_wake_int_isr,
 			  IRQF_TRIGGER_RISING |
 			  IRQF_NO_SUSPEND,
 			  "bt_wake_isr",
 			  NULL);
+	#endif
 	if (ret != 0) {
 		WCN_ERR("req bt_hostwake irq-%d err! ret=%d",
 			marlin_dev->bt_wake_host_int_num, ret);
@@ -3971,6 +4090,9 @@ static void marlin_power_wq(struct work_struct *work)
 static void marlin_reset_notify_init(void);
 static int marlin_probe(struct platform_device *pdev)
 {
+#if defined CONFIG_RK_BOARD
+	struct proc_dir_entry *ent;
+#endif
 #ifdef CONFIG_WCN_PMIC
 	struct device_node *regmap_np;
 	struct platform_device *pdev_regmap = NULL;
@@ -4074,13 +4196,44 @@ static int marlin_probe(struct platform_device *pdev)
 	marlin_dev->marlin_probe_status = 1;
 #endif
 
-	WCN_INFO("marlin_probe ok!\n");
+#if defined CONFIG_RK_BOARD
+	bluetooth_dir = proc_mkdir("bluetooth", NULL);
+	if (!bluetooth_dir) {
+		WCN_ERR("Unable to create /proc/bluetooth directory");
+		return -ENOMEM;
+	}
 
+	sleep_dir = proc_mkdir("sleep", bluetooth_dir);
+	if (!sleep_dir) {
+		WCN_ERR("Unable to create /proc/%s directory", PROC_DIR);
+		return -ENOMEM;
+	}
+
+	/* read/write proc entries */
+	ent = proc_create("powerupkey", 0, sleep_dir, &bluesleep_powerupkey);
+	if (!ent) {
+		WCN_ERR("Unable to create /proc/%s/powerupkey entry", PROC_DIR);
+		remove_proc_entry("powerupkey", sleep_dir);
+		return -ENOMEM;
+	}
+
+	if (rkbt_register_power_key() != 0) {
+		WCN_ERR("Unable to register power_key");
+		return -EBUSY;
+	}
+#endif
+
+	WCN_INFO("marlin_probe ok!\n");
 	return 0;
 }
 
 static int  marlin_remove(struct platform_device *pdev)
 {
+#if defined CONFIG_RK_BOARD
+	input_unregister_device(power_key_dev);
+	remove_proc_entry("powerupkey", sleep_dir);
+#endif
+
 #if (defined(CONFIG_BT_WAKE_HOST_EN) && defined(CONFIG_AW_BOARD)) \
 	|| defined(CONFIG_RK_BOARD)
 	marlin_unregistsr_bt_wake();
