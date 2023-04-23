@@ -421,6 +421,8 @@ static void rockchip_tve_encoder_enable(struct drm_encoder *encoder)
 static void rockchip_tve_encoder_disable(struct drm_encoder *encoder)
 {
 	struct rockchip_tve *tve = encoder_to_tve(encoder);
+	struct drm_crtc *crtc = encoder->crtc;
+	struct rockchip_crtc_state *s = to_rockchip_crtc_state(crtc->state);
 
 	mutex_lock(&tve->suspend_lock);
 
@@ -428,6 +430,8 @@ static void rockchip_tve_encoder_disable(struct drm_encoder *encoder)
 	cvbs_set_disable(tve);
 
 	mutex_unlock(&tve->suspend_lock);
+
+	s->output_if &= ~VOP_OUTPUT_IF_TV;
 }
 
 static void rockchip_tve_encoder_mode_set(struct drm_encoder *encoder,
@@ -483,6 +487,8 @@ rockchip_tve_encoder_atomic_check(struct drm_encoder *encoder,
 	 */
 	if (tve->soc_type == SOC_RK3528)
 		s->output_if |= VOP_OUTPUT_IF_BT656;
+	else
+		s->output_if |= VOP_OUTPUT_IF_TV;
 	s->color_space = V4L2_COLORSPACE_SMPTE170M;
 	s->tv_state = &conn_state->tv;
 

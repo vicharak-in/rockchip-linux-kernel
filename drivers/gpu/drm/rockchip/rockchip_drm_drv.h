@@ -159,6 +159,7 @@ struct post_csc {
 #define VOP_OUTPUT_IF_DP1	BIT(10)
 #define VOP_OUTPUT_IF_HDMI0	BIT(11)
 #define VOP_OUTPUT_IF_HDMI1	BIT(12)
+#define VOP_OUTPUT_IF_TV	BIT(13)
 
 struct rockchip_crtc_state {
 	struct drm_crtc_state base;
