@@ -3185,6 +3185,8 @@ static int dw_hdmi_connector_atomic_check(struct drm_connector *connector,
 	 * drm_display_mode and set phy status to enabled.
 	 */
 	if (!vmode->mpixelclock) {
+		u8 val;
+
 		if (hdmi->plat_data->get_enc_in_encoding)
 			hdmi->hdmi_data.enc_in_encoding =
 				hdmi->plat_data->get_enc_in_encoding(data);
@@ -3211,6 +3213,12 @@ static int dw_hdmi_connector_atomic_check(struct drm_connector *connector,
 
 		hdmi_clk_regenerator_update_pixel_clock(hdmi);
 		hdmi_enable_audio_clk(hdmi, hdmi->audio_enable);
+
+		drm_scdc_readb(hdmi->ddc, SCDC_TMDS_CONFIG, &val);
+
+		/* if plug out before hdmi bind, reset hdmi */
+		if (vmode->mtmdsclock >= 340000000 && !(val & SCDC_TMDS_BIT_CLOCK_RATIO_BY_40))
+			hdmi->logo_plug_out = true;
 	}
 
 	if (check_hdmi_format_change(old_state, new_state, connector, hdmi) ||
