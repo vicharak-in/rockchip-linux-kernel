@@ -10,6 +10,7 @@ ARGS="
 	O=$OUT_DIR \
 	ARCH=arm64 \
 	CROSS_COMPILE=aarch64-linux-gnu- \
+	CROSS_COMPILE_COMPAT=arm-none-eabi- \
 	-j$(nproc --all)
 "
 
