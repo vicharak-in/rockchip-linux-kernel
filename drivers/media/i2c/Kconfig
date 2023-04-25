@@ -2280,6 +2280,12 @@ config VIDEO_MP6507
 	help
 	  This a driver used pwm to drive motor
 
+config VIDEO_FPGA_READ
+	tristate "FPGA read support"
+	depends on I2C && VIDEO_V4L2 && MEDIA_CAMERA_SUPPORT
+	select V4L2_FWNODE
+	help
+	  This driver supports FPGA of efinix
 endmenu
 
 menu "Sensors used on soc_camera driver"
