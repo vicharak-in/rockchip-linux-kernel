@@ -371,7 +371,7 @@
 
 	route {
 		route_dp: route-dp {
-			status = "okay";
+			status = "disabled";
 			logo,uboot = "logo.bmp";
 			logo,kernel = "logo_kernel.bmp";
 			logo,mode = "center";
@@ -1101,27 +1101,27 @@
 };
 
 &cdn_dp {
-	status = "okay";
+	status = "disabled";
 	extcon = <&usbc0>;
 	phys = <&tcphy0_dp>;
 };
 
 &dp_in_vopb {
-	status = "okay";
+	status = "disabled";
 };
 
 &vopb_out_dp {
-	status = "okay";
+	status = "disabled";
 };
 
 &route_dp {
-	status = "okay";
+	status = "disabled";
 	connect = <&vopb_out_dp>;
 };
 
 &spdif {
 	pinctrl-0 = <&spdif_bus_1>;
-	status = "okay";
+	status = "disabled";
 	#sound-dai-cells = <0>;
 };
 
@@ -1131,7 +1131,7 @@
 };
 
 &tcphy0_dp {
-	status = "okay";
+	status = "disabled";
 };
 
 &tcphy0_usb3 {
