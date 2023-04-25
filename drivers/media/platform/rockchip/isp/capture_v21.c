@@ -1046,14 +1046,7 @@ static int rkisp_start(struct rkisp_stream *stream)
 {
 	void __iomem *base = stream->ispdev->base_addr;
 	struct rkisp_device *dev = stream->ispdev;
-	bool is_update = false;
 	int ret;
-
-	if (stream->id == RKISP_STREAM_MP || stream->id == RKISP_STREAM_SP) {
-		is_update = (stream->id == RKISP_STREAM_MP) ?
-			!dev->cap_dev.stream[RKISP_STREAM_SP].streaming :
-			!dev->cap_dev.stream[RKISP_STREAM_MP].streaming;
-	}
 
 	if (stream->ops->set_data_path)
 		stream->ops->set_data_path(base);
@@ -1064,9 +1057,6 @@ static int rkisp_start(struct rkisp_stream *stream)
 	stream->ops->enable_mi(stream);
 	if (stream->id == RKISP_STREAM_MP || stream->id == RKISP_STREAM_SP)
 		hdr_config_dmatx(dev);
-	if (is_update)
-		dev->irq_ends_mask |=
-			(stream->id == RKISP_STREAM_MP) ? ISP_FRAME_MP : ISP_FRAME_SP;
 	stream->streaming = true;
 
 	return 0;
@@ -1613,17 +1603,13 @@ void rkisp_mi_v21_isr(u32 mis_val, struct rkisp_device *dev)
 		stream = &dev->cap_dev.stream[RKISP_STREAM_MP];
 		if (!stream->streaming)
 			dev->irq_ends_mask &= ~ISP_FRAME_MP;
-		else
-			dev->irq_ends_mask |= ISP_FRAME_MP;
-		rkisp_check_idle(dev, ISP_FRAME_MP);
+		rkisp_check_idle(dev, ISP_FRAME_MP & dev->irq_ends_mask);
 	}
 	if (mis_val & CIF_MI_SP_FRAME) {
 		stream = &dev->cap_dev.stream[RKISP_STREAM_SP];
 		if (!stream->streaming)
 			dev->irq_ends_mask &= ~ISP_FRAME_SP;
-		else
-			dev->irq_ends_mask |= ISP_FRAME_SP;
-		rkisp_check_idle(dev, ISP_FRAME_SP);
+		rkisp_check_idle(dev, ISP_FRAME_SP & dev->irq_ends_mask);
 	}
 }
 
