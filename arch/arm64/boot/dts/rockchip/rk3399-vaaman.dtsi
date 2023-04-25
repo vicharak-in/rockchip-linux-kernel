@@ -209,7 +209,7 @@
 		rockchip,cpu = <&i2s2>;
 		rockchip,codec = <&hdmi>;
 		rockchip,jack-det;
-		status = "disabled";
+		status = "okay";
 	};
 	// End of HDMI Sound }}}
 
