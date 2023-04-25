@@ -84,6 +84,9 @@ function cleanup() {
 	if [ -d "${OUT_DIR}"/extlinux ]; then
 		rm -rf "${OUT_DIR}"/extlinux
 	fi
+	if [ -d "${OUT_DIR}"/modules_vicharak ]; then
+		rm -rf "${OUT_DIR}"/modules_vicharak
+	fi
 }
 
 # check if gcc is installed
@@ -118,7 +121,7 @@ else
 	ARGS="ARCH=arm64 \
 		O=${OUT_DIR} \
 		CROSS_COMPILE=aarch64-elf- \
-		CROSS_COMPILE_ARM32=arm-eabi- \
+		CROSS_COMPILE_COMPAT=arm-eabi- \
 		-j$(nproc --all)"
 
 fi
@@ -146,6 +149,37 @@ cleanup
 # Make defconfig
 make ${ARGS} ${DEFCONFIG}
 
+if [[ "$@" =~ "axon"* ]]; then
+	scripts/config --file "${OUT_DIR}/.config" \
+		-e BOARD_VICHARAK_AXON \
+		-d BOARD_VICHARAK_VAAMAN \
+		-e RTL8852BS \
+		-d RTL8822CS \
+		-e TYPEC_FUSB302
+
+	# Make olddefconfig
+	cd ${OUT_DIR} || exit
+	make ${ARGS} olddefconfig
+	cd ../ || exit
+elif [[ "$@" =~ "vaaman"* ]]; then
+	scripts/config --file "${OUT_DIR}/.config" \
+		-e BOARD_VICHARAK_AXON \
+		-e BOARD_VICHARAK_VAAMAN \
+		-d RTL8852BS \
+		-e RTL8822CS \
+		-d TYPEC_FUSB302 \
+		-e FUSB_302 \
+		--set-val SPI_ROCKCHIP m \
+		-e VIDEO_ROCKCHIP_RKISP1
+
+	# Make olddefconfig
+	cd ${OUT_DIR} || exit
+	make ${ARGS} olddefconfig
+	cd ../ || exit
+else
+	echo -e "###### No device passed! #####"
+fi
+
 # Make kernel image
 if [ -f "$(which ccache)" ]; then
 	if [ "$CLANG" == "1" ]; then
@@ -155,6 +189,16 @@ if [ -f "$(which ccache)" ]; then
 	fi
 else
 	make ${ARGS}
+fi
+
+if [ ! -d "${OUT_DIR}/modules_vicharak" ]; then
+	mkdir -p "${OUT_DIR}"/modules_vicharak
+fi
+
+if [[ "$@" =~ "vaaman"* ]]; then
+	make modules_install ${ARGS} INSTALL_MOD_PATH="${OUT_DIR}"/modules_vicharak
+	# tar gzip modules
+	tar -czvf "${OUT_DIR}"/modules_vicharak.tar.gz -C "${OUT_DIR}"/modules_vicharak .
 fi
 
 # Create boot image
