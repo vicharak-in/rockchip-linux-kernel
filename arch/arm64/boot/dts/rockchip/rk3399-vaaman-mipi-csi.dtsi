@@ -131,7 +131,7 @@
 			mipi_in_ucam1: endpoint@1 {
 				reg = <1>;
 				remote-endpoint = <&ucam_out1>;
-				data-lanes = <1 2>;
+				data-lanes = <1 2 3 4>;
 			};
 		};
 
@@ -154,24 +154,19 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	// Camera 1: {{{
-	camera_imx219: camera-imx219@10 {
+	// Camera 3: {{{
+	camera_fpga: camera-fpga@10 {
 		status = "okay";
-		compatible = "sony,imx219";
+		compatible = "efinix,fpga-read";
 		reg = <0x10>;
 
 		clocks = <&clk_cam_24m>;
 		clock-names = "xvclk";
 
-		rockchip,camera-module-index = <0>;
-		rockchip,camera-module-facing = "back";
-		rockchip,camera-module-name = "rpi-camera-v2";
-		rockchip,camera-module-lens-name = "default";
-
 		port {
 			ucam_out1: endpoint {
 				remote-endpoint = <&mipi_in_ucam1>;
-				data-lanes = <1 2>;
+				data-lanes = <1 2 3 4>;
 			};
 		};
 	};
