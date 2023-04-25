@@ -1,12 +1,7 @@
 /*
  * Driver for FPGA Read for VAAMAN
  *
- * Copyright (C) 2014, Andrew Chew <achew@nvidia.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- * V0.0X01.0X01 add enum_frame_interval function.
+ * Copyright (C) 2023, Vicharak India
  */
 #include <linux/clk.h>
 #include <linux/delay.h>
@@ -16,10 +11,8 @@
 #include <linux/module.h>
 #include <linux/of_graph.h>
 #include <linux/slab.h>
-#include <linux/videodev2.h>
 #include <linux/version.h>
-#include <linux/rk-camera-module.h>
-#include <linux/gpio/consumer.h>
+#include <linux/videodev2.h>
 #include <media/v4l2-ctrls.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-fwnode.h>
@@ -129,70 +122,23 @@ static const struct fpga_reg stop[] = {
 	{FPGA_TABLE_END, 0x00}
 };
 
-enum {
-	TEST_PATTERN_DISABLED,
-	TEST_PATTERN_SOLID_BLACK,
-	TEST_PATTERN_SOLID_WHITE,
-	TEST_PATTERN_SOLID_RED,
-	TEST_PATTERN_SOLID_GREEN,
-	TEST_PATTERN_SOLID_BLUE,
-	TEST_PATTERN_COLOR_BAR,
-	TEST_PATTERN_FADE_TO_GREY_COLOR_BAR,
-	TEST_PATTERN_PN9,
-	TEST_PATTERN_16_SPLIT_COLOR_BAR,
-	TEST_PATTERN_16_SPLIT_INVERTED_COLOR_BAR,
-	TEST_PATTERN_COLUMN_COUNTER,
-	TEST_PATTERN_INVERTED_COLUMN_COUNTER,
-	TEST_PATTERN_PN31,
-	TEST_PATTERN_MAX
-};
-
-static const char *const tp_qmenu[] = {
-	"Disabled",
-	"Solid Black",
-	"Solid White",
-	"Solid Red",
-	"Solid Green",
-	"Solid Blue",
-	"Color Bar",
-	"Fade to Grey Color Bar",
-	"PN9",
-	"16 Split Color Bar",
-	"16 Split Inverted Color Bar",
-	"Column Counter",
-	"Inverted Column Counter",
-	"PN31",
-};
-
-#define SIZEOF_I2C_TRANSBUF 32
-
 struct fpga {
 	struct v4l2_subdev subdev;
 	struct media_pad pad;
 	struct v4l2_ctrl_handler ctrl_handler;
 	struct clk *clk;
-	struct gpio_desc *pwdn_gpio;
 	struct v4l2_rect crop_rect;
 	int hflip;
 	int vflip;
 	u8 analogue_gain;
 	u16 digital_gain;	/* bits 11:0 */
 	u16 exposure_time;
-	u16 test_pattern;
-	u16 test_pattern_solid_color_r;
-	u16 test_pattern_solid_color_gr;
-	u16 test_pattern_solid_color_b;
-	u16 test_pattern_solid_color_gb;
 	struct v4l2_ctrl *hblank;
 	struct v4l2_ctrl *vblank;
 	struct v4l2_ctrl *pixel_rate;
 	const struct fpga_mode *cur_mode;
 	u32 cfg_num;
 	u16 cur_vts;
-	u32 module_index;
-	const char *module_facing;
-	const char *module_name;
-	const char *len_name;
 };
 
 static const struct fpga_mode supported_modes[] = {
@@ -227,81 +173,6 @@ static int fpga_s_power(struct v4l2_subdev *sd, int on)
 }
 
 /* V4L2 ctrl operations */
-static int fpga_s_ctrl_test_pattern(struct v4l2_ctrl *ctrl)
-{
-	struct fpga *priv =
-		container_of(ctrl->handler, struct fpga, ctrl_handler);
-
-	switch (ctrl->val) {
-		case TEST_PATTERN_DISABLED:
-			priv->test_pattern = 0x0000;
-			break;
-		case TEST_PATTERN_SOLID_BLACK:
-			priv->test_pattern = 0x0001;
-			priv->test_pattern_solid_color_r = 0x0000;
-			priv->test_pattern_solid_color_gr = 0x0000;
-			priv->test_pattern_solid_color_b = 0x0000;
-			priv->test_pattern_solid_color_gb = 0x0000;
-			break;
-		case TEST_PATTERN_SOLID_WHITE:
-			priv->test_pattern = 0x0001;
-			priv->test_pattern_solid_color_r = 0x0fff;
-			priv->test_pattern_solid_color_gr = 0x0fff;
-			priv->test_pattern_solid_color_b = 0x0fff;
-			priv->test_pattern_solid_color_gb = 0x0fff;
-			break;
-		case TEST_PATTERN_SOLID_RED:
-			priv->test_pattern = 0x0001;
-			priv->test_pattern_solid_color_r = 0x0fff;
-			priv->test_pattern_solid_color_gr = 0x0000;
-			priv->test_pattern_solid_color_b = 0x0000;
-			priv->test_pattern_solid_color_gb = 0x0000;
-			break;
-		case TEST_PATTERN_SOLID_GREEN:
-			priv->test_pattern = 0x0001;
-			priv->test_pattern_solid_color_r = 0x0000;
-			priv->test_pattern_solid_color_gr = 0x0fff;
-			priv->test_pattern_solid_color_b = 0x0000;
-			priv->test_pattern_solid_color_gb = 0x0fff;
-			break;
-		case TEST_PATTERN_SOLID_BLUE:
-			priv->test_pattern = 0x0001;
-			priv->test_pattern_solid_color_r = 0x0000;
-			priv->test_pattern_solid_color_gr = 0x0000;
-			priv->test_pattern_solid_color_b = 0x0fff;
-			priv->test_pattern_solid_color_gb = 0x0000;
-			break;
-		case TEST_PATTERN_COLOR_BAR:
-			priv->test_pattern = 0x0002;
-			break;
-		case TEST_PATTERN_FADE_TO_GREY_COLOR_BAR:
-			priv->test_pattern = 0x0003;
-			break;
-		case TEST_PATTERN_PN9:
-			priv->test_pattern = 0x0004;
-			break;
-		case TEST_PATTERN_16_SPLIT_COLOR_BAR:
-			priv->test_pattern = 0x0005;
-			break;
-		case TEST_PATTERN_16_SPLIT_INVERTED_COLOR_BAR:
-			priv->test_pattern = 0x0006;
-			break;
-		case TEST_PATTERN_COLUMN_COUNTER:
-			priv->test_pattern = 0x0007;
-			break;
-		case TEST_PATTERN_INVERTED_COLUMN_COUNTER:
-			priv->test_pattern = 0x0008;
-			break;
-		case TEST_PATTERN_PN31:
-			priv->test_pattern = 0x0009;
-			break;
-		default:
-			return -EINVAL;
-	}
-
-	return 0;
-}
-
 static int fpga_g_frame_interval(struct v4l2_subdev *sd,
 		struct v4l2_subdev_frame_interval *fi)
 {
@@ -312,7 +183,7 @@ static int fpga_g_frame_interval(struct v4l2_subdev *sd,
 	fi->interval = mode->max_fps;
 
 	return 0;
-}	
+}
 
 static int fpga_s_ctrl(struct v4l2_ctrl *ctrl)
 {
@@ -324,81 +195,78 @@ static int fpga_s_ctrl(struct v4l2_ctrl *ctrl)
 	u16 d_gain = 1;
 
 	switch (ctrl->id) {
-		case V4L2_CID_HFLIP:
-			priv->hflip = ctrl->val;
-			break;
+	case V4L2_CID_HFLIP:
+		priv->hflip = ctrl->val;
+		break;
 
-		case V4L2_CID_VFLIP:
-			priv->vflip = ctrl->val;
-			break;
+	case V4L2_CID_VFLIP:
+		priv->vflip = ctrl->val;
+		break;
 
-		case V4L2_CID_ANALOGUE_GAIN:
-		case V4L2_CID_GAIN:
-			/*
-			 * hal transfer (gain * 256)  to kernel
-			 * than divide into analog gain & digital gain in kernel
-			 */
+	case V4L2_CID_ANALOGUE_GAIN:
+	case V4L2_CID_GAIN:
+		/*
+		 * hal transfer (gain * 256)  to kernel
+		 * than divide into analog gain & digital gain in kernel
+		 */
 
-			gain = ctrl->val;
-			if (gain < 256)
-				gain = 256;
-			if (gain > 43663)
-				gain = 43663;
-			if (gain >= 256 && gain <= 2728) {
-				a_gain = gain;
-				d_gain = 1 * 256;
-			} else {
-				a_gain = 2728;
-				d_gain = (gain * 256) / a_gain;
-			}
+		gain = ctrl->val;
+		if (gain < 256)
+			gain = 256;
+		if (gain > 43663)
+			gain = 43663;
+		if (gain >= 256 && gain <= 2728) {
+			a_gain = gain;
+			d_gain = 1 * 256;
+		} else {
+			a_gain = 2728;
+			d_gain = (gain * 256) / a_gain;
+		}
 
-			/*
-			 * Analog gain, reg range[0, 232], gain value[1, 10.66]
-			 * reg = 256 - 256 / again
-			 * a_gain here is 256 multify
-			 * so the reg = 256 - 256 * 256 / a_gain
-			 */
-			priv->analogue_gain = (256 - (256 * 256) / a_gain);
-			if (a_gain < 256)
-				priv->analogue_gain = 0;
-			if (priv->analogue_gain > 232)
-				priv->analogue_gain = 232;
+		/*
+		 * Analog gain, reg range[0, 232], gain value[1, 10.66]
+		 * reg = 256 - 256 / again
+		 * a_gain here is 256 multify
+		 * so the reg = 256 - 256 * 256 / a_gain
+		 */
+		priv->analogue_gain = (256 - (256 * 256) / a_gain);
+		if (a_gain < 256)
+			priv->analogue_gain = 0;
+		if (priv->analogue_gain > 232)
+			priv->analogue_gain = 232;
 
-			/*
-			 * Digital gain, reg range[256, 4095], gain rage[1, 16]
-			 * reg = dgain * 256
-			 */
-			priv->digital_gain = d_gain;
-			if (priv->digital_gain < 256)
-				priv->digital_gain = 256;
-			if (priv->digital_gain > 4095)
-				priv->digital_gain = 4095;
+		/*
+		 * Digital gain, reg range[256, 4095], gain rage[1, 16]
+		 * reg = dgain * 256
+		 */
+		priv->digital_gain = d_gain;
+		if (priv->digital_gain < 256)
+			priv->digital_gain = 256;
+		if (priv->digital_gain > 4095)
+			priv->digital_gain = 4095;
 
-			/*
-			 * for bank A and bank B switch
-			 * exposure time , gain, vts must change at the same time
-			 * so the exposure & gain can reflect at the same frame
-			 */
+		/*
+		 * for bank A and bank B switch
+		 * exposure time , gain, vts must change at the same time
+		 * so the exposure & gain can reflect at the same frame
+		 */
 
-			return ret;
+		return ret;
 
-		case V4L2_CID_EXPOSURE:
-			priv->exposure_time = ctrl->val;
+	case V4L2_CID_EXPOSURE:
+		priv->exposure_time = ctrl->val;
 
-			return ret;
+		return ret;
 
-		case V4L2_CID_TEST_PATTERN:
-			return fpga_s_ctrl_test_pattern(ctrl);
+	case V4L2_CID_VBLANK:
+		if (ctrl->val < priv->cur_mode->vts_def)
+			ctrl->val = priv->cur_mode->vts_def;
+		if ((ctrl->val - FPGA_EXP_LINES_MARGIN) != priv->cur_vts)
+			priv->cur_vts = ctrl->val - FPGA_EXP_LINES_MARGIN;
+		return ret;
 
-		case V4L2_CID_VBLANK:
-			if (ctrl->val < priv->cur_mode->vts_def)
-				ctrl->val = priv->cur_mode->vts_def;
-			if ((ctrl->val - FPGA_EXP_LINES_MARGIN) != priv->cur_vts)
-				priv->cur_vts = ctrl->val - FPGA_EXP_LINES_MARGIN;
-			return ret;
-
-		default:
-			return -EINVAL;
+	default:
+		return -EINVAL;
 	}
 	/* If enabled, apply settings immediately */
 	fpga_s_stream(&priv->subdev, 1);
@@ -420,7 +288,7 @@ static int fpga_enum_mbus_code(struct v4l2_subdev *sd,
 static int fpga_get_reso_dist(const struct fpga_mode *mode,
 		struct v4l2_mbus_framefmt *framefmt)
 {
-	return abs(mode->width - framefmt->width) + 
+	return abs(mode->width - framefmt->width) +
 		abs(mode->height - framefmt->height);
 }
 
@@ -455,7 +323,7 @@ static int fpga_set_fmt(struct v4l2_subdev *sd,
 	u32 fps = 0;
 
 	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY)
-		return 0;	
+		return 0;
 
 	mode = fpga_find_best_fit(fmt);
 	fmt->format.code = MEDIA_BUS_FMT_RGB888_1X24;
@@ -472,7 +340,7 @@ static int fpga_set_fmt(struct v4l2_subdev *sd,
 			1, v_blank);
 	fps = DIV_ROUND_CLOSEST(mode->max_fps.denominator,
 			mode->max_fps.numerator);
-	pixel_rate =mode->vts_def * mode->hts_def * fps;
+	pixel_rate = mode->vts_def * mode->hts_def * fps;
 
 	__v4l2_ctrl_modify_range(priv->pixel_rate, pixel_rate,
 			pixel_rate, 1, pixel_rate);
@@ -511,50 +379,14 @@ static int fpga_get_fmt(struct v4l2_subdev *sd,
 
 static long fpga_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 {
-	long ret = 0;
-	return ret;
+	return 0;
 }
 
 #ifdef CONFIG_COMPAT
 static long fpga_compat_ioctl32(struct v4l2_subdev *sd,
 		unsigned int cmd, unsigned long arg)
 {
-	void __user *up = compat_ptr(arg);
-	struct rkmodule_inf *inf;
-	struct rkmodule_awb_cfg *cfg;
-	long ret;
-
-	switch (cmd) {
-		case RKMODULE_GET_MODULE_INFO:
-			inf = kzalloc(sizeof(*inf), GFP_KERNEL);
-			if (!inf) {
-				ret = -ENOMEM;
-				return ret;
-			}
-
-			ret = fpga_ioctl(sd, cmd, inf);
-			if (!ret)
-				ret = copy_to_user(up, inf, sizeof(*inf));
-			kfree(inf);
-			break;
-		case RKMODULE_AWB_CFG:
-			cfg = kzalloc(sizeof(*cfg), GFP_KERNEL);
-			if (!cfg) {
-				ret = -ENOMEM;
-				return ret;
-			}
-
-			ret = copy_from_user(cfg, up, sizeof(*cfg));
-			if (!ret)
-				ret = fpga_ioctl(sd, cmd, cfg);
-			kfree(cfg);
-			break;
-		default:
-			ret = -ENOIOCTLCMD;
-			break;
-	}
-
-	return ret;
+	return 0;
 }
 #endif
 
@@ -651,11 +483,11 @@ static int fpga_ctrls_init(struct v4l2_subdev *sd)
 	fps = DIV_ROUND_CLOSEST(mode->max_fps.denominator,
 			mode->max_fps.numerator);
 	pixel_rate = mode->vts_def * mode->hts_def * fps;
-	dev_info(&client->dev, "Pixel Rate: %lld\n",pixel_rate);
-	dev_info(&client->dev, "FPS Rate: %d\n",fps);
-	dev_info(&client->dev, "h_blank: %lld, v_blank : %lld \n", h_blank, v_blank);
-	dev_info(&client->dev, "hts_def: %d, vts_def : %d\n",mode->hts_def,mode->vts_def);
-	dev_info(&client->dev, "width: %d, Height : %d\n",mode->width,mode->height);
+	dev_info(&client->dev, "Pixel Rate: %lld\n", pixel_rate);
+	dev_info(&client->dev, "FPS Rate: %d\n", fps);
+	dev_info(&client->dev, "h_blank: %lld, v_blank : %lld\n", h_blank, v_blank);
+	dev_info(&client->dev, "hts_def: %d, vts_def : %d\n", mode->hts_def, mode->vts_def);
+	dev_info(&client->dev, "width: %d, Height : %d\n", mode->width, mode->height);
 	priv->pixel_rate = v4l2_ctrl_new_std(&priv->ctrl_handler, NULL, V4L2_CID_PIXEL_RATE,
 			0, pixel_rate, 1, pixel_rate);
 
@@ -663,7 +495,7 @@ static int fpga_ctrls_init(struct v4l2_subdev *sd)
 	if (priv->ctrl_handler.error) {
 		dev_info(&client->dev, "error %d adding controls\n",
 				priv->ctrl_handler.error);
-		ret = priv->ctrl_handler.error; 
+		ret = priv->ctrl_handler.error;
 		goto error;
 	}
 
@@ -671,7 +503,7 @@ static int fpga_ctrls_init(struct v4l2_subdev *sd)
 	if (ret < 0) {
 		dev_info(&client->dev, "Error %d setting default controls\n",
 				ret);
-		goto error; 
+		goto error;
 	}
 
 	return 0;
@@ -686,9 +518,7 @@ static int fpga_probe(struct i2c_client *client,
 	struct fpga *priv;
 	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
 	struct device *dev = &client->dev;
-	struct device_node *node = dev->of_node;
 	struct v4l2_subdev *sd;
-	char facing[2];
 	int ret;
 
 	dev_info(dev, "driver version: %02x.%02x.%02x",
@@ -706,21 +536,6 @@ static int fpga_probe(struct i2c_client *client,
 	if (!priv)
 		return -ENOMEM;
 
-	ret = of_property_read_u32(node, RKMODULE_CAMERA_MODULE_INDEX,
-			&priv->module_index);
-	ret |= of_property_read_string(node, RKMODULE_CAMERA_MODULE_FACING,
-			&priv->module_facing);
-	ret |= of_property_read_string(node, RKMODULE_CAMERA_MODULE_NAME,
-			&priv->module_name);
-	ret |= of_property_read_string(node, RKMODULE_CAMERA_LENS_NAME,
-			&priv->len_name);
-	if (ret) {
-		dev_err(dev, "could not get module information!\n");
-		return -EINVAL;
-	}
-
-	dev_info(dev, "read property done...\n");
-
 	priv->clk = devm_clk_get(&client->dev, NULL);
 	if (IS_ERR(priv->clk)) {
 		dev_info(&client->dev, "Error %ld getting clock\n",
@@ -728,7 +543,6 @@ static int fpga_probe(struct i2c_client *client,
 		return -EPROBE_DEFER;
 	}
 
-	dev_info(dev, "got clk\n");
 	priv->cur_mode = &supported_modes[0];
 	priv->cfg_num = ARRAY_SIZE(supported_modes);
 
@@ -741,31 +555,28 @@ static int fpga_probe(struct i2c_client *client,
 	dev_info(dev, "subdev initialized\n");
 	ret = fpga_ctrls_init(&priv->subdev);
 	if (ret < 0)
-		dev_info(dev, "error over here\n");
+		dev_info(dev, "error setting sensor ctrls init\n");
 
-	dev_info(dev, "FPGA ctrls initialized\n");
 	priv->subdev.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
 	priv->pad.flags = MEDIA_PAD_FL_SOURCE;
-	priv->subdev.entity.type = MEDIA_ENT_T_V4L2_SUBDEV_SENSOR;
-	ret = media_entity_init(&priv->subdev.entity, 1, &priv->pad, 0);
-	if (ret < 0)
+	priv->subdev.entity.function = MEDIA_ENT_F_CAM_SENSOR;
+
+	ret = media_entity_pads_init(&priv->subdev.entity, 1, &priv->pad);
+	if (ret < 0) {
+		dev_info(dev, "error setting media entity pads init\n");
 		return ret;
-	dev_info(dev, "media entity init done\n");
+	}
+
 	sd = &priv->subdev;
-	memset(facing, 0, sizeof(facing));
-	if (strcmp(priv->module_facing, "back") == 0)
-		facing[0] = 'b';
-	else
-		facing[0] = 'f';
 
-	snprintf(sd->name, sizeof(sd->name), "m%02d_%s_%s %s",
-			priv->module_index, facing,
-			FPGA_NAME, dev_name(sd->dev));
 	ret = v4l2_async_register_subdev_sensor_common(sd);
-
-	if (ret < 0)
+	if (ret < 0) {
+		dev_info(dev, "error setting async register subdev sensor common\n");
 		return ret;
+	}
+
 	dev_info(dev, "subdev register done..\n");
+
 	return ret;
 }
 
