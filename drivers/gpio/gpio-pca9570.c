@@ -94,6 +94,8 @@ out:
 static int pca9570_probe(struct i2c_client *client)
 {
 	struct pca9570 *gpio;
+	struct device_node *node = client->dev.of_node;
+	u32 gpio_group_start = 500;
 
 	gpio = devm_kzalloc(&client->dev, sizeof(*gpio), GFP_KERNEL);
 	if (!gpio)
@@ -105,7 +107,10 @@ static int pca9570_probe(struct i2c_client *client)
 	gpio->chip.get_direction = pca9570_get_direction;
 	gpio->chip.get = pca9570_get;
 	gpio->chip.set = pca9570_set;
-	gpio->chip.base = -1;
+	if (!of_property_read_u32(node, "gpio-group-num", &gpio_group_start))
+		gpio->chip.base = gpio_group_start;
+	else
+		gpio->chip.base = -1;
 	gpio->chip.ngpio = (uintptr_t)device_get_match_data(&client->dev);
 	gpio->chip.can_sleep = true;
 
