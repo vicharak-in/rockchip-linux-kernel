@@ -283,7 +283,8 @@
 			<0x2f   KEY_X2>,
 			<0x7d   KEY_HOME_PAGE>,
 			<0x6a   KEY_PLAYPAUSE>,
-			<0x0b   KEY_EQUAL>;
+			<0x0b   KEY_EQUAL>,
+			<0x1a   KEY_F12>;
 	};
 
 	/* for CMCC */
