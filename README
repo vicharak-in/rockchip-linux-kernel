@@ -1,4 +1,4 @@
-Linux kernel
+Linux Kernel ( Master 5.10 )
 ============
 
 There are several guides for kernel developers and users. These guides can
@@ -28,4 +28,4 @@ supports the following Vicharak devices:
   2. Vicharak Axon (RK3588)
 
 Issues and questions about the Vicharak Linux kernel can be posted on the
-community forum at https://vicharak.in/community.
+community forum at https://vicharak.in/forum
