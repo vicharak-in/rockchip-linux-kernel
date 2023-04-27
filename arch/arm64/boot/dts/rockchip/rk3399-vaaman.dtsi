@@ -1008,7 +1008,7 @@
 	w25q128: w25q128-flash@0 {
 		reg = <0>;
 		compatible = "winbond,w25q128", "jedec,spi-nor";
-		spi-max-frequency = <10000000>;
+		spi-max-frequency = <1000000>;
 		status = "okay";
 	};
 };
