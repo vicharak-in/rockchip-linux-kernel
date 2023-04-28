@@ -1262,17 +1262,17 @@
 	status = "okay";
 };
 
-&dp1_in_vp3 {
+&dp1_in_vp2 {
 	status = "okay";
 };
 
-&vp3_out_dp1 {
+&vp2_out_dp1 {
 	status = "okay";
 };
 
 &route_dp1 {
 	status = "okay";
-	connect = <&vp3_out_dp1>;
+	connect = <&vp2_out_dp1>;
 };
 
 // For USB DP Alt Mode
