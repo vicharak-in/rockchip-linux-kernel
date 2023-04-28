@@ -246,7 +246,7 @@ static void dw_mci_wait_while_busy(struct dw_mci *host, u32 cmd_flags)
 	 * ...also allow sending for SDMMC_CMD_VOLT_SWITCH where busy is
 	 * expected.
 	 */
-#ifdef CONFIG_ROCKCHIP_THUNDER_BOOT
+#ifdef CONFIG_ROCKCHIP_THUNDER_BOOT_MMC
 	if (host->slot->mmc->restrict_caps & RESTRICT_CARD_TYPE_EMMC)
 		delay = 0;
 #endif
@@ -3329,7 +3329,7 @@ int dw_mci_probe(struct dw_mci *host)
 			return ret;
 		}
 	}
-#ifdef CONFIG_ROCKCHIP_THUNDER_BOOT
+#ifdef CONFIG_ROCKCHIP_THUNDER_BOOT_MMC
 	if (device_property_read_bool(host->dev, "supports-emmc")) {
 		if (readl_poll_timeout(host->regs + SDMMC_STATUS,
 				fifo_size,
