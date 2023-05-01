@@ -82,7 +82,7 @@ function pack_image() {
 		rm -f "${FILENAME}"
 		print "---- Removed previous ${FILENAME} ----"
 	fi
-	mkfs.vfat -n "boot" -S 512 -C "${FILENAME}" $((50 * 1024))
+	mkfs.vfat -n "boot" -S 512 -C "${FILENAME}" $((60 * 1024))
 
 	if [ -d "${KERNEL_DIR}"/extlinux ]; then
 		cp -r "${KERNEL_DIR}"/extlinux/ "${OUT_DIR}"
@@ -99,7 +99,9 @@ function pack_image() {
 		mmd -i "${FILENAME}" ::/extlinux
 		mcopy -i "${FILENAME}" -s $EXTLINUX_CONF ::/extlinux/extlinux.conf
 		mcopy -i "${FILENAME}" -s "${KERNEL_IMAGE}" ::
-		mcopy -i "${FILENAME}" -s "${DTB_FILE}" ::/vicharak.dtb
+		mcopy -i "${FILENAME}" -s "${KERNEL_DIR}"/logo.bmp ::
+		mcopy -i "${FILENAME}" -s "${KERNEL_DIR}"/logo_kernel.bmp ::
+		mcopy -i "${FILENAME}" -s "${DTB_FILE}" ::/rk-kernel.dtb
 	else
 		print "----------------------------------------------------------------"
 		print "mtools not found!"
