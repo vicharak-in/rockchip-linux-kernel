@@ -1085,22 +1085,23 @@
 &rockchip_suspend {
 	status = "okay";
 	rockchip,sleep-debug-en = <1>;
-    rockchip,virtual-poweroff = <1>;
+	rockchip,virtual-poweroff = <1>;
 	rockchip,sleep-mode-config = <
-	    (0
+		(0
 		| RKPM_SLP_ARMOFF_DDRPD
-	    | RKPM_SLP_PMU_PMUALIVE_32K
-	    | RKPM_SLP_PMU_DIS_OSC
-	    | RKPM_SLP_32K_EXT
-	    | RKPM_SLP_PMU_DBG
-	    )
-    >;
-    rockchip,wakeup-config = <
-        (0
-        | RKPM_CPU0_WKUP_EN
-        | RKPM_GPIO_WKUP_EN
-        )
-    >;
+		| RKPM_SLP_PMU_PMUALIVE_32K
+		| RKPM_SLP_PMU_DIS_OSC
+		| RKPM_SLP_32K_EXT
+		| RKPM_SLP_PMU_DBG
+		)
+	>;
+
+	rockchip,wakeup-config = <
+		(0
+		| RKPM_CPU0_WKUP_EN
+		| RKPM_GPIO_WKUP_EN
+		)
+	>;
 };
 // End of Rockchip Suspend }}}
 
@@ -1303,7 +1304,7 @@
 	status = "okay";
 	orientation-switch;
 
- 	rockchip,dp-lane-mux = < 0 1 2 3 >;
+	rockchip,dp-lane-mux = < 0 1 2 3 >;
 
 	svid = <0xff01>;
 	sbu1-dc-gpios = <&gpio4 RK_PB1 GPIO_ACTIVE_HIGH>;
