@@ -12,9 +12,9 @@
 	model = "Vicharak RK3588 AXON VO.1";
 	compatible = "vicharak,rk3588-axon", "rockchip,rk3588";
 
-	vcc3v3_pcie2x1l2: vcc3v3-pcie2x1l2 {
+	sata_vcc_3v3: sata-vcc-3v3 {
 		compatible = "regulator-fixed";
-		regulator-name = "vcc3v3_pcie2x1l2";
+		regulator-name = "sata_vcc_3v3";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		startup-delay-us = <5000>;
@@ -22,12 +22,12 @@
 		regulator-always-on;
 		enable-active-high;
 		gpio = <&pca9554 PCA_IOE_2 GPIO_ACTIVE_HIGH>;
-		vin-supply = <&vcc5v0_sys>;
+		vin-supply = <&vcc1_5v0>;
 	};
 
-	vcc3v3_pcie2x1l0l1: vcc3v3-pcie2x1l0 {
+	vcc3v3_pcie20_sata30: vcc3v3-pcie20-sata30 {
 		compatible = "regulator-fixed";
-		regulator-name = "vcc3v3_pcie2x1l0l1";
+		regulator-name = "vcc3v3_pcie20_sata30";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		startup-delay-us = <5000>;
@@ -35,51 +35,51 @@
 		regulator-always-on;
 		enable-active-high;
 		gpio = <&pca9554 PCA_IOE_0 GPIO_ACTIVE_HIGH>;
-		vin-supply = <&vcc5v0_sys>;
+		vin-supply = <&vcc12v_dcin>;
 	};
 
-	vcc3v3_pcie3x4: vcc3v3-pcie3x4 {
+	vcc3v3_pcie30: vcc3v3-pcie30 {
 		compatible = "regulator-fixed";
-		regulator-name = "vcc3v3_pcie3x4";
+		regulator-name = "vcc3v3_pcie30";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
+		startup-delay-us = <5000>;
 		regulator-boot-on;
 		regulator-always-on;
 		enable-active-high;
 		gpio = <&pca9554 PCA_IOE_1 GPIO_ACTIVE_HIGH>;
-		startup-delay-us = <5000>;
-		vin-supply = <&vcc5v0_sys>;
+		vin-supply = <&vcc12v_dcin>;
 	};
 
-	vcc5v0_typec1: vcc5v0-typec1-regulator {
+	vbus5v0_typec1: vbus5v0-typec1-regulator {
 		compatible = "regulator-fixed";
-		regulator-name = "vcc5v0_typec1";
+		regulator-name = "vbus5v0_typec1";
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 		enable-active-high;
 		gpio = <&pca9554 PCA_IOE_4 GPIO_ACTIVE_HIGH>;
-		vin-supply = <&vcc5v0_usb>;
+		vin-supply = <&vcc1_5v0>;
 	};
 
-	vcc5v0_typec0: vcc5v0-typec0-regulator {
+	vbus5v0_typec0: vbus5v0-typec0-regulator {
 		compatible = "regulator-fixed";
-		regulator-name = "vcc5v0_typec0";
+		regulator-name = "vbus5v0_typec0";
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 		enable-active-high;
 		gpio = <&pca9554 PCA_IOE_6 GPIO_ACTIVE_HIGH>;
-		vin-supply = <&vcc5v0_usb>;
+		vin-supply = <&vcc1_5v0>;
 	};
 
-	vcc3v3_pca9554: vcc3v3-pca9554 {
+	vcc3v3_io_expander: vcc3v3-io-expander {
 		compatible = "regulator-fixed";
-		regulator-name = "vcc3v3_pca9554";
+		regulator-name = "vcc3v3_io_expander";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		regulator-boot-on;
 		regulator-always-on;
 		enable-active-high;
-		vin-supply = <&vcc5v0_sys>;
+		vin-supply = <&vcc_3v3_s3>;
 	};
 };
 
@@ -87,21 +87,21 @@
 // fe190000: Standard SATA only (PCIE20_0)
 &pcie2x1l2 {
 	reset-gpios = <&pca9554 PCA_IOE_2 GPIO_ACTIVE_HIGH>;
-	vpcie3v3-supply = <&vcc3v3_pcie2x1l2>;
+	vpcie3v3-supply = <&sata_vcc_3v3>;
 	status = "okay";
 };
 
 // fe170000: (PCIE20_2)
 &pcie2x1l0 {
 	reset-gpios = <&gpio4 RK_PA2 GPIO_ACTIVE_HIGH>;
-	vpcie3v3-supply = <&vcc3v3_pcie2x1l0l1>;
+	vpcie3v3-supply = <&vcc3v3_pcie20_sata30>;
 	status = "okay";
 };
 
 // fe180000: (PCIE20_1) Tested sata2
 &pcie2x1l1 {
 	reset-gpios = <&gpio4 RK_PA4 GPIO_ACTIVE_HIGH>;
-	vpcie3v3-supply = <&vcc3v3_pcie2x1l0l1>;
+	vpcie3v3-supply = <&vcc3v3_pcie20_sata30>;
 	status = "okay";
 };
 
@@ -113,7 +113,7 @@
 // fe150000: PCIE 3.0
 &pcie3x4 {
 	reset-gpios = <&gpio4 RK_PB6 GPIO_ACTIVE_HIGH>;
-	vpcie3v3-supply = <&vcc3v3_pcie3x4>;
+	vpcie3v3-supply = <&vcc3v3_pcie30>;
 	status = "okay";
 };
 // End of PCIE 3.0 - 4 slots }}}
@@ -121,12 +121,12 @@
 
 // FUSB302 USB Type-C 1
 &usbc1 {
-	vbus-supply = <&vcc5v0_typec1>;
+	vbus-supply = <&vbus5v0_typec1>;
 };
 
 // FUSB302 USB Type-C 0
 &usbc0 {
-	vbus-supply = <&vcc5v0_typec0>;
+	vbus-supply = <&vbus5v0_typec0>;
 };
 
 &i2c6 {
@@ -134,7 +134,7 @@
 	pca9554: gpio@24 {
 		compatible = "nxp,pca9554";
 		reg = <0x24>;
-		vcc-supply = <&vcc3v3_pca9554>;
+		vcc-supply = <&vcc3v3_io_expander>;
 		gpio-controller;
 		#gpio-cells = <2>;
 		gpio-group-num = <300>;
