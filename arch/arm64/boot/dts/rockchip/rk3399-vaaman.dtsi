@@ -13,6 +13,10 @@
 	// Remove the chosen node
 	/delete-node/ chosen;
 
+	chosen: chosen {
+		bootargs = "earlycon=uart8250,mmio32,0xff1a0000 console=ttyFIQ0 irqchip.gicv3_pseudo_nmi=0 coherent_pool=1m systemd.gpt_auto=0 cgroup_enable=memory swapaccount=1";
+	};
+
 	// Devfreq: {{{
 	dmc_opp_table: opp-table3 {
 		compatible = "operating-points-v2";
