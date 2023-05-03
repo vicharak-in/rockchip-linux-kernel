@@ -414,9 +414,46 @@
 &display_subsystem {
 	memory-region = <&drm_logo>;
 	memory-region-names = "drm-logo";
-	clocks = <&hdptxphy_hdmi_clk0>, <&hdptxphy_hdmi_clk1>;
-	clock-names = "hdmi0_phy_pll", "hdmi1_phy_pll";
-	status = "okay";
+	clocks = <&hdptxphy_hdmi_clk1>, <&hdptxphy_hdmi_clk0>;
+	clock-names = "hdmi1_phy_pll", "hdmi0_phy_pll";
+
+	route {
+		route_hdmi0: route-hdmi0 {
+			status = "okay";
+			logo,uboot = "logo.bmp";
+			logo,kernel = "logo_kernel.bmp";
+			logo,mode = "center";
+			charge_logo,mode = "center";
+			connect = <&vp0_out_hdmi0>;
+		};
+
+		route_hdmi1: route-hdmi1 {
+			status = "okay";
+			logo,uboot = "logo.bmp";
+			logo,kernel = "logo_kernel.bmp";
+			logo,mode = "center";
+			charge_logo,mode = "center";
+			connect = <&vp1_out_hdmi1>;
+		};
+
+		route_dp0: route-dp0 {
+			status = "okay";
+			logo,uboot = "logo.bmp";
+			logo,kernel = "logo_kernel.bmp";
+			logo,mode = "center";
+			charge_logo,mode = "center";
+			connect = <&vp2_out_dp0>;
+		};
+
+		route_dp1: route-dp1 {
+			status = "okay";
+			logo,uboot = "logo.bmp";
+			logo,kernel = "logo_kernel.bmp";
+			logo,mode = "center";
+			charge_logo,mode = "center";
+			connect = <&vp2_out_dp1>;
+		};
+	};
 };
 // End of Display }}}
 
@@ -472,11 +509,6 @@
 	status = "okay";
 };
 
-&route_hdmi0 {
-	status = "okay";
-	connect = <&vp0_out_hdmi1>;
-};
-
 &hdmi0_sound {
 	status = "disabled";
 };
@@ -503,11 +535,6 @@
 
 &vp1_out_hdmi1 {
 	status = "okay";
-};
-
-&route_hdmi1 {
-	status = "okay";
-	connect = <&vp1_out_hdmi1>;
 };
 
 &hdmi1_sound {
@@ -1346,10 +1373,6 @@
 	status = "okay";
 };
 
-&route_dp0 {
-	status = "okay";
-	connect = <&vp2_out_dp0>;
-};
 
 // For USB DP Alt Mode
 &spdif_tx2 {
@@ -1366,11 +1389,6 @@
 
 &vp2_out_dp1 {
 	status = "okay";
-};
-
-&route_dp1 {
-	status = "okay";
-	connect = <&vp2_out_dp1>;
 };
 
 // For USB DP Alt Mode
