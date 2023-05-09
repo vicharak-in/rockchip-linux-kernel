@@ -662,7 +662,7 @@
 	// ES8388 Audio Codec
 	es8388: es8388@11 {
 		#sound-dai-cells = <0>;
-		compatible = "everest,es8388";
+		compatible = "everest,es8388", "everest,es8323";
 		reg = <0x11>;
 		clocks = <&cru I2S0_8CH_MCLKOUT>;
 		clock-names = "mclk";
