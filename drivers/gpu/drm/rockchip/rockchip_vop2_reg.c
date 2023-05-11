@@ -1792,6 +1792,7 @@ static const struct vop2_ctrl rk3568_vop_ctrl = {
 	.bt656_yc_swap = VOP_REG(RK3568_DSP_IF_CTRL, 0x1, 5),
 	.bt1120_yc_swap = VOP_REG(RK3568_DSP_IF_CTRL, 0x1, 9),
 	.gamma_port_sel = VOP_REG(RK3568_LUT_PORT_SEL, 0x3, 0),
+	.rgb_pin_pol = VOP_REG(RK3568_DSP_IF_POL, 0x7, 0),
 	.lvds_pin_pol = VOP_REG(RK3568_DSP_IF_POL, 0x7, 0),
 	.lvds_dclk_pol = VOP_REG(RK3568_DSP_IF_POL, 0x1, 3),
 	.hdmi_pin_pol = VOP_REG(RK3568_DSP_IF_POL, 0x7, 4),

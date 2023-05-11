@@ -5146,6 +5146,7 @@ static void vop2_crtc_atomic_enable(struct drm_crtc *crtc, struct drm_crtc_state
 	if (vcstate->output_if & VOP_OUTPUT_IF_RGB) {
 		VOP_CTRL_SET(vop2, rgb_en, 1);
 		VOP_CTRL_SET(vop2, rgb_mux, vp_data->id);
+		VOP_CTRL_SET(vop2, rgb_pin_pol, val);
 		VOP_GRF_SET(vop2, grf_dclk_inv, dclk_inv);
 	}
 
