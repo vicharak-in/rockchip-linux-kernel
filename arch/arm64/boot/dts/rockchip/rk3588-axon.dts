@@ -6,7 +6,7 @@
 /dts-v1/;
 
 #include "rk3588-axon.dtsi"
-#include "rk3588-axon-mipi.dtsi"
+#include "rk3588-axon-mipi-csi-dcphy0.dtsi"
 
 / {
 	model = "Vicharak RK3588 AXON VO.1";
