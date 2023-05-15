@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (C) 2023 Vicharak India
+ */
+
+/dts-v1/;
+
+#include "rk3399-vaaman-android.dtsi"
+#include "rk3399-vaaman-mipi-csi.dtsi"
+
+/ {
+	model = "Vicharak RK3399 VAAMAN VO.3 ANDROID";
+	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+};

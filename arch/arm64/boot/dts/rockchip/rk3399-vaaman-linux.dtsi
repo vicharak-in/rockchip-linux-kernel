@@ -1,0 +1,60 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (C) 2023 Vicharak India
+ */
+
+#include "rk3399-vaaman.dtsi"
+#include "rk3399-linux.dtsi"
+
+/ {
+	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+
+	/delete-node/ chosen;
+
+	// HDMI Sound: {{{
+	hdmi_sound: hdmi-sound {
+		compatible = "rockchip,hdmi";
+		rockchip,mclk-fs = <128>;
+		rockchip,card-name = "rockchip-hdmi0";
+		rockchip,cpu = <&i2s2>;
+		rockchip,codec = <&hdmi>;
+		rockchip,jack-det;
+		status = "okay";
+	};
+	// End of HDMI Sound }}}
+};
+
+// HDMI: {{{
+&hdmi {
+	pinctrl-names = "default";
+	pinctrl-0 = <&hdmi_i2c_xfer>, <&hdmi_cec>;
+	#address-cells = <1>;
+	#size-cells = <0>;
+	#sound-dai-cells = <0>;
+	status = "okay";
+};
+
+&hdmi_in_vopb {
+	status = "okay";
+};
+
+&route_hdmi {
+	connect = <&vopb_out_hdmi>;
+	status = "okay";
+};
+
+&hdmi_sound {
+	status = "okay";
+};
+// End of HDMI }}}
+
+&pinctrl {
+	// HDMI: {{{
+	hdmi {
+		hdmi_rx_det: hdmi-rx-det {
+			rockchip,pins =
+				<4 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+	// Endi of HDMI }}}
+};

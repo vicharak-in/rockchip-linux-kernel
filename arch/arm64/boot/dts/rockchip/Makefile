@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0
 ifeq ($(CONFIG_ARCH_VICHARAK),y)
-dtb-$(CONFIG_BOARD_VICHARAK_VAAMAN) += rk3399-vaaman.dtb
+dtb-$(CONFIG_BOARD_VICHARAK_VAAMAN) += \
+	rk3399-vaaman-android.dtb \
+	rk3399-vaaman-linux.dtb
 else
 dtb-$(CONFIG_ARCH_ROCKCHIP) += px30-ad-d6-anx6345.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += px30-ad-r35-mb-rk618-dual-lvds.dtb
