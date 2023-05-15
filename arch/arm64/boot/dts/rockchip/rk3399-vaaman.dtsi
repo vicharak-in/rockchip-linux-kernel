@@ -737,9 +737,9 @@
 };
 // End of IO Domains }}}
 
-// PCIE (disabled by default): {{{
+// PCIE: {{{
 &pcie_phy {
-	status = "disabled";
+	status = "okay";
 };
 
 &pcie0 {
@@ -751,7 +751,7 @@
 	vpcie0v9-supply = <&vcc_0v9>;
 	vpcie1v8-supply = <&vcc_1v8>;
 	vpcie3v3-supply = <&vcc3v3_pcie>;
-	status = "disabled";
+	status = "okay";
 };
 // End of PCIE }}}
 
