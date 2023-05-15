@@ -217,6 +217,19 @@
 	};
 	// End of HDMI Sound }}}
 
+	// EDP Panel: {{{
+	edp_panel: edp-panel {
+		compatible = "simple-panel";
+		status = "okay";
+
+		port {
+			edp_in_panel: endpoint {
+				remote-endpoint = <&edp_out_panel>;
+			};
+		};
+	};
+	// End of EDP Panel }}}
+
 	// Leds: {{{
 	gpio_leds: gpio-leds {
 		compatible = "gpio-leds";
@@ -405,6 +418,28 @@
 	status = "okay";
 };
 // End of Display }}}
+
+// EDP: {{{
+&edp {
+	status = "okay";
+	force-hpd;
+
+	port {
+		edp_out_panel: endpoint {
+			remote-endpoint = <&edp_in_panel>;
+		};
+	};
+};
+
+&edp_in_vopl {
+	status = "okay";
+};
+
+&route_edp {
+	connect = <&vopl_out_edp>;
+	status = "okay";
+};
+// End of EDP }}}
 
 // Ethernet: {{{
 &gmac {
