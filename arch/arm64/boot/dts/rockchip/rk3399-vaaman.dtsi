@@ -963,8 +963,7 @@
 // SD/MMC/HCI/IO {{{
 &sdhci {
 	bus-width = <8>;
-	no-sdio;
-	no-sd;
+	supports-emmc;
 	non-removable;
 	max-frequency = <150000000>;
 	mmc-hs400-1_8v;
@@ -979,8 +978,7 @@
 &sdmmc {
 	clock-frequency = <150000000>;
 	clock-freq-min-max = <100000 150000000>;
-	no-sdio;
-	no-mmc;
+	supports-sd;
 	bus-width = <4>;
 	cap-mmc-highspeed;
 	cap-sd-highspeed;
