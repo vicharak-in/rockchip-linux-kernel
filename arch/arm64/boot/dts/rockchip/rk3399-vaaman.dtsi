@@ -75,29 +75,40 @@
 	};
 	// End of DP Sound }}}
 
-	// ES8316: {{{
+	// ES8316 Sound: {{{
 	es8316_sound: es8316-sound {
-		compatible = "rockchip,multicodecs-card";
-		rockchip,card-name = "rockchip-es8316";
-		hp-det-gpio = <&gpio1 RK_PA0 GPIO_ACTIVE_HIGH>;
-		io-channels = <&saradc 2>;
-		io-channel-names = "adc-detect";
-		keyup-threshold-microvolt = <1800000>;
-		poll-interval = <100>;
-		rockchip,format = "i2s";
-		rockchip,mclk-fs = <256>;
-		rockchip,cpu = <&i2s0>;
-		rockchip,codec = <&es8316>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&hp_det>;
+		status = "okay";
+		compatible = "simple-audio-card";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,name = "rockchip,es8316-codec";
+		simple-audio-card,mclk-fs = <256>;
+		simple-audio-card,widgets =
+			"Microphone", "Mic Jack",
+			"Headphone", "Headphone Jack";
+		simple-audio-card,routing =
+			"Mic Jack", "MICBIAS1",
+			"IN1P", "Mic Jack",
+			"Headphone Jack", "HPOL",
+			"Headphone Jack", "HPOR";
 
-		play-pause-key {
-			label = "playpause";
-			linux,code = <164>;
-			press-threshold-microvolt = <2000>;
+		simple-audio-card,cpu {
+			sound-dai = <&i2s0>;
+			system-clock-frequency = <11289600>;
+		};
+
+		simple-audio-card,codec {
+			sound-dai = <&es8316>;
 		};
 	};
-	// End of ES8388 }}}
+
+	rk_headset: rk-headset {
+		compatible = "rockchip_headset";
+		headset_gpio = <&gpio1 RK_PA0 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&hp_det>;
+		io-channels = <&saradc 2>;
+	};
+	// End of ES8316 Sound }}}
 
 	// Ethernet Clock: {{{
 	clkin_gmac: external-gmac-clock {
