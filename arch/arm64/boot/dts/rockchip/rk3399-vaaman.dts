@@ -10,5 +10,5 @@
 
 / {
 	model = "Vicharak RK3399 VAAMAN VO.3";
-	compatible = "vicharak,rk3399-axon", "rockchip,rk3399";
+	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
 };
