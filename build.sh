@@ -203,10 +203,19 @@ function build_config() {
 		print "----------------------------------------------------------------"
 		print "Merging $1 with $DEFCONFIG"
 		print "----------------------------------------------------------------"
-		cat "${KERNEL_DIR}/arm64/configs/$1" >>"${OUT_DIR}"/.config
-		print "----------------------------------------------------------------"
-		print "Merge complete"
-		print "----------------------------------------------------------------"
+
+		if [ ! -f "${KERNEL_DIR}/arch/arm64/configs/$1" ]; then
+			print "----------------------------------------------------------------"
+			print "$1 File not found!"
+			print "----------------------------------------------------------------"
+		else
+			cat "${KERNEL_DIR}/arch/arm64/configs/$1" >>"${OUT_DIR}"/.config
+
+			print "----------------------------------------------------------------"
+			print "Merge complete"
+			print "----------------------------------------------------------------"
+		fi
+
 	else
 		make ${ARGS} ${DEFCONFIG} &>/dev/null
 	fi
@@ -222,17 +231,36 @@ function build_performance_config() {
 		print "----------------------------------------------------------------"
 		print "Merging $1 and rockchip_performance.config with $DEFCONFIG"
 		print "----------------------------------------------------------------"
-		cat "${KERNEL_DIR}/arch/arm64/configs/$1" >>"${OUT_DIR}"/.config
-		cat "${KERNEL_DIR}"/arch/arm64/configs/rockchip_performance.config >>"${OUT_DIR}"/.config
+
+		if [ ! -f "${KERNEL_DIR}/arch/arm64/configs/$1" ]; then
+			print "----------------------------------------------------------------"
+			print "$1 File not found!"
+			print "----------------------------------------------------------------"
+		else
+			cat "${KERNEL_DIR}/arch/arm64/configs/$1" >>"${OUT_DIR}"/.config
+			cat "${KERNEL_DIR}"/arch/arm64/configs/rockchip_performance.config >>"${OUT_DIR}"/.config
+			print "----------------------------------------------------------------"
+			print "Merge complete"
+			print "----------------------------------------------------------------"
+		fi
+
 	else
 		print "----------------------------------------------------------------"
 		print "Merging rockchip_performance.config with $DEFCONFIG"
 		print "----------------------------------------------------------------"
-		cat "${KERNEL_DIR}"/arch/arm64/configs/rockchip_performance.config >>"${OUT_DIR}"/.config
+
+		if [ ! -f "${KERNEL_DIR}"/arch/arm64/configs/rockchip_performance.config ]; then
+			print "----------------------------------------------------------------"
+			print "rockchip_performance.config File not found!"
+			print "----------------------------------------------------------------"
+		else
+			cat "${KERNEL_DIR}"/arch/arm64/configs/rockchip_performance.config >>"${OUT_DIR}"/.config
+			print "----------------------------------------------------------------"
+			print "Merge complete"
+			print "----------------------------------------------------------------"
+		fi
+
 	fi
-	print "----------------------------------------------------------------"
-	print "Merge complete"
-	print "----------------------------------------------------------------"
 }
 
 # Make kernel image
