@@ -161,11 +161,12 @@
 		vin-supply = <&vcc5v0_sys>;
 	};
 
-	vcc_phy: vcc-phy-regulator {
+	vcc3v3_lan: vcc3v3-lan-regulator {
 		compatible = "regulator-fixed";
-		regulator-name = "vcc_phy";
+		regulator-name = "vcc3v3_lan";
 		regulator-always-on;
 		regulator-boot-on;
+		vin-supply = <&vcc3v3_sys>;
 	};
 
 	vcc_0v9: vcc-0v9 {
@@ -184,7 +185,7 @@
 		regulator-always-on;
 		regulator-boot-on;
 		enable-active-high;
-		vin-supply = <&vcc5v0_sys>;
+		vin-supply = <&vcc12v_dcin>;
 	};
 
 	vdd_log: vdd-log {
@@ -209,9 +210,9 @@
 		compatible = "gpio-leds";
 		status = "okay";
 		pinctrl-names = "default";
-		pinctrl-0 = <&power_led_gpio &status_led_gpio>;
+		pinctrl-0 = <&user_led_rk_1_gpio &user_led_rk_2_gpio>;
 
-		power_led: power-led {
+		user-led-rk-1 {
 			label = "power";
 			gpios = <&gpio3 RK_PD4 GPIO_ACTIVE_HIGH>;
 			default-state = "on";
@@ -219,7 +220,7 @@
 			linux,default-trigger = "default-on";
 		};
 
-		status_led: status-led {
+		user-led-rk-2 {
 			label = "status";
 			gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_HIGH>;
 			default-state = "on";
@@ -234,7 +235,7 @@
 		compatible = "bluetooth-platdata";
 		clocks = <&rk808 1>;
 		clock-names = "ext_clock";
-		uart_rts_gpios = <&gpio4 RK_PC4 GPIO_ACTIVE_LOW>;
+		uart_rts_gpios = <&gpio2 RK_PC3 GPIO_ACTIVE_LOW>;
 		pinctrl-names = "default", "rts_gpio";
 		pinctrl-0 = <&uart0_rts>;
 		pinctrl-1 = <&uart0_gpios>;
@@ -249,7 +250,7 @@
 		wifi_chip_type = "rtl8822cs";
 		rockchip,grf = <&grf>;
 		pinctrl-names = "default";
-		pinctrl-0 = <&wifi_host_wake_irq>;
+		pinctrl-0 = <&wifi_host_wake_l>;
 		WIFI,host_wake_irq = <&gpio0 RK_PA3 GPIO_ACTIVE_HIGH>;
 		status = "okay";
 	};
@@ -259,7 +260,7 @@
 		clocks = <&rk808 1>;
 		clock-names = "ext_clock";
 		pinctrl-names = "default";
-		pinctrl-0 = <&sdio_reset_wifi>;
+		pinctrl-0 = <&wifi_reg_on_h>;
 		reset-gpios = <&gpio0 RK_PB2 GPIO_ACTIVE_LOW>;
 		status = "okay";
 	};
@@ -398,7 +399,7 @@
 	assigned-clocks = <&cru SCLK_RMII_SRC>;
 	assigned-clock-parents = <&clkin_gmac>;
 	clock_in_out = "input";
-	phy-supply = <&vcc_phy>;
+	phy-supply = <&vcc3v3_lan>;
 	phy-mode = "rgmii";
 	pinctrl-names = "default";
 	pinctrl-0 = <&rgmii_pins>;
@@ -582,8 +583,8 @@
 				};
 			};
 
-			vcc3v3_s3: SWITCH_REG1 {
-				regulator-name = "vcc3v3_s3";
+			vcc_cam: SWITCH_REG1 {
+				regulator-name = "vcc_cam";
 				regulator-always-on;
 				regulator-boot-on;
 
@@ -592,8 +593,8 @@
 				};
 			};
 
-			vcc3v3_s0: SWITCH_REG2 {
-				regulator-name = "vcc3v3_s0";
+			vcc_mipi: SWITCH_REG2 {
+				regulator-name = "vcc_mipi";
 				regulator-always-on;
 				regulator-boot-on;
 
@@ -789,12 +790,12 @@
 
 	// Leds: {{{
 	leds {
-		power_led_gpio: power-led-gpio {
+		user_led_rk_1_gpio: user-led-rk-1-gpio {
 			rockchip,pins =
 				<3 RK_PD4 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
-		status_led_gpio: status-led-gpio {
+		user_led_rk_2_gpio: user-led-rk-2-gpio {
 			rockchip,pins =
 				<3 RK_PD5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
@@ -869,14 +870,14 @@
 	};
 
 	wireless-wlan {
-		wifi_host_wake_irq: wifi-host-wake-irq {
+		wifi_host_wake_l: wifi-host-wake-l {
 			rockchip,pins =
 				<0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
 	sdio-pwrseq {
-		sdio_reset_wifi: sdio-reset-wifi {
+		wifi_reg_on_h: wifi-reg-on-h {
 			rockchip,pins =
 				<0 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
