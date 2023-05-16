@@ -8,6 +8,13 @@
 #include <dt-bindings/pinctrl/rockchip.h>
 
 / {
+	// SRAM (DDR4): {{{
+	iram: sram@ff8d0000 {
+		compatible = "mmio-sram";
+		reg = <0x0 0xff8d0000 0x0 0x20000>;
+	};
+	// End of SRAM }}}
+
 	// DP Sound: {{{
 	dp_sound: dp-sound {
 		compatible = "rockchip,cdndp-sound";
@@ -385,6 +392,13 @@
 	status = "okay";
 };
 // End of Display }}}
+
+// DMAC: {{{
+&dmac_bus {
+	iram = <&iram>;
+	rockchip,force-iram;
+};
+// }}} End of DMAC
 
 // Ethernet: {{{
 &gmac {
