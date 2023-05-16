@@ -994,8 +994,7 @@
 &sdio0 {
 	clock-frequency = <150000000>;
 	clock-freq-min-max = <100000 150000000>;
-	no-sd;
-	no-mmc;
+	supports-sdio;
 	bus-width = <4>;
 	disable-wp;
 	cap-sd-highspeed;
@@ -1003,6 +1002,7 @@
 	keep-power-in-suspend;
 	mmc-pwrseq = <&sdio_pwrseq>;
 	non-removable;
+	num-slots = <1>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdio0_bus4 &sdio0_cmd &sdio0_clk>;
 	vqmmc-supply = <&vcc_sdio>;
