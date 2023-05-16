@@ -26,6 +26,7 @@ static inline int rockchip_iommu_disable(struct device *dev)
 static inline bool rockchip_iommu_is_enabled(struct device *dev)
 {
 	return false;
+}
 static inline int rockchip_pagefault_done(struct device *master_dev)
 {
 	return 0;
