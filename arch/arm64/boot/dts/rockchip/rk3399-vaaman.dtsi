@@ -182,9 +182,6 @@
 		regulator-always-on;
 		regulator-boot-on;
 		enable-active-high;
-		gpio = <&gpio2 RK_PD2 GPIO_ACTIVE_HIGH>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pcie_pwr_en>;
 		vin-supply = <&vcc5v0_sys>;
 	};
 
@@ -882,15 +879,6 @@
 		};
 	};
 	// End of Leds }}}
-
-	// PCIE: {{{
-	pcie {
-		pcie_pwr_en: pcie-pwr-en {
-			rockchip,pins =
-				<2 RK_PD2 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-	};
-	// End of PCIE }}}
 
 	// PMIC: {{{
 	pmic {
