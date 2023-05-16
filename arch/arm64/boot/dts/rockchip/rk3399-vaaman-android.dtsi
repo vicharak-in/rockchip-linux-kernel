@@ -49,7 +49,7 @@
 		rockchip,cpu = <&i2s2>;
 		rockchip,codec = <&hdmi>;
 		rockchip,jack-det;
-		status = "okay";
+		status = "disabled";
 	};
 	// End of HDMI Sound }}}
 };
@@ -61,20 +61,20 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 	#sound-dai-cells = <0>;
-	status = "okay";
+	status = "disabled";
 };
 
 &hdmi_in_vopb {
-	status = "okay";
+	status = "disabled";
 };
 
 &route_hdmi {
 	connect = <&vopb_out_hdmi>;
-	status = "okay";
+	status = "disabled";
 };
 
 &hdmi_sound {
-	status = "okay";
+	status = "disabled";
 };
 // End of HDMI }}}
 
