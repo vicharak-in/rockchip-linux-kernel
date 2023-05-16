@@ -385,7 +385,7 @@
 
 	route {
 		route_dp: route-dp {
-			status = "okay";
+			status = "disabled";
 			logo,uboot = "logo.bmp";
 			logo,kernel = "logo_kernel.bmp";
 			logo,mode = "center";
