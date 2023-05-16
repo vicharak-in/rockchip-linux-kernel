@@ -26,6 +26,7 @@
 #include <drm/drm_edid.h>
 #include <drm/drm_encoder_slave.h>
 #include <drm/drm_of.h>
+#include <drm/drm_panel.h>
 #include <drm/drm_print.h>
 #include <drm/drm_probe_helper.h>
 #include <drm/drm_scdc_helper.h>
@@ -220,6 +221,7 @@ struct dw_hdmi_phy_data {
 struct dw_hdmi_qp {
 	struct drm_connector connector;
 	struct drm_bridge bridge;
+	struct drm_panel *panel;
 	struct platform_device *hdcp_dev;
 	struct platform_device *audio;
 	struct platform_device *cec;
@@ -960,8 +962,12 @@ static int dw_hdmi_i2c_read(struct dw_hdmi_qp *hdmi,
 		hdmi_modb(hdmi, i2c->slave_reg++ << 12, I2CM_ADDR,
 			  I2CM_INTERFACE_CONTROL0);
 
-		hdmi_modb(hdmi, I2CM_FM_READ, I2CM_WR_MASK,
-			  I2CM_INTERFACE_CONTROL0);
+		if (i2c->is_segment)
+			hdmi_modb(hdmi, I2CM_EXT_READ, I2CM_WR_MASK,
+				  I2CM_INTERFACE_CONTROL0);
+		else
+			hdmi_modb(hdmi, I2CM_FM_READ, I2CM_WR_MASK,
+				  I2CM_INTERFACE_CONTROL0);
 
 		stat = wait_for_completion_timeout(&i2c->cmp, HZ / 10);
 		if (!stat) {
@@ -1084,7 +1090,7 @@ static int dw_hdmi_i2c_xfer(struct i2c_adapter *adap,
 			i2c->is_segment = true;
 			hdmi_modb(hdmi, DDC_SEGMENT_ADDR, I2CM_SEG_ADDR,
 				  I2CM_INTERFACE_CONTROL1);
-			hdmi_modb(hdmi, *msgs[i].buf, I2CM_SEG_PTR,
+			hdmi_modb(hdmi, *msgs[i].buf << 7, I2CM_SEG_PTR,
 				  I2CM_INTERFACE_CONTROL1);
 		} else {
 			if (msgs[i].flags & I2C_M_RD)
@@ -2013,6 +2019,9 @@ dw_hdmi_connector_detect(struct drm_connector *connector, bool force)
 	hdmi->force = DRM_FORCE_UNSPECIFIED;
 	mutex_unlock(&hdmi->mutex);
 
+	if (hdmi->panel)
+		return connector_status_connected;
+
 	if (hdmi->plat_data->left)
 		secondary = hdmi->plat_data->left;
 	else if (hdmi->plat_data->right)
@@ -2101,6 +2110,9 @@ static int dw_hdmi_connector_get_modes(struct drm_connector *connector)
 	void *data = hdmi->plat_data->phy_data;
 	int i, ret = 0;
 
+	if (hdmi->panel)
+		return drm_panel_get_modes(hdmi->panel, connector);
+
 	if (!hdmi->ddc)
 		return 0;
 
@@ -2118,6 +2130,8 @@ static int dw_hdmi_connector_get_modes(struct drm_connector *connector)
 		if (hdmi->plat_data->get_edid_dsc_info)
 			hdmi->plat_data->get_edid_dsc_info(data, edid);
 		ret = drm_add_edid_modes(connector, edid);
+		if (hdmi->plat_data->get_colorimetry)
+			hdmi->plat_data->get_colorimetry(data, edid);
 		dw_hdmi_update_hdr_property(connector);
 		if (ret > 0 && hdmi->plat_data->split_mode) {
 			struct dw_hdmi_qp *secondary = NULL;
@@ -2354,7 +2368,7 @@ static int dw_hdmi_connector_atomic_check(struct drm_connector *connector,
 	struct drm_crtc_state *crtc_state, *old_crtc_state;
 	struct dw_hdmi_qp *hdmi =
 		container_of(connector, struct dw_hdmi_qp, connector);
-	struct drm_display_mode *mode = NULL;
+	struct drm_display_mode mode;
 	void *data = hdmi->plat_data->phy_data;
 	struct hdmi_vmode_qp *vmode = &hdmi->hdmi_data.video_mode;
 
@@ -2377,13 +2391,21 @@ static int dw_hdmi_connector_atomic_check(struct drm_connector *connector,
 	if (hdmi->plat_data->get_vp_id)
 		hdmi->vp_id = hdmi->plat_data->get_vp_id(crtc_state);
 
-	mode = &crtc_state->mode;
+	memcpy(&mode, &crtc_state->mode, sizeof(mode));
 	/*
 	 * If HDMI is enabled in uboot, it's need to record
 	 * drm_display_mode and set phy status to enabled.
 	 */
 	if (!vmode->mpixelclock) {
+		struct dw_hdmi_qp *secondary = NULL;
+
+		if (hdmi->plat_data->left)
+			secondary = hdmi->plat_data->left;
+		else if (hdmi->plat_data->right)
+			secondary = hdmi->plat_data->right;
 		hdmi->curr_conn = connector;
+		if (secondary)
+			secondary->curr_conn = connector;
 		if (hdmi->plat_data->get_enc_in_encoding)
 			hdmi->hdmi_data.enc_in_encoding =
 				hdmi->plat_data->get_enc_in_encoding(data);
@@ -2398,13 +2420,13 @@ static int dw_hdmi_connector_atomic_check(struct drm_connector *connector,
 				hdmi->plat_data->get_output_bus_format(data);
 
 		if (hdmi->plat_data->split_mode) {
-			hdmi->plat_data->convert_to_origin_mode(mode);
-			mode->crtc_clock /= 2;
+			hdmi->plat_data->convert_to_origin_mode(&mode);
+			mode.crtc_clock /= 2;
 		}
-		memcpy(&hdmi->previous_mode, mode, sizeof(hdmi->previous_mode));
-		vmode->mpixelclock = mode->crtc_clock * 1000;
-		vmode->previous_pixelclock = mode->clock;
-		vmode->previous_tmdsclock = mode->clock;
+		memcpy(&hdmi->previous_mode, &mode, sizeof(hdmi->previous_mode));
+		vmode->mpixelclock = mode.crtc_clock * 1000;
+		vmode->previous_pixelclock = mode.clock;
+		vmode->previous_tmdsclock = mode.clock;
 		vmode->mtmdsclock = hdmi_get_tmdsclock(hdmi,
 						       vmode->mpixelclock);
 		if (hdmi_bus_fmt_is_yuv420(hdmi->hdmi_data.enc_out_bus_format))
@@ -2435,7 +2457,7 @@ static int dw_hdmi_connector_atomic_check(struct drm_connector *connector,
 			return PTR_ERR(crtc_state);
 
 		crtc_state->mode_changed = true;
-		if (mode->clock > 600000)
+		if (mode.clock > 600000)
 			hdmi->frl_switch = true;
 	}
 
@@ -2564,6 +2586,9 @@ dw_hdmi_qp_bridge_mode_valid(struct drm_bridge *bridge,
 			     const struct drm_display_info *info,
 			     const struct drm_display_mode *mode)
 {
+	if (mode->clock <= 25000)
+		return MODE_CLOCK_RANGE;
+
 	return MODE_OK;
 }
 
@@ -2591,6 +2616,9 @@ static void dw_hdmi_qp_bridge_atomic_disable(struct drm_bridge *bridge,
 	struct dw_hdmi_qp *hdmi = bridge->driver_private;
 	void *data = hdmi->plat_data->phy_data;
 
+	if (hdmi->panel)
+		drm_panel_disable(hdmi->panel);
+
 	/* set avmute */
 	hdmi_writel(hdmi, 1, PKTSCHED_PKT_CONTROL0);
 	mdelay(50);
@@ -2610,7 +2638,7 @@ static void dw_hdmi_qp_bridge_atomic_disable(struct drm_bridge *bridge,
 	if (hdmi->phy.ops->disable && !hdmi->frl_switch) {
 		hdmi_writel(hdmi, 0, FLT_CONFIG0);
 		/* set sink frl mode disable */
-		if (dw_hdmi_support_scdc(hdmi, &hdmi->curr_conn->display_info))
+		if (hdmi->curr_conn && dw_hdmi_support_scdc(hdmi, &hdmi->curr_conn->display_info))
 			drm_scdc_writeb(hdmi->ddc, 0x31, 0);
 
 		hdmi->phy.ops->disable(hdmi, hdmi->phy.data);
@@ -2621,6 +2649,9 @@ static void dw_hdmi_qp_bridge_atomic_disable(struct drm_bridge *bridge,
 	hdmi->curr_conn = NULL;
 	hdmi->disabled = true;
 	mutex_unlock(&hdmi->mutex);
+
+	if (hdmi->panel)
+		drm_panel_unprepare(hdmi->panel);
 }
 
 static void dw_hdmi_qp_bridge_atomic_enable(struct drm_bridge *bridge,
@@ -2630,6 +2661,9 @@ static void dw_hdmi_qp_bridge_atomic_enable(struct drm_bridge *bridge,
 	struct drm_atomic_state *state = old_state->base.state;
 	struct drm_connector *connector;
 	void *data = hdmi->plat_data->phy_data;
+
+	if (hdmi->panel)
+		drm_panel_prepare(hdmi->panel);
 
 	connector = drm_atomic_get_new_connector_for_encoder(state,
 							     bridge->encoder);
@@ -2654,6 +2688,9 @@ static void dw_hdmi_qp_bridge_atomic_enable(struct drm_bridge *bridge,
 
 	extcon_set_state_sync(hdmi->extcon, EXTCON_DISP_HDMI, true);
 	handle_plugged_change(hdmi, true);
+
+	if (hdmi->panel)
+		drm_panel_enable(hdmi->panel);
 }
 
 static const struct drm_bridge_funcs dw_hdmi_bridge_funcs = {
@@ -3170,13 +3207,19 @@ __dw_hdmi_probe(struct platform_device *pdev,
 	struct platform_device_info pdevinfo;
 	struct dw_hdmi_qp_cec_data cec;
 	struct resource *iores = NULL;
+	struct drm_panel *panel = NULL;
 	int irq;
 	int ret;
+
+	ret = drm_of_find_panel_or_bridge(np, 1, -1, &panel, NULL);
+	if (ret < 0 && ret != -ENODEV)
+		return ERR_PTR(ret);
 
 	hdmi = devm_kzalloc(dev, sizeof(*hdmi), GFP_KERNEL);
 	if (!hdmi)
 		return ERR_PTR(-ENOMEM);
 
+	hdmi->panel = panel;
 	hdmi->connector.stereo_allowed = 1;
 	hdmi->plat_data = plat_data;
 	hdmi->dev = dev;
