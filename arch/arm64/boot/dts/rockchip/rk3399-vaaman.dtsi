@@ -832,15 +832,6 @@
 
 // Pinctrl: {{{
 &pinctrl {
-	// HDMI: {{{
-	hdmi {
-		hdmi_rx_det: hdmi-rx-det {
-			rockchip,pins =
-				<4 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-	};
-	// Endi of HDMI }}}
-
 	// I2S 0: {{{
 	i2s0 {
 		i2s0_8ch_bus: i2s0-8ch-bus {
