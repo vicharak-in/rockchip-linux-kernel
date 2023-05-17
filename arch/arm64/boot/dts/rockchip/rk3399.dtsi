@@ -427,7 +427,7 @@
 		status = "disabled";
 	};
 
-	usbdrd3_0: usb@fe800000 {
+	usbdrd3_0: usbdrd3-0 {
 		compatible = "rockchip,rk3399-dwc3";
 		#address-cells = <2>;
 		#size-cells = <2>;
@@ -466,7 +466,7 @@
 		};
 	};
 
-	usbdrd3_1: usb@fe900000 {
+	usbdrd3_1: usbdrd3-1 {
 		compatible = "rockchip,rk3399-dwc3";
 		#address-cells = <2>;
 		#size-cells = <2>;
