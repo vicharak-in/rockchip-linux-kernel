@@ -280,6 +280,7 @@
 			     <GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH 0>,
 			     <GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH 0>;
 		interrupt-names = "sys", "legacy", "client";
+		interrupt-parent = <&gic>;
 		interrupt-map-mask = <0 0 0 7>;
 		interrupt-map = <0 0 0 1 &pcie0_intc 0>,
 				<0 0 0 2 &pcie0_intc 1>,
