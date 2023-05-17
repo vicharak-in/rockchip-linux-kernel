@@ -88,7 +88,6 @@
 	es8316_sound: es8316-sound {
 		compatible = "rockchip,multicodecs-card";
 		rockchip,card-name = "rockchip-es8316";
-		hp-det-gpio = <&gpio1 RK_PA0 GPIO_ACTIVE_HIGH>;
 		io-channels = <&saradc 2>;
 		io-channel-names = "adc-detect";
 		keyup-threshold-microvolt = <1800000>;
@@ -97,8 +96,6 @@
 		rockchip,mclk-fs = <256>;
 		rockchip,cpu = <&i2s0>;
 		rockchip,codec = <&es8316>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&hp_det>;
 
 		play-pause-key {
 			label = "playpause";
@@ -835,15 +832,6 @@
 
 // Pinctrl: {{{
 &pinctrl {
-	// Headphone Detect: {{{
-	headphone {
-		hp_det: hp-det {
-			rockchip,pins =
-				<1 RK_PA0 RK_FUNC_GPIO &pcfg_pull_up>;
-		};
-	};
-	// End of Headphone Detect }}}
-
 	// HDMI: {{{
 	hdmi {
 		hdmi_rx_det: hdmi-rx-det {
