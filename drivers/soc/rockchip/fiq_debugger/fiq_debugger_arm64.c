@@ -158,18 +158,21 @@ struct stacktrace_state {
 	unsigned int depth;
 };
 
-static bool report_trace(void *data, unsigned long pc)
+static int report_trace(struct stackframe *frame, void *d)
 {
-	struct stacktrace_state *sts = data;
+	struct stacktrace_state *sts = d;
 
 	if (sts->depth) {
-		sts->output->printf(sts->output, "[<%016lx>] %pS:\n", pc, pc);
+		sts->output->printf(sts->output, "%pF:\n", frame->pc);
+		sts->output->printf(sts->output,
+				"  pc %016lx   fp %016lx\n",
+				frame->pc, frame->fp);
 		sts->depth--;
-		return true;
+		return 0;
 	}
 	sts->output->printf(sts->output, "  ...\n");
 
-	return sts->depth != 0;
+	return sts->depth == 0;
 }
 
 void fiq_debugger_dump_stacktrace(struct fiq_debugger_output *output,
@@ -191,7 +194,6 @@ void fiq_debugger_dump_stacktrace(struct fiq_debugger_output *output,
 		struct stackframe frame;
 		frame.fp = regs->regs[29];
 		frame.pc = regs->pc;
-		frame.prev_type = STACK_TYPE_UNKNOWN;
 		output->printf(output, "\n");
 		walk_stackframe(current, &frame, report_trace, &sts);
 	}
