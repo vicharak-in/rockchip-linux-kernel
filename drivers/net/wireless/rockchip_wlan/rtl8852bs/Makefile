@@ -10,6 +10,7 @@ EXTRA_CFLAGS += -O1
 EXTRA_CFLAGS += -Wno-unused-variable
 EXTRA_CFLAGS += -Wno-address
 EXTRA_CFLAGS += -Wno-fortify-source
+EXTRA_CFLAGS += -Wno-enum-conversion
 #EXTRA_CFLAGS += -Wno-unused-value
 EXTRA_CFLAGS += -Wno-unused-label
 #EXTRA_CFLAGS += -Wno-unused-parameter
