@@ -4847,6 +4847,27 @@ static bool vop2_crtc_mode_fixup(struct drm_crtc *crtc,
 				 struct drm_display_mode *adj_mode)
 {
 	struct vop2_video_port *vp = to_vop2_video_port(crtc);
+	struct vop2 *vop2 = vp->vop2;
+
+	/*
+	 * For RK3568 and RK3588, the hactive of video timing must
+	 * be 4-pixel aligned.
+	 */
+	if (vop2->version == VOP_VERSION_RK3568 || vop2->version == VOP_VERSION_RK3588) {
+		if (adj_mode->hdisplay % 4) {
+			u16 old_hdisplay = adj_mode->hdisplay;
+			u16 align;
+
+			align = 4 - (adj_mode->hdisplay % 4);
+			adj_mode->hdisplay += align;
+			adj_mode->hsync_start += align;
+			adj_mode->hsync_end += align;
+			adj_mode->htotal += align;
+
+			DRM_WARN("VP%d: hactive need to be aligned with 4-pixel, %d -> %d\n",
+				 vp->id, old_hdisplay, adj_mode->hdisplay);
+		}
+	}
 
 	drm_mode_set_crtcinfo(adj_mode, CRTC_INTERLACE_HALVE_V | CRTC_STEREO_DOUBLE);
 
