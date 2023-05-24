@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (C) 2023 Vicharak Computers LLP
+ */
+
+/dts-v1/;
+
+#include "rk3399-vaaman.dtsi"
+#include "rk3399-android.dtsi"
+
+/ {
+	model = "Vicharak RK3399 VAAMAN VO.3 ANDROID";
+	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+
+	aliases {
+		mmc1 = &sdhci;
+	};
+
+	/delete-node/ chosen;
+	chosen {
+		bootargs = "earlycon=uart8250,mmio32,0xff1a0000 console=ttyFIQ0 coherent_pool=1m";
+	};
+};
