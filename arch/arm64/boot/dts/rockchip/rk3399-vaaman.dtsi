@@ -711,3 +711,23 @@
 	status = "okay";
 	dr_mode = "host";
 };
+
+&vopb {
+	assigned-clocks = <&cru DCLK_VOP0_DIV>;
+	assigned-clock-parents = <&cru PLL_VPLL>;
+	status = "okay";
+};
+
+&vopb_mmu {
+	status = "okay";
+};
+
+&vopl {
+	assigned-clocks = <&cru DCLK_VOP1_DIV>;
+	assigned-clock-parents = <&cru PLL_CPLL>;
+	status = "okay";
+};
+
+&vopl_mmu {
+	status = "okay";
+};
