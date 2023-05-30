@@ -3,6 +3,7 @@
  * Copyright (C) 2023 Vicharak Computers LLP
  */
 
+#include <dt-bindings/leds/common.h>
 #include "rk3399.dtsi"
 #include "rk3399-opp.dtsi"
 
@@ -14,6 +15,28 @@
 		clock-frequency = <125000000>;
 		clock-output-names = "clkin_gmac";
 		#clock-cells = <0>;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&user_led_rk_1_gpio &user_led_rk_2_gpio>;
+
+		user-led-rk-1 {
+			function = LED_FUNCTION_POWER;
+			gpios = <&gpio3 RK_PD4 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+			retain-state-suspended;
+			linux,default-trigger = "default-on";
+		};
+
+		user-led-rk-2 {
+			function = LED_FUNCTION_STATUS;
+			gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+			retain-state-suspended;
+			linux,default-trigger = "heartbeat";
+		};
 	};
 
 	vcc12v_dcin: vcc12v-dcin-regulator {
@@ -469,6 +492,18 @@
 		rgmii_sleep_pins: rgmii-sleep-pins {
 			rockchip,pins =
 				<3 RK_PB7 RK_FUNC_GPIO &pcfg_output_low>;
+		};
+	};
+
+	leds {
+		user_led_rk_1_gpio: user-led-rk-1-gpio {
+			rockchip,pins =
+				<3 RK_PD4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		user_led_rk_2_gpio: user-led-rk-2-gpio {
+			rockchip,pins =
+				<3 RK_PD5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
