@@ -295,6 +295,7 @@ exit:
 	return ret;
 }
 
+#ifdef CONFIG_RTW_DEBUG
 static const char *nl80211_chan_width_str(enum nl80211_chan_width cwidth)
 {
 	switch (cwidth) {
@@ -320,6 +321,7 @@ static const char *nl80211_chan_width_str(enum nl80211_chan_width cwidth)
 		return "INVALID";
 	};
 }
+#endif
 
 static void rtw_get_chbw_from_cfg80211_chan_def(struct cfg80211_chan_def *chdef, u8 *ht, u8 *ch, u8 *bw, u8 *offset)
 {
