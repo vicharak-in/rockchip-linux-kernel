@@ -19,7 +19,7 @@
 
 	// Camera Clock 25Mhz: {{{
 	clk_cam_25m: external-camera-clock-25m {
-		status = "okay";
+		status = "disabled";
 		compatible = "fixed-clock";
 		clock-frequency = <25000000>;
 		clock-output-names = "clk_cam_25m";
@@ -44,7 +44,7 @@
 
 // ISP 0: {{{
 &rkisp1_0 {
-	status = "okay";
+	status = "disabled";
 
 	port {
 		#address-cells = <1>;
@@ -58,13 +58,13 @@
 };
 
 &isp0_mmu {
-	status = "okay";
+	status = "disabled";
 };
 // }}}
 
 // MIPI DPHY RX0: {{{
 &mipi_dphy_rx0 {
-	status = "okay";
+	status = "disabled";
 
 	ports {
 		#address-cells = <1>;
