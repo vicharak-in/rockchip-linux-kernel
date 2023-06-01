@@ -36,8 +36,6 @@
 #include "mpp_common.h"
 #include "mpp_iommu.h"
 
-#define MPP_WAIT_TIMEOUT_DELAY		(2000)
-
 /* Use 'v' as magic number */
 #define MPP_IOC_MAGIC		'v'
 
@@ -843,25 +841,15 @@ static int mpp_wait_result_default(struct mpp_session *session,
 		return -EIO;
 	}
 
-	ret = wait_event_timeout(task->wait,
-				 test_bit(TASK_STATE_DONE, &task->state),
-				 msecs_to_jiffies(MPP_WAIT_TIMEOUT_DELAY));
-	if (ret > 0) {
-		if (mpp->dev_ops->result)
-			ret = mpp->dev_ops->result(mpp, task, msgs);
-	} else {
-		atomic_inc(&task->abort_request);
-		set_bit(TASK_STATE_ABORT, &task->state);
-		mpp_err("timeout, pid %d session %d:%d count %d cur_task %d state %lx\n",
-			session->pid, session->device_type, session->index,
-			atomic_read(&session->task_count), task->task_index, task->state);
-	}
+	ret = wait_event_interruptible(task->wait, test_bit(TASK_STATE_DONE, &task->state));
+	if (ret == -ERESTARTSYS)
+		mpp_err("wait task break by signal\n");
+	if (mpp->dev_ops->result)
+		ret = mpp->dev_ops->result(mpp, task, msgs);
+	mpp_debug_func(DEBUG_TASK_INFO, "wait done session %d:%d count %d task %d state %lx\n",
+		       session->device_type, session->index, atomic_read(&session->task_count),
+		       task->task_index, task->state);
 
-	mpp_debug_func(DEBUG_TASK_INFO,
-		       "session %d:%d task %d state 0x%lx kref_read %d ret %d\n",
-		       session->device_type,
-		       session->index, task->task_index, task->state,
-		       kref_read(&task->ref), ret);
 	mpp_session_pop_pending(session, task);
 
 	return ret;

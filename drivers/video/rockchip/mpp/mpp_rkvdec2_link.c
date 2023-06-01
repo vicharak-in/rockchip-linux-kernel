@@ -21,8 +21,6 @@
 #include "../../../devfreq/governor.h"
 #endif
 
-#define WAIT_TIMEOUT_MS		(2000)
-
 #define RKVDEC_MAX_WRITE_PART	6
 #define RKVDEC_MAX_READ_PART	2
 
@@ -1529,19 +1527,16 @@ int rkvdec2_link_wait_result(struct mpp_session *session,
 	}
 
 	task = to_rkvdec2_task(mpp_task);
-	ret = wait_event_timeout(task->wait, task_is_done(mpp_task),
-				 msecs_to_jiffies(WAIT_TIMEOUT_MS));
-	if (ret) {
-		ret = rkvdec2_result(mpp, mpp_task, msgs);
+	ret = wait_event_interruptible(task->wait, task_is_done(mpp_task));
+	if (ret == -ERESTARTSYS)
+		mpp_err("wait task break by signal\n");
 
-		mpp_session_pop_done(session, mpp_task);
-	} else {
-		mpp_err("task %d:%d statue %lx timeout -> abort\n",
-			session->index, mpp_task->task_index, mpp_task->state);
+	ret = rkvdec2_result(mpp, mpp_task, msgs);
 
-		atomic_inc(&mpp_task->abort_request);
-		set_bit(TASK_STATE_ABORT, &mpp_task->state);
-	}
+	mpp_session_pop_done(session, mpp_task);
+	mpp_debug_func(DEBUG_TASK_INFO, "wait done session %d:%d count %d task %d state %lx\n",
+		       session->device_type, session->index, atomic_read(&session->task_count),
+		       mpp_task->task_index, mpp_task->state);
 
 	mpp_session_pop_pending(session, mpp_task);
 	return ret;
