@@ -7,16 +7,6 @@
 / {
 	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
 
-	// Camera Clock 24Mhz: {{{
-	clk_cam_24m: external-camera-clock-24m {
-		status = "okay";
-		compatible = "fixed-clock";
-		clock-frequency = <24000000>;
-		clock-output-names = "clk_cam_24m";
-		#clock-cells = <0>;
-	};
-	// }}}
-
 	// Camera Clock 25Mhz: {{{
 	clk_cam_25m: external-camera-clock-25m {
 		status = "disabled";
@@ -184,8 +174,15 @@
 		compatible = "efinix,fpga-read";
 		reg = <0x10>;
 
-		clocks = <&clk_cam_24m>;
-		clock-names = "xvclk";
+		clocks = <&cru SCLK_CIF_OUT>;
+		clock-names = "clk_cif_out";
+		pinctrl-names = "rockchip,camera_default";
+		pwdn-gpios = <&gpio1 RK_PB5 GPIO_ACTIVE_HIGH>;
+
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "default";
+		rockchip,camera-module-lens-name = "default";
 
 		port {
 			ucam_out1: endpoint {
