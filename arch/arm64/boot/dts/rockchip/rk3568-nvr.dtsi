@@ -51,10 +51,10 @@
 		rockchip,jack-det;
 	};
 
-	spdif-sound {
+	spdif_sound: spdif-sound {
 		status = "okay";
 		compatible = "simple-audio-card";
-		simple-audio-card,name = "ROCKCHIP,SPDIF";
+		simple-audio-card,name = "ROCKCHIP-SPDIF";
 		simple-audio-card,cpu {
 				sound-dai = <&spdif_8ch>;
 		};
