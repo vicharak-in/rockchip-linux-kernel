@@ -1374,6 +1374,7 @@
 		clock-names = "aclk", "iface";
 		clocks = <&cru ACLK_VPU>, <&cru HCLK_VPU>;
 		power-domains = <&power RK3568_PD_VPU>;
+		rockchip,shootdown-entire;
 		#iommu-cells = <0>;
 		status = "disabled";
 	};
@@ -1426,6 +1427,7 @@
 		clock-names = "aclk", "iface";
 		clocks = <&cru ACLK_JDEC>, <&cru HCLK_JDEC>;
 		power-domains = <&power RK3568_PD_RGA>;
+		rockchip,shootdown-entire;
 		#iommu-cells = <0>;
 		status = "disabled";
 	};
@@ -1455,6 +1457,7 @@
 		clock-names = "aclk", "iface";
 		clocks = <&cru ACLK_JENC>, <&cru HCLK_JENC>;
 		power-domains = <&power RK3568_PD_RGA>;
+		rockchip,shootdown-entire;
 		#iommu-cells = <0>;
 		status = "disabled";
 	};
@@ -1485,6 +1488,7 @@
 		clock-names = "aclk", "iface";
 		#iommu-cells = <0>;
 		power-domains = <&power RK3568_PD_RGA>;
+		rockchip,shootdown-entire;
 		//rockchip,disable-device-link-resume;
 		status = "disabled";
 	};
@@ -1560,6 +1564,7 @@
 		clock-names = "aclk", "iface";
 		rockchip,disable-mmu-reset;
 		rockchip,enable-cmd-retry;
+		rockchip,shootdown-entire;
 		#iommu-cells = <0>;
 		power-domains = <&power RK3568_PD_RKVENC>;
 		status = "disabled";
@@ -1639,6 +1644,7 @@
 		clocks = <&cru ACLK_RKVDEC>, <&cru HCLK_RKVDEC>;
 		clock-names = "aclk", "iface";
 		power-domains = <&power RK3568_PD_RKVDEC>;
+		rockchip,shootdown-entire;
 		#iommu-cells = <0>;
 		status = "disabled";
 	};
