@@ -115,6 +115,7 @@ struct rockchip_dfi {
 	struct regmap *regmap_pmugrf;
 	struct clk *clk;
 	u32 dram_type;
+	u32 count_rate;
 	/*
 	 * available mask, 1: available, 0: not available
 	 * each bit represent a channel
@@ -381,8 +382,12 @@ static int rockchip_dfi_get_busier_ch(struct devfreq_event_dev *edev)
 	u32 tmp, max = 0;
 	u32 i, busier_ch = 0;
 	void __iomem *dfi_regs = info->regs;
+	u32 count_rate = 1;
 
 	rockchip_dfi_stop_hardware_counter(edev);
+
+	if (info->count_rate)
+		count_rate = info->count_rate;
 
 	/* Find out which channel is busier */
 	for (i = 0; i < MAX_DMC_NUM_CH; i++) {
@@ -390,7 +395,7 @@ static int rockchip_dfi_get_busier_ch(struct devfreq_event_dev *edev)
 			continue;
 
 		info->ch_usage[i].total = readl_relaxed(dfi_regs +
-				DDRMON_CH0_COUNT_NUM + i * 20);
+				DDRMON_CH0_COUNT_NUM + i * 20) * count_rate;
 
 		/* LPDDR4 and LPDDR4X BL = 16,other DDR type BL = 8 */
 		tmp = readl_relaxed(dfi_regs +
@@ -669,6 +674,7 @@ static __maybe_unused __init int rk3528_dfi_init(struct platform_device *pdev,
 		data->dram_type = READ_DRAMTYPE_INFO_V3(val_18, val_19);
 	else
 		data->dram_type = READ_DRAMTYPE_INFO(val_18);
+	data->count_rate = 2;
 	data->ch_msk = 1;
 	data->clk = NULL;
 
