@@ -740,6 +740,9 @@ static int rkvenc_run(struct mpp_dev *mpp, struct mpp_task *mpp_task)
 		}
 	}
 
+	/* flush tlb before starting hardware */
+	mpp_iommu_flush_tlb(mpp->iommu_info);
+
 	/* init current task */
 	mpp->cur_task = mpp_task;
 
