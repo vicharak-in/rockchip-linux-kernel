@@ -448,8 +448,9 @@
 	clock_in_out = "input";
 	phy-supply = <&vcc3v3_lan>;
 	phy-mode = "rgmii";
-	pinctrl-names = "default";
+	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&rgmii_pins>;
+	pinctrl-1 = <&rgmii_sleep_pins>;
 	snps,reset-gpio = <&gpio3 RK_PB7 GPIO_ACTIVE_LOW>;
 	snps,reset-active-low;
 	snps,reset-delays-us = <0 10000 50000>;
@@ -851,6 +852,15 @@
 		};
 	};
 	// End of Headphone Detect }}}
+
+	// Ethernet: {{{
+	gmac {
+		rgmii_sleep_pins: rgmii-sleep-pins {
+			rockchip,pins =
+				<3 RK_PB7 RK_FUNC_GPIO &pcfg_output_low>;
+		};
+	};
+	// End of Ethernet }}}
 
 	// I2S 0: {{{
 	i2s0 {
