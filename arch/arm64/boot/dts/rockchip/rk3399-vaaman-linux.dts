@@ -1,14 +1,25 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Copyright (C) 2023 Vicharak India
+ * Copyright (C) 2023 Vicharak Computers LLP
  */
 
 /dts-v1/;
 
-#include "rk3399-vaaman-linux.dtsi"
+#include "rk3399-vaaman.dtsi"
+#include "rk3399-linux.dtsi"
 #include "rk3399-vaaman-mipi-csi.dtsi"
 
 / {
 	model = "Vicharak RK3399 VAAMAN VO.3 LINUX";
 	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+};
+
+&route_edp {
+	connect = <&vopl_out_edp>;
+	status = "okay";
+};
+
+&route_hdmi {
+	connect = <&vopb_out_hdmi>;
+	status = "okay";
 };

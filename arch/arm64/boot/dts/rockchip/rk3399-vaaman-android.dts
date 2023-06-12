@@ -4,11 +4,103 @@
  */
 
 /dts-v1/;
-
-#include "rk3399-vaaman-android.dtsi"
+#include "rk3399-vaaman.dtsi"
+#include "rk3399-android.dtsi"
 #include "rk3399-vaaman-mipi-csi.dtsi"
 
 / {
 	model = "Vicharak RK3399 VAAMAN VO.3 ANDROID";
 	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+
+	/delete-node/ chosen;
+
+	chosen {
+		bootargs = "earlycon=uart8250,mmio32,0xff1a0000 swiotlb=1 console=ttyFIQ0 androidboot.baseband=N/A androidboot.veritymode=enforcing androidboot.hardware=rk30board androidboot.console=ttyFIQ0 init=/init initrd=0x62000001,0x00800000 coherent_pool=1m";
+	};
 };
+
+// Firmware Android: (Disabled) {{{
+&firmware_android {
+	status = "disabled";
+	compatible = "android,firmware";
+	boot_devices = "fe330000.sdhci";
+
+	vbmeta {
+		status = "disabled";
+		compatible = "android,vbmeta";
+		parts = "vbmeta,boot,system,vendor,dtbo";
+	};
+
+	fstab {
+		status = "disabled";
+		compatible = "android,fstab";
+
+		vendor {
+			compatible = "android,vendor";
+			dev = "/dev/block/by-name/vendor";
+			type = "ext4";
+			mnt_flags = "ro,barrier=1,inode_readahead_blks=8";
+			fsmgr_flags = "wait,avb";
+		};
+	};
+};
+// End of Firmware Android }}}
+
+&dp_in_vopb {
+	status = "okay";
+};
+
+&route_edp {
+	connect = <&vopl_out_edp>;
+	status = "okay";
+};
+
+// HDMI: (Disabled) {{{
+&hdmi_sound {
+	status = "disabled";
+};
+
+&hdmi {
+	status = "disabled";
+};
+
+&hdmi_in_vopb {
+	status = "disabled";
+};
+
+&hdmi_in_vopl {
+	status = "disabled";
+};
+
+&route_hdmi {
+	status = "disabled";
+};
+// End of HDMI }}}
+
+&pinctrl {
+	// Power Button: {{{
+	power-button {
+		pwr_key: pwr-key {
+			rockchip,pins =
+				<0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+	// End of Power Button }}}
+};
+
+// Power Button: {{{
+&gpio_keys {
+    status = "okay";
+    autorepeat;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pwr_key>;
+
+	power {
+		debounce-interval = <100>;
+		gpios = <&gpio0 RK_PA5 GPIO_ACTIVE_LOW>;
+		label = "GPIO Key Power";
+		linux,code = <KEY_POWER>;
+		wakeup-source;
+	};
+};
+// End of Power Button }}}
