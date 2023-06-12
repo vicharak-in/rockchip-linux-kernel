@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Copyright (C) 2023 Vicharak Computers LLP
+ * Copyright (c) 2022-23 Vicharak Computers LLP
+ *
  */
 
 / {
@@ -154,25 +155,7 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	// Camera 3: {{{
-	camera_fpga: camera-fpga@10 {
-		status = "okay";
-		compatible = "efinix,fpga-read";
-		reg = <0x10>;
-
-		clocks = <&clk_cam_24m>;
-		clock-names = "xvclk";
-
-		port {
-			ucam_out1: endpoint {
-				remote-endpoint = <&mipi_in_ucam1>;
-				data-lanes = <1 2 3 4>;
-			};
-		};
-	};
-	// }}}
-
-	// Camera 2: {{{
+	// Camera 0: {{{
 	camera_ov5647: camera-ov5647@36 {
 		status = "okay";
 		compatible = "ovti,ov5647";
@@ -193,7 +176,25 @@
 			};
 		};
 	};
-	// }}}
+	// }}} End of Camera 0
+
+	// Camera 1: {{{
+	camera_fpga: camera-fpga@10 {
+		status = "okay";
+		compatible = "efinix,fpga-read";
+		reg = <0x10>;
+
+		clocks = <&clk_cam_24m>;
+		clock-names = "xvclk";
+
+		port {
+			ucam_out1: endpoint {
+				remote-endpoint = <&mipi_in_ucam1>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+	// }}} End of Camera 1
 };
 
 &pinctrl {
@@ -211,7 +212,7 @@
 	camera {
 		cam_en_gpio: cam-en-gpio {
 			rockchip,pins =
-				<1 RK_PB5 RK_FUNC_GPIO &pcfg_pull_up>;
+				<1 RK_PB5 RK_FUNC_GPIO &pcfg_output_high>;
 		};
 	};
 	// }}}
