@@ -73,17 +73,28 @@
 	};
 	// End of Ethernet Clock }}}
 
-	// HDMI Sound: {{{
+	// HDMI Audio: {{{
 	hdmi_sound: hdmi-sound {
-		compatible = "rockchip,hdmi";
-		rockchip,mclk-fs = <128>;
-		rockchip,card-name = "rockchip-hdmi0";
-		rockchip,cpu = <&i2s2>;
-		rockchip,codec = <&hdmi>;
-		rockchip,jack-det;
+		compatible = "simple-audio-card";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,mclk-fs = <256>;
+		simple-audio-card,name = "rockchip,hdmi";
+		status = "okay";
+
+		simple-audio-card,cpu {
+			sound-dai = <&i2s2>;
+		};
+		simple-audio-card,codec {
+			sound-dai = <&dw_hdmi_audio>;
+		};
+	};
+
+	dw_hdmi_audio: dw-hdmi-audio {
+		compatible = "rockchip,dw-hdmi-audio";
+		#sound-dai-cells = <0>;
 		status = "okay";
 	};
-	// End of HDMI Sound }}}
+	// }}} End of HDMI Audio
 
 	// Regulators: {{{
 	vcc12v_dcin: vcc12v-dcin {
