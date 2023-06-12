@@ -1015,6 +1015,8 @@
 		(0
 		| RKPM_GPIO_WKUP_EN
 		| RKPM_PWM_WKUP_EN
+		| RKPM_USB_WKUP_EN
+		| RKPM_USB_LINESTATE_WKUP_EN
 		)
 	>;
 	rockchip,pwm-regulator-config = <
@@ -1024,8 +1026,7 @@
 	>;
 	rockchip,power-ctrl =
 		<&gpio1 RK_PC1 GPIO_ACTIVE_HIGH>,
-		<&gpio1 RK_PB6 GPIO_ACTIVE_HIGH>,
-		<&gpio0 RK_PA3 GPIO_ACTIVE_HIGH>;
+		<&gpio1 RK_PB6 GPIO_ACTIVE_HIGH>;
 };
 // End of Rockchip Suspend }}}
 
