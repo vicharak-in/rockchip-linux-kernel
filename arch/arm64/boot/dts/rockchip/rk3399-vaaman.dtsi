@@ -387,37 +387,6 @@
 // Display: {{{
 &display_subsystem {
 	status = "okay";
-
-	route {
-		route_dp: route-dp {
-			status = "okay";
-			logo,uboot = "logo.bmp";
-			logo,kernel = "logo_kernel.bmp";
-			logo,mode = "center";
-			charge_logo,mode = "center";
-			connect = <&vopb_out_dp>;
-		};
-	};
-};
-
-&vopb {
-	assigned-clocks = <&cru DCLK_VOP0_DIV>;
-	assigned-clock-parents = <&cru PLL_CPLL>;
-	status = "okay";
-};
-
-&vopb_mmu {
-	status = "okay";
-};
-
-&vopl {
-	assigned-clocks = <&cru DCLK_VOP1_DIV>;
-	assigned-clock-parents = <&cru PLL_VPLL>;
-	status = "okay";
-};
-
-&vopl_mmu {
-	status = "okay";
 };
 // End of Display }}}
 
@@ -427,6 +396,22 @@
 	rockchip,force-iram;
 };
 // }}} End of DMAC
+
+// DP: {{{
+&cdn_dp {
+	status = "okay";
+	extcon = <&usbc0>;
+	phys = <&tcphy0_dp>;
+};
+
+&dp_in_vopb {
+	status = "disabled";
+};
+
+&dp_in_vopl {
+	status = "disabled";
+};
+// End of DP }}}
 
 // EDP: {{{
 &edp {
@@ -1144,25 +1129,6 @@
 	status = "okay";
 };
 
-&cdn_dp {
-	status = "okay";
-	extcon = <&usbc0>;
-	phys = <&tcphy0_dp>;
-};
-
-&dp_in_vopb {
-	status = "okay";
-};
-
-&vopb_out_dp {
-	status = "okay";
-};
-
-&route_dp {
-	status = "okay";
-	connect = <&vopb_out_dp>;
-};
-
 &spdif {
 	pinctrl-0 = <&spdif_bus_1>;
 	status = "okay";
@@ -1232,3 +1198,25 @@
 	status = "okay";
 };
 // End of USB }}}
+
+// VOP: {{{
+&vopb {
+	assigned-clocks = <&cru DCLK_VOP0_DIV>;
+	assigned-clock-parents = <&cru PLL_CPLL>;
+	status = "okay";
+};
+
+&vopb_mmu {
+	status = "okay";
+};
+
+&vopl {
+	assigned-clocks = <&cru DCLK_VOP1_DIV>;
+	assigned-clock-parents = <&cru PLL_VPLL>;
+	status = "okay";
+};
+
+&vopl_mmu {
+	status = "okay";
+};
+// End of VOP }}}

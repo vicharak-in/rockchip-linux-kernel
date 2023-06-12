@@ -55,28 +55,6 @@
 	status = "okay";
 };
 
-// HDMI: (Disabled) {{{
-&hdmi_sound {
-	status = "disabled";
-};
-
-&hdmi {
-	status = "disabled";
-};
-
-&hdmi_in_vopb {
-	status = "disabled";
-};
-
-&hdmi_in_vopl {
-	status = "disabled";
-};
-
-&route_hdmi {
-	status = "disabled";
-};
-// End of HDMI }}}
-
 &pinctrl {
 	// Power Button: {{{
 	power-button {
