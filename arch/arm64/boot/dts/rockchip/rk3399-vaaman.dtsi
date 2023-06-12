@@ -49,14 +49,6 @@
 			sound-dai = <&es8316>;
 		};
 	};
-
-	rk_headset: rk-headset {
-		compatible = "rockchip_headset";
-		headset_gpio = <&gpio1 RK_PA0 GPIO_ACTIVE_HIGH>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&hp_det>;
-		io-channels = <&saradc 2>;
-	};
 	// End of ES8316 Sound }}}
 
 	// Ethernet Clock: {{{
