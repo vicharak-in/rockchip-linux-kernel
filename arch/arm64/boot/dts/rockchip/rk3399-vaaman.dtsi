@@ -845,15 +845,6 @@
 
 // Pinctrl: {{{
 &pinctrl {
-	// Headphone Detect: {{{
-	headphone {
-		hp_det: hp-det {
-			rockchip,pins =
-				<1 RK_PA0 RK_FUNC_GPIO &pcfg_pull_up>;
-		};
-	};
-	// End of Headphone Detect }}}
-
 	// Ethernet: {{{
 	gmac {
 		rgmii_sleep_pins: rgmii-sleep-pins {
