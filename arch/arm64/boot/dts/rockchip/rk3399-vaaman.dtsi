@@ -170,7 +170,7 @@
 			label = "power";
 			gpios = <&gpio3 RK_PD4 GPIO_ACTIVE_HIGH>;
 			default-state = "on";
-			retain-state-suspend;
+			retain-state-suspended;
 			linux,default-trigger = "default-on";
 		};
 
@@ -178,7 +178,7 @@
 			label = "status";
 			gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_HIGH>;
 			default-state = "on";
-			retain-state-suspend;
+			retain-state-suspended;
 			linux,default-trigger = "heartbeat";
 		};
 	};
