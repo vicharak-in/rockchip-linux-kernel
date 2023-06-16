@@ -12,6 +12,19 @@
 / {
 	model = "Vicharak RK3399 VAAMAN VO.3 LINUX";
 	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+
+	/delete-node/ chosen;
+	chosen {
+		bootargs = "earlycon=uart8250,mmio32,0xff1a0000 console=ttyFIQ0 coherent_pool=1m";
+	};
+};
+
+&fiq_debugger {
+	status = "okay";
+};
+
+&display_subsystem {
+	status = "okay";
 };
 
 &route_edp {
@@ -21,5 +34,9 @@
 
 &route_hdmi {
 	connect = <&vopb_out_hdmi>;
+	status = "okay";
+};
+
+&hdmi_sound {
 	status = "okay";
 };

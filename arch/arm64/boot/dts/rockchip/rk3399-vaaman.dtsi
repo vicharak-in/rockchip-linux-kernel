@@ -354,12 +354,6 @@
 };
 // }}} End of Devfreq
 
-// Display: {{{
-&display_subsystem {
-	status = "okay";
-};
-// End of Display }}}
-
 // DMAC: {{{
 &dmac_bus {
 	iram = <&iram>;
@@ -441,7 +435,7 @@
 };
 
 &hdmi_in_vopb {
-	status = "okay";
+	status = "disabled";
 };
 
 &hdmi_in_vopl {
@@ -449,7 +443,7 @@
 };
 
 &hdmi_sound {
-	status = "okay";
+	status = "disabled";
 };
 // End of HDMI }}}
 

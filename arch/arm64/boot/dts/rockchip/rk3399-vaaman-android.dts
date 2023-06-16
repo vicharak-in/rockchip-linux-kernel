@@ -46,7 +46,15 @@
 };
 // End of Firmware Android }}}
 
+&display_subsystem {
+	status = "okay";
+};
+
 &dp_in_vopb {
+	status = "okay";
+};
+
+&dp_sound {
 	status = "okay";
 };
 
