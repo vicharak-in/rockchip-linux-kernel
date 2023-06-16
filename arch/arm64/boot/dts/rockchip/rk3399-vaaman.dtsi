@@ -1025,12 +1025,11 @@
 // SD/MMC/HCI/IO {{{
 &sdhci {
 	bus-width = <8>;
+	mmc-hs400-1_8v;
 	supports-emmc;
 	non-removable;
-	max-frequency = <150000000>;
-	mmc-hs400-1_8v;
-	mmc-hs400-enhanced-strobe;
 	keep-power-in-suspend;
+	mmc-hs400-enhanced-strobe;
 	status = "okay";
 };
 
@@ -1040,23 +1039,23 @@
 
 &sdmmc {
 	clock-frequency = <150000000>;
-	clock-freq-min-max = <100000 150000000>;
+	clock-freq-min-max = <400000 150000000>;
 	supports-sd;
 	bus-width = <4>;
 	cap-mmc-highspeed;
 	cap-sd-highspeed;
 	disable-wp;
-	//sd-uhs-sdr104;
 	num-slots = <1>;
+	//sd-uhs-sdr104;
+	vqmmc-supply = <&vcc_sdio>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc_clk &sdmmc_cd &sdmmc_cmd &sdmmc_bus4>;
-	vqmmc-supply = <&vcc_sdio>;
 	status = "okay";
 };
 
 &sdio0 {
 	clock-frequency = <150000000>;
-	clock-freq-min-max = <100000 150000000>;
+	clock-freq-min-max = <200000 150000000>;
 	supports-sdio;
 	bus-width = <4>;
 	disable-wp;
@@ -1068,7 +1067,6 @@
 	num-slots = <1>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdio0_bus4 &sdio0_cmd &sdio0_clk>;
-	vqmmc-supply = <&vcc_sdio>;
 	status = "okay";
 };
 // End of SD/MMC/HCI/IO }}}
