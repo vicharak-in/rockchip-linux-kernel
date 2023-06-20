@@ -363,7 +363,7 @@
 
 // DP: {{{
 &cdn_dp {
-	status = "okay";
+	status = "disabled";
 	extcon = <&usbc0>;
 	phys = <&tcphy0_dp>;
 };
@@ -431,7 +431,7 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 	#sound-dai-cells = <0>;
-	status = "okay";
+	status = "disabled";
 };
 
 &hdmi_in_vopb {

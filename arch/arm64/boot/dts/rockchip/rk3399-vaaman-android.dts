@@ -50,6 +50,10 @@
 	status = "okay";
 };
 
+&cdn_dp {
+	status = "okay";
+};
+
 &dp_in_vopb {
 	status = "okay";
 };

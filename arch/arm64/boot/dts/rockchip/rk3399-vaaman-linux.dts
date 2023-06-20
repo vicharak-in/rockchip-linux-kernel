@@ -32,6 +32,14 @@
 	status = "okay";
 };
 
+&hdmi_in_vopb {
+	status = "okay";
+};
+
+&hdmi {
+	status = "okay";
+};
+
 &route_hdmi {
 	connect = <&vopb_out_hdmi>;
 	status = "okay";
