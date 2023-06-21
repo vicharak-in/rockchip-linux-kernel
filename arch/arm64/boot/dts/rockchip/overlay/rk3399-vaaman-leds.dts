@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright (C) Vicharak Computers LLP
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+
+	fragment@0 {
+		target = <&gpio_leds>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+};

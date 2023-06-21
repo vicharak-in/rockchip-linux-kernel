@@ -27,7 +27,7 @@
 	// EDP Panel: {{{
 	edp_panel: edp-panel {
 		compatible = "simple-panel";
-		status = "okay";
+		status = "disabled";
 
 		port {
 			panel_in_edp: endpoint {
@@ -162,7 +162,7 @@
 	// Leds: {{{
 	gpio_leds: gpio-leds {
 		compatible = "gpio-leds";
-		status = "okay";
+		status = "disabled";
 		pinctrl-names = "default";
 		pinctrl-0 = <&user_led_rk_1_gpio &user_led_rk_2_gpio>;
 
@@ -379,7 +379,7 @@
 
 // EDP: {{{
 &edp {
-	status = "okay";
+	status = "disabled";
 	force-hpd;
 
 	ports {
@@ -397,7 +397,7 @@
 };
 
 &edp_in_vopl {
-	status = "okay";
+	status = "disabled";
 };
 
 &edp_in_vopb {

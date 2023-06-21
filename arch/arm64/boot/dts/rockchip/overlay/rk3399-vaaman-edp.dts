@@ -1,0 +1,30 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+
+	fragment@0 {
+		target = <&edp_panel>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@1 {
+		target = <&edp>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@2 {
+		target = <&edp_in_vopl>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+};
