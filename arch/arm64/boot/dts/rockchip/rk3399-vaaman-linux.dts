@@ -13,6 +13,12 @@
 	model = "Vicharak RK3399 VAAMAN VO.3 LINUX";
 	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
 
+	aliases {
+		mmc0 = &sdmmc;
+		mmc1 = &sdhci;
+		mmc2 = &sdio0;
+	};
+
 	/delete-node/ chosen;
 	chosen {
 		bootargs = "earlycon=uart8250,mmio32,0xff1a0000 console=ttyFIQ0 coherent_pool=1m";
