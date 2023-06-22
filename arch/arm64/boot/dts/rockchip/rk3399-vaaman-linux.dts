@@ -7,7 +7,7 @@
 
 #include "rk3399-vaaman.dtsi"
 #include "rk3399-linux.dtsi"
-#include "rk3399-vaaman-mipi-csi.dtsi"
+#include "rk3399-vaaman-mipi-txrx.dtsi"
 
 / {
 	model = "Vicharak RK3399 VAAMAN VO.3 LINUX";

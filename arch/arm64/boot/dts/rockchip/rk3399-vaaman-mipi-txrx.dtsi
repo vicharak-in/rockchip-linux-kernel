@@ -1,0 +1,139 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (c) 2022-23 Vicharak Computers LLP
+ *
+ */
+
+/ {
+	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+
+	// Camera Clock 25Mhz: {{{
+	clk_cam_25m: external-camera-clock-25m {
+		status = "disabled";
+		compatible = "fixed-clock";
+		clock-frequency = <25000000>;
+		clock-output-names = "clk_cam_25m";
+		#clock-cells = <0>;
+	};
+	// }}}
+
+	// Camera Enable GPIO: {{{
+	camera_en_gpio: camera-en-gpio {
+		status = "okay";
+		compatible = "regulator-fixed";
+		regulator-name = "camera_en_gpio";
+		regulator-always-on;
+		regulator-boot-on;
+		enable-active-high;
+		gpio = <&gpio1 RK_PB5 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam_en_gpio>;
+	};
+	// }}}
+};
+
+&i2c4 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	// Camera 1: {{{
+	camera_fpga: camera-fpga@10 {
+		status = "okay";
+		compatible = "efinix,fpga-read";
+		reg = <0x10>;
+
+		clocks = <&cru SCLK_CIF_OUT>;
+		clock-names = "clk_cif_out";
+		pinctrl-names = "rockchip,camera_default";
+		pwdn-gpios = <&gpio1 RK_PB5 GPIO_ACTIVE_HIGH>;
+
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "default";
+		rockchip,camera-module-lens-name = "default";
+
+		port {
+			ucam_out1: endpoint {
+				remote-endpoint = <&mipi_in_ucam1>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+	// }}} End of Camera 1
+};
+
+// ISP 1: {{{
+&rkisp1_1 {
+	status = "okay";
+
+	port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		isp1_mipi_in: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&dphy_tx1rx1_out>;
+		};
+	};
+};
+
+&isp1_mmu {
+	status = "okay";
+};
+// }}}
+
+// MIPI DPHY TX1 RX1: {{{
+&mipi_dphy_tx1rx1 {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mipi_in_ucam1: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&ucam_out1>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			dphy_tx1rx1_out: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&isp1_mipi_in>;
+			};
+		};
+	};
+};
+// }}}
+
+&pinctrl {
+	// I2C4: {{{
+	i2c4 {
+		i2c4_xfer: i2c4-xfer {
+			rockchip,pins =
+				<1 RK_PB3 1 &pcfg_pull_up>,
+				<1 RK_PB4 1 &pcfg_pull_up>;
+		};
+	};
+	// }}}
+
+	// Camera Enable: {{{
+	camera {
+		cam_en_gpio: cam-en-gpio {
+			rockchip,pins =
+				<1 RK_PB5 RK_FUNC_GPIO &pcfg_output_high>;
+		};
+	};
+	// }}}
+};
