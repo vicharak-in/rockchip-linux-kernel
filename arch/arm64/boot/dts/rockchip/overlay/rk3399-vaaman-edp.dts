@@ -1,8 +1,17 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright (C) 2023 Vicharak Computers LLP
+
 /dts-v1/;
 /plugin/;
 
 / {
-	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+	metadata {
+		title = "Enable EDP panel on Vicharak Vaaman";
+		compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+		category = "display";
+		exclusive = "edp_in_vopl";
+		description = "Enables EDP panel on Vicharak Vaaman";
+	};
 
 	fragment@0 {
 		target = <&edp_panel>;

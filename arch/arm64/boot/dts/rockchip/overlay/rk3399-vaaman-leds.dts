@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0+
-// Copyright (C) Vicharak Computers LLP
+// Copyright (C) 2023 Vicharak Computers LLP
 
 /dts-v1/;
 /plugin/;
 
 / {
-	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+	metadata {
+		title = "Enable GPIO LEDs on Vicharak Vaaman";
+		compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+		category = "misc";
+		exclusive = "none";
+		description = "Enables on-board GPIO LEDs on Vicharak Vaaman";
+	};
 
 	fragment@0 {
 		target = <&gpio_leds>;
