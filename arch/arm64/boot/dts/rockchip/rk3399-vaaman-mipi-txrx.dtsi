@@ -16,20 +16,6 @@
 		#clock-cells = <0>;
 	};
 	// }}}
-
-	// Camera Enable GPIO: {{{
-	camera_en_gpio: camera-en-gpio {
-		status = "okay";
-		compatible = "regulator-fixed";
-		regulator-name = "camera_en_gpio";
-		regulator-always-on;
-		regulator-boot-on;
-		enable-active-high;
-		gpio = <&gpio1 RK_PB5 GPIO_ACTIVE_HIGH>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&cam_en_gpio>;
-	};
-	// }}}
 };
 
 &i2c4 {
@@ -45,8 +31,9 @@
 
 		clocks = <&cru SCLK_CIF_OUT>;
 		clock-names = "clk_cif_out";
-		pinctrl-names = "rockchip,camera_default";
 		pwdn-gpios = <&gpio1 RK_PB5 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "rockchip,camera_default";
+		pinctrl-0 = <&cif_clkout>;
 
 		rockchip,camera-module-index = <0>;
 		rockchip,camera-module-facing = "back";
@@ -123,15 +110,7 @@
 		i2c4_xfer: i2c4-xfer {
 			rockchip,pins =
 				<1 RK_PB3 1 &pcfg_pull_up>,
-				<1 RK_PB4 1 &pcfg_pull_up>;
-		};
-	};
-	// }}}
-
-	// Camera Enable: {{{
-	camera {
-		cam_en_gpio: cam-en-gpio {
-			rockchip,pins =
+				<1 RK_PB4 1 &pcfg_pull_up>,
 				<1 RK_PB5 RK_FUNC_GPIO &pcfg_output_high>;
 		};
 	};
