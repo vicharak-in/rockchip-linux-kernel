@@ -1191,7 +1191,7 @@ static void rkisp1_stream_stop(struct rkisp1_stream *stream)
 	    dev->isp_inp != INP_DMARX_ISP) {
 		ret = wait_event_timeout(stream->done,
 					 !stream->streaming,
-					 msecs_to_jiffies(1000));
+					 msecs_to_jiffies(10000));
 		if (!ret) {
 			v4l2_warn(v4l2_dev, "waiting on event return error %d\n", ret);
 			stream->stopping = false;
