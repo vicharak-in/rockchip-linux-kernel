@@ -3,6 +3,7 @@
  * virtual camera driver
  *
  * Copyright (C) 2018 Fuzhou Rockchip Electronics Co., Ltd.
+ * Copyright (C) 2023 Vicharak Computers LLP
  */
 
 #include <linux/device.h>
@@ -19,12 +20,15 @@
 #define PROP_HEIGHT	"height"
 #define PROP_BUSFMT	"bus-format"
 #define VCAM_VTS_MAX	0x7fff
+#define VCAM_LANES	4
 
 struct output_mode {
 	u32 width;
 	u32 height;
+	struct v4l2_fract max_fps;
 	u32 hts_def;
 	u32 vts_def;
+	u32 bpp;
 };
 
 struct output_pixfmt {
@@ -41,6 +45,7 @@ struct virtual_camera {
 	struct v4l2_ctrl *hblank;
 	struct v4l2_ctrl *vblank;
 	struct v4l2_ctrl *link_freq;
+	struct v4l2_ctrl *pixel_rate;
 	struct v4l2_ctrl_handler ctrl_handler;
 	struct v4l2_mbus_framefmt def_fmt;
 
@@ -52,7 +57,7 @@ struct virtual_camera {
 #define to_virtual_camera(sd) container_of(sd, struct virtual_camera, subdev)
 
 static const s64 link_freq_menu_items[] = {
-	40000000,	/* minimum support frequency */
+	40000000, /* minimum support frequency */
 	55000000,
 	75000000,
 	100000000,
@@ -72,37 +77,54 @@ static const s64 link_freq_menu_items[] = {
 	1000000000,
 	1100000000,
 	1200000000,
-	1250000000	/* maximum support frequency */
+	1250000000 /* maximum support frequency */
 };
 
 static const struct output_pixfmt supported_formats[] = {
 	{
 		.code = MEDIA_BUS_FMT_SBGGR8_1X8,
-	}, {
+	},
+	{
 		.code = MEDIA_BUS_FMT_SGBRG8_1X8,
-	}, {
+	},
+	{
 		.code = MEDIA_BUS_FMT_SGRBG8_1X8,
-	}, {
+	},
+	{
 		.code = MEDIA_BUS_FMT_SRGGB8_1X8,
-	}, {
+	},
+	{
 		.code = MEDIA_BUS_FMT_SBGGR10_1X10,
-	}, {
+	},
+	{
 		.code = MEDIA_BUS_FMT_SGBRG10_1X10,
-	}, {
+	},
+	{
 		.code = MEDIA_BUS_FMT_SGRBG10_1X10,
-	}, {
+	},
+	{
 		.code = MEDIA_BUS_FMT_SRGGB10_1X10,
-	}, {
+	},
+	{
 		.code = MEDIA_BUS_FMT_RGB888_1X24,
-	}, {
+	},
+	{
 		.code = MEDIA_BUS_FMT_UYVY8_2X8,
-	}, {
+	},
+	{
 		.code = MEDIA_BUS_FMT_VYUY8_2X8,
-	}, {
+	},
+	{
 		.code = MEDIA_BUS_FMT_YUYV8_2X8,
-	}, {
+	},
+	{
 		.code = MEDIA_BUS_FMT_YVYU8_2X8,
 	},
+};
+
+static const struct v4l2_fract virt_max_fps = {
+	.numerator = 10000,
+	.denominator = 600000,
 };
 
 static const struct output_mode supported_modes[] = {
@@ -111,59 +133,91 @@ static const struct output_mode supported_modes[] = {
 		.height = 480,
 		.hts_def = 640 + 180,
 		.vts_def = 480 + 90,
-	}, {
+	},
+	{
 		.width = 1280,
 		.height = 720,
 		.hts_def = 1500,
 		.vts_def = 900,
-	}, {
+	},
+	{
 		.width = 1920,
 		.height = 1080,
 		.hts_def = 2400,
 		.vts_def = 1200,
-	}, {
+	},
+	{
 		.width = 2560,
 		.height = 720,
 		.hts_def = 2800,
 		.vts_def = 900,
-	}, {
+	},
+	{
 		.width = 3840,
 		.height = 720,
 		.hts_def = 4300,
 		.vts_def = 900,
-	}, {
+	},
+	{
 		.width = 3840,
 		.height = 1080,
 		.hts_def = 4300,
 		.vts_def = 1200,
-	}, {
+	},
+	{
 		.width = 3840,
 		.height = 2160,
 		.hts_def = 4300,
 		.vts_def = 2400,
-	}, {
+	},
+	{
 		.width = 4096,
 		.height = 2048,
 		.hts_def = 4300,
 		.vts_def = 2400,
-	}, {
+	},
+	{
 		.width = 5120,
 		.height = 2880,
 		.hts_def = 5800,
 		.vts_def = 3100,
-	}, {
+	},
+	{
 		.width = 5760,
 		.height = 1080,
 		.hts_def = 6400,
 		.vts_def = 1300,
 	},
 };
+static u32 vcamera_get_bpp_from_fmtcode(u32 fmtcode)
+{
+	switch (fmtcode) {
+	case MEDIA_BUS_FMT_SBGGR8_1X8:
+	case MEDIA_BUS_FMT_SGBRG8_1X8:
+	case MEDIA_BUS_FMT_SGRBG8_1X8:
+	case MEDIA_BUS_FMT_SRGGB8_1X8:
+		return 8;
+	case MEDIA_BUS_FMT_SBGGR10_1X10:
+	case MEDIA_BUS_FMT_SGBRG10_1X10:
+	case MEDIA_BUS_FMT_SGRBG10_1X10:
+	case MEDIA_BUS_FMT_SRGGB10_1X10:
+		return 10;
+	case MEDIA_BUS_FMT_RGB888_1X24:
+		return 24;
+	case MEDIA_BUS_FMT_UYVY8_2X8:
+	case MEDIA_BUS_FMT_VYUY8_2X8:
+	case MEDIA_BUS_FMT_YUYV8_2X8:
+	case MEDIA_BUS_FMT_YVYU8_2X8:
+		return 16;
+	default:
+		return -EINVAL;
+	}
+}
 
 static int vcamera_get_reso_dist(const struct output_mode *mode,
 				 struct v4l2_mbus_framefmt *fmt)
 {
-	return abs(mode->width - fmt->width) +
-	       abs(mode->height - fmt->height);
+	return abs(mode->width - fmt->width) + abs(mode->height - fmt->height);
 }
 
 static const struct output_mode *
@@ -203,8 +257,8 @@ static void vcamera_get_default_fmt(struct virtual_camera *vcam)
 	if (vcam->cur_mode->width != def_fmt->width ||
 	    vcam->cur_mode->height != def_fmt->height)
 		dev_warn(dev, "get dts res: %dx%d, select best res: %dx%d\n",
-			 def_fmt->width, def_fmt->height,
-			 vcam->cur_mode->width, vcam->cur_mode->height);
+			 def_fmt->width, def_fmt->height, vcam->cur_mode->width,
+			 vcam->cur_mode->height);
 
 	while (--index >= 0)
 		if (supported_formats[index].code == def_fmt->code)
@@ -324,8 +378,8 @@ static int vcamera_enum_frame_sizes(struct v4l2_subdev *sd,
 
 	fse->code = supported_formats[i].code;
 
-	fse->min_width  = supported_modes[index].width;
-	fse->max_width  = fse->min_width;
+	fse->min_width = supported_modes[index].width;
+	fse->max_width = fse->min_width;
 	fse->max_height = supported_modes[index].height;
 	fse->min_height = fse->max_height;
 
@@ -375,9 +429,8 @@ static int vcamera_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 
 static int vcamera_s_ctrl(struct v4l2_ctrl *ctrl)
 {
-	struct virtual_camera *vcam = container_of(ctrl->handler,
-						   struct virtual_camera,
-						   ctrl_handler);
+	struct virtual_camera *vcam = container_of(
+		ctrl->handler, struct virtual_camera, ctrl_handler);
 	struct i2c_client *client = vcam->client;
 
 	/* Propagate change of current control to all related controls */
@@ -399,12 +452,39 @@ static int vcamera_s_ctrl(struct v4l2_ctrl *ctrl)
 	return 0;
 }
 
+static int vcamera_g_frame_interval(struct v4l2_subdev *sd,
+				    struct v4l2_subdev_frame_interval *fi)
+{
+	struct virtual_camera *vcam = to_virtual_camera(sd);
+
+	mutex_lock(&vcam->mutex);
+	fi->interval = virt_max_fps;
+	mutex_unlock(&vcam->mutex);
+
+	return 0;
+}
+
 static int vcamera_g_mbus_config(struct v4l2_subdev *sd,
 				 struct v4l2_mbus_config *cfg)
 {
 	cfg->type = V4L2_MBUS_CSI2;
-	cfg->flags = V4L2_MBUS_CSI2_4_LANE |
-		     V4L2_MBUS_CSI2_CHANNELS;
+	cfg->flags = V4L2_MBUS_CSI2_4_LANE | V4L2_MBUS_CSI2_CHANNELS;
+
+	return 0;
+}
+
+static int
+vcamera_enum_frame_interval(struct v4l2_subdev *sd,
+			    struct v4l2_subdev_pad_config *cfg,
+			    struct v4l2_subdev_frame_interval_enum *fie)
+{
+	if (fie->index >= ARRAY_SIZE(supported_modes))
+		return -EINVAL;
+
+	fie->code = supported_formats[fie->index].code;
+	fie->width = supported_modes[fie->index].width;
+	fie->height = supported_modes[fie->index].height;
+	fie->interval = virt_max_fps;
 
 	return 0;
 }
@@ -415,20 +495,22 @@ static struct v4l2_subdev_core_ops vcamera_core_ops = {
 
 static struct v4l2_subdev_video_ops vcamera_video_ops = {
 	.s_stream = vcamera_s_stream,
+	.g_frame_interval = vcamera_g_frame_interval,
 	.g_mbus_config = vcamera_g_mbus_config,
 };
 
 static struct v4l2_subdev_pad_ops vcamera_pad_ops = {
 	.enum_mbus_code = vcamera_enum_mbus_code,
 	.enum_frame_size = vcamera_enum_frame_sizes,
+	.enum_frame_interval = vcamera_enum_frame_interval,
 	.get_fmt = vcamera_get_fmt,
 	.set_fmt = vcamera_set_fmt,
 };
 
 static struct v4l2_subdev_ops vcamera_subdev_ops = {
-	.core	= &vcamera_core_ops,
-	.video	= &vcamera_video_ops,
-	.pad	= &vcamera_pad_ops,
+	.core = &vcamera_core_ops,
+	.video = &vcamera_video_ops,
+	.pad = &vcamera_pad_ops,
 };
 
 #ifdef CONFIG_VIDEO_V4L2_SUBDEV_API
@@ -445,8 +527,9 @@ static int vcamera_initialize_controls(struct virtual_camera *vcam)
 {
 	const struct output_mode *mode;
 	struct v4l2_ctrl_handler *handler;
-	u32 h_blank, i;
+	u32 h_blank, i, bpp;
 	int ret;
+	int pixel_rate = 0;
 
 	handler = &vcam->ctrl_handler;
 	mode = vcam->cur_mode;
@@ -456,21 +539,27 @@ static int vcamera_initialize_controls(struct virtual_camera *vcam)
 
 	handler->lock = &vcam->mutex;
 
-	vcam->link_freq = v4l2_ctrl_new_int_menu(handler, &vcamera_ctrl_ops,
-					V4L2_CID_LINK_FREQ,
-					ARRAY_SIZE(link_freq_menu_items) - 1, 0,
-					link_freq_menu_items);
+	vcam->link_freq = v4l2_ctrl_new_int_menu(
+		handler, &vcamera_ctrl_ops, V4L2_CID_LINK_FREQ,
+		ARRAY_SIZE(link_freq_menu_items) - 1, 0, link_freq_menu_items);
+
+	bpp = vcamera_get_bpp_from_fmtcode(vcam->fmt_code);
+	pixel_rate = vcam->link_frequency * 2 * VCAM_LANES / bpp;
+	vcam->pixel_rate = v4l2_ctrl_new_std(handler, &vcamera_ctrl_ops,
+					     V4L2_CID_PIXEL_RATE, 0, pixel_rate,
+					     1, pixel_rate);
 
 	h_blank = mode->hts_def - mode->width;
 	vcam->hblank = v4l2_ctrl_new_std(handler, NULL, V4L2_CID_HBLANK,
-				h_blank, h_blank, 1, h_blank);
+					 h_blank, h_blank, 1, h_blank);
 	if (vcam->hblank)
 		vcam->hblank->flags |= V4L2_CTRL_FLAG_READ_ONLY;
 
-	vcam->vblank = v4l2_ctrl_new_std(handler, &vcamera_ctrl_ops,
-				V4L2_CID_VBLANK, mode->vts_def - mode->height,
-				VCAM_VTS_MAX - mode->height, 1,
-				mode->vts_def - mode->height);
+	vcam->vblank =
+		v4l2_ctrl_new_std(handler, &vcamera_ctrl_ops, V4L2_CID_VBLANK,
+				  mode->vts_def - mode->height,
+				  VCAM_VTS_MAX - mode->height, 1,
+				  mode->vts_def - mode->height);
 
 	if (handler->error) {
 		v4l2_ctrl_handler_free(handler);
@@ -487,19 +576,13 @@ static int vcamera_initialize_controls(struct virtual_camera *vcam)
 	}
 
 	if (i == ARRAY_SIZE(link_freq_menu_items)) {
-		dev_warn(&vcam->client->dev,
-			 "vcam->link_frequency: %lld, max support clock: %lld\n",
-			 vcam->link_frequency, link_freq_menu_items[i - 1]);
+		dev_warn(
+			&vcam->client->dev,
+			"vcam->link_frequency: %lld, max support clock: %lld\n",
+			vcam->link_frequency, link_freq_menu_items[i - 1]);
 		v4l2_ctrl_s_ctrl(vcam->link_freq, i - 1);
 	}
 
-	return 0;
-}
-
-static int vcamera_check_sensor_id(struct virtual_camera *vcam,
-				   struct i2c_client *client)
-{
-	/* TODO */
 	return 0;
 }
 
@@ -568,17 +651,12 @@ static int vcamera_probe(struct i2c_client *client,
 	if (ret)
 		goto destroy_mutex;
 
-	ret = vcamera_check_sensor_id(vcam, client);
-	if (ret)
-		return ret;
-
 #ifdef CONFIG_VIDEO_V4L2_SUBDEV_API
 	sd->internal_ops = &vcamera_internal_ops;
 #endif
 #if defined(CONFIG_MEDIA_CONTROLLER)
 	vcam->pad.flags = MEDIA_PAD_FL_SOURCE;
-	sd->flags |=
-		V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_HAS_EVENTS;
+	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_HAS_EVENTS;
 	sd->entity.function = MEDIA_ENT_F_CAM_SENSOR;
 	ret = media_entity_pads_init(&sd->entity, 1, &vcam->pad);
 	if (ret < 0)
@@ -635,9 +713,9 @@ static struct i2c_driver vcamera_i2c_driver = {
 		.name = "virtual-camera",
 		.of_match_table = vcamera_of_match
 	},
-	.probe		= vcamera_probe,
-	.remove		= vcamera_remove,
-	.id_table	= vcamera_id,
+	.probe = vcamera_probe,
+	.remove = vcamera_remove,
+	.id_table = vcamera_id,
 };
 
 module_i2c_driver(vcamera_i2c_driver);
