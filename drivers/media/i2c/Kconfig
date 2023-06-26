@@ -2286,6 +2286,15 @@ config VIDEO_FPGA_READ
 	select V4L2_FWNODE
 	help
 	  This driver supports FPGA of efinix
+
+config VIDEO_VIRT_CAMERA
+	tristate "Rockchip virtual sensor support"
+	depends on VIDEO_V4L2 && I2C
+	depends on MEDIA_CAMERA_SUPPORT
+	select V4L2_FWNODE
+	help
+	  This is a Video4Linux2 sensor-level driver for the Rockchip
+	  virtual camera.
 endmenu
 
 menu "Sensors used on soc_camera driver"
