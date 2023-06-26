@@ -550,6 +550,7 @@ static int vcamera_probe(struct i2c_client *client,
 {
 	struct device *dev = &client->dev;
 	struct virtual_camera *vcam;
+	struct v4l2_subdev *sd;
 	int ret;
 
 	vcam = devm_kzalloc(dev, sizeof(*vcam), GFP_KERNEL);
@@ -561,7 +562,8 @@ static int vcamera_probe(struct i2c_client *client,
 	vcamera_get_default_fmt(vcam);
 
 	mutex_init(&vcam->mutex);
-	v4l2_i2c_subdev_init(&vcam->subdev, client, &vcamera_subdev_ops);
+	sd = &vcam->subdev;
+	v4l2_i2c_subdev_init(sd, client, &vcamera_subdev_ops);
 	ret = vcamera_initialize_controls(vcam);
 	if (ret)
 		goto destroy_mutex;
@@ -571,18 +573,19 @@ static int vcamera_probe(struct i2c_client *client,
 		return ret;
 
 #ifdef CONFIG_VIDEO_V4L2_SUBDEV_API
-	vcam->subdev.internal_ops = &vcamera_internal_ops;
+	sd->internal_ops = &vcamera_internal_ops;
 #endif
 #if defined(CONFIG_MEDIA_CONTROLLER)
 	vcam->pad.flags = MEDIA_PAD_FL_SOURCE;
-	vcam->subdev.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
-	vcam->subdev.entity.type = MEDIA_ENT_T_V4L2_SUBDEV_SENSOR;
-	ret = media_entity_init(&vcam->subdev.entity, 1, &vcam->pad, 0);
+	sd->flags |=
+		V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_HAS_EVENTS;
+	sd->entity.function = MEDIA_ENT_F_CAM_SENSOR;
+	ret = media_entity_pads_init(&sd->entity, 1, &vcam->pad);
 	if (ret < 0)
 		goto free_ctrl_handler;
 #endif
 
-	ret = v4l2_async_register_subdev(&vcam->subdev);
+	ret = v4l2_async_register_subdev_sensor_common(sd);
 	if (ret) {
 		dev_err(dev, "v4l2 async register subdev failed\n");
 		goto clean_entity;
