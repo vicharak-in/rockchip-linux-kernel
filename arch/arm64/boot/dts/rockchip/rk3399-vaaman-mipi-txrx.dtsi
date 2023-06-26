@@ -4,6 +4,8 @@
  *
  */
 
+#include <dt-bindings/display/media-bus-format.h>
+
 / {
 	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
 
@@ -25,24 +27,16 @@
 
 	// Camera 1: {{{
 	camera_fpga: camera-fpga@10 {
-		status = "okay";
-		compatible = "efinix,fpga-read";
+		compatible = "rockchip,virtual-camera";
 		reg = <0x10>;
-
-		clocks = <&cru SCLK_CIF_OUT>;
-		clock-names = "clk_cif_out";
-		pwdn-gpios = <&gpio1 RK_PB5 GPIO_ACTIVE_HIGH>;
-		pinctrl-names = "rockchip,camera_default";
-		pinctrl-0 = <&cif_clkout>;
-
-		rockchip,camera-module-index = <0>;
-		rockchip,camera-module-facing = "back";
-		rockchip,camera-module-name = "default";
-		rockchip,camera-module-lens-name = "default";
+		width = <640>;
+		height = <480>;
+		bus-format = <MEDIA_BUS_FMT_RGB888_1X24>;
 
 		port {
 			ucam_out1: endpoint {
 				remote-endpoint = <&mipi_in_ucam1>;
+				link-frequencies = /bits/ 64 <600000000>;
 				data-lanes = <1 2 3 4>;
 			};
 		};
