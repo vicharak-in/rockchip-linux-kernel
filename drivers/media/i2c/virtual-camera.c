@@ -399,10 +399,10 @@ static int vcamera_s_ctrl(struct v4l2_ctrl *ctrl)
 	return 0;
 }
 
-static int vcamera_g_mbus_config(struct v4l2_subdev *sd,
+static int vcamera_get_mbus_config(struct v4l2_subdev *sd, unsigned int pad_id,
 				 struct v4l2_mbus_config *cfg)
 {
-	cfg->type = V4L2_MBUS_CSI2;
+	cfg->type = V4L2_MBUS_CSI2_DPHY;
 	cfg->flags = V4L2_MBUS_CSI2_4_LANE |
 		     V4L2_MBUS_CSI2_CHANNELS;
 
@@ -415,7 +415,6 @@ static struct v4l2_subdev_core_ops vcamera_core_ops = {
 
 static struct v4l2_subdev_video_ops vcamera_video_ops = {
 	.s_stream = vcamera_s_stream,
-	.g_mbus_config = vcamera_g_mbus_config,
 };
 
 static struct v4l2_subdev_pad_ops vcamera_pad_ops = {
@@ -423,6 +422,7 @@ static struct v4l2_subdev_pad_ops vcamera_pad_ops = {
 	.enum_frame_size = vcamera_enum_frame_sizes,
 	.get_fmt = vcamera_get_fmt,
 	.set_fmt = vcamera_set_fmt,
+	.get_mbus_config = vcamera_get_mbus_config,
 };
 
 static struct v4l2_subdev_ops vcamera_subdev_ops = {
@@ -506,10 +506,11 @@ static int vcamera_check_sensor_id(struct virtual_camera *vcam,
 static int vcamera_get_pdata(struct i2c_client *client,
 			     struct virtual_camera *vcam)
 {
-	struct v4l2_fwnode_endpoint *bus_cfg;
+	struct v4l2_fwnode_endpoint bus_cfg;
 	struct device_node *np = client->dev.of_node;
 	struct device_node *endpoint;
 	u32 val;
+	int ret;
 
 	if (!IS_ENABLED(CONFIG_OF) || !np)
 		return 0;
@@ -527,20 +528,20 @@ static int vcamera_get_pdata(struct i2c_client *client,
 	if (!endpoint)
 		return -ENODEV;
 
-	bus_cfg = v4l2_fwnode_endpoint_alloc_parse(of_fwnode_handle(endpoint));
-	if (IS_ERR(bus_cfg))
+	ret = v4l2_fwnode_endpoint_alloc_parse(of_fwnode_handle(endpoint), &bus_cfg);
+	if (ret)
 		goto done;
 
-	if (!bus_cfg->nr_of_link_frequencies) {
+	if (!bus_cfg.nr_of_link_frequencies) {
 		dev_info(&client->dev,
 			 "link-frequencies property not found or too many\n");
 		goto done;
 	}
 
-	vcam->link_frequency = bus_cfg->link_frequencies[0];
+	vcam->link_frequency = bus_cfg.link_frequencies[0];
 
 done:
-	v4l2_fwnode_endpoint_free(bus_cfg);
+	v4l2_fwnode_endpoint_free(&bus_cfg);
 	of_node_put(endpoint);
 	return 0;
 }
@@ -550,6 +551,7 @@ static int vcamera_probe(struct i2c_client *client,
 {
 	struct device *dev = &client->dev;
 	struct virtual_camera *vcam;
+	struct v4l2_subdev *sd;
 	int ret;
 
 	vcam = devm_kzalloc(dev, sizeof(*vcam), GFP_KERNEL);
@@ -561,7 +563,8 @@ static int vcamera_probe(struct i2c_client *client,
 	vcamera_get_default_fmt(vcam);
 
 	mutex_init(&vcam->mutex);
-	v4l2_i2c_subdev_init(&vcam->subdev, client, &vcamera_subdev_ops);
+	sd = &vcam->subdev;
+	v4l2_i2c_subdev_init(sd, client, &vcamera_subdev_ops);
 	ret = vcamera_initialize_controls(vcam);
 	if (ret)
 		goto destroy_mutex;
@@ -571,18 +574,19 @@ static int vcamera_probe(struct i2c_client *client,
 		return ret;
 
 #ifdef CONFIG_VIDEO_V4L2_SUBDEV_API
-	vcam->subdev.internal_ops = &vcamera_internal_ops;
+	sd->internal_ops = &vcamera_internal_ops;
 #endif
 #if defined(CONFIG_MEDIA_CONTROLLER)
 	vcam->pad.flags = MEDIA_PAD_FL_SOURCE;
-	vcam->subdev.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
-	vcam->subdev.entity.type = MEDIA_ENT_T_V4L2_SUBDEV_SENSOR;
-	ret = media_entity_init(&vcam->subdev.entity, 1, &vcam->pad, 0);
+	sd->flags |=
+		V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_HAS_EVENTS;
+	sd->entity.function = MEDIA_ENT_F_CAM_SENSOR;
+	ret = media_entity_pads_init(&sd->entity, 1, &vcam->pad);
 	if (ret < 0)
 		goto free_ctrl_handler;
 #endif
 
-	ret = v4l2_async_register_subdev(&vcam->subdev);
+	ret = v4l2_async_register_subdev_sensor_common(sd);
 	if (ret) {
 		dev_err(dev, "v4l2 async register subdev failed\n");
 		goto clean_entity;
