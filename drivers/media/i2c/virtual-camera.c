@@ -107,6 +107,11 @@ static const struct output_pixfmt supported_formats[] = {
 
 static const struct output_mode supported_modes[] = {
 	{
+		.width = 640,
+		.height = 480,
+		.hts_def = 640 + 180,
+		.vts_def = 480 + 90,
+	}, {
 		.width = 1280,
 		.height = 720,
 		.hts_def = 1500,
