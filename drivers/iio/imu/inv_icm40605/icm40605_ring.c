@@ -224,8 +224,6 @@ irqreturn_t icm40605_read_fifo(int irq, void *p)
 	icm40605_update_period(st, pf->timestamp, fifo_count);
 
 	data_len = bytes_per_datum * fifo_count;
-	if (data_len > ICM40605_FIFO_COUNT_LIMIT)
-		data_len = ICM40605_FIFO_COUNT_LIMIT;
 
 	result = regmap_bulk_read(st->regmap, MPUREG_FIFO_DATA_REG,
 				  st->data_buff, data_len);
