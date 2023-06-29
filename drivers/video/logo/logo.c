@@ -26,11 +26,11 @@ MODULE_PARM_DESC(nologo, "Disables startup logo");
  * Use late_init to mark the logos as freed to prevent any further use.
  */
 
-static bool logos_freed = false;
+static bool logos_freed;
 
 static int __init fb_logo_late_init(void)
 {
-	logos_freed = false;
+	logos_freed = true;
 	return 0;
 }
 
@@ -57,7 +57,7 @@ const struct linux_logo * __ref fb_find_logo(int depth)
 		logo = &logo_superh_mono;
 #endif
 	}
-
+	
 	if (depth >= 4) {
 #ifdef CONFIG_LOGO_LINUX_VGA16
 		/* Generic Linux logo */
@@ -68,7 +68,7 @@ const struct linux_logo * __ref fb_find_logo(int depth)
 		logo = &logo_superh_vga16;
 #endif
 	}
-
+	
 	if (depth >= 8) {
 #ifdef CONFIG_LOGO_LINUX_CLUT224
 		/* Generic Linux logo */
