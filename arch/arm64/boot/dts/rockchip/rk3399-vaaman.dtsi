@@ -1187,7 +1187,7 @@
 // VOP: {{{
 &vopb {
 	assigned-clocks = <&cru DCLK_VOP0_DIV>;
-	assigned-clock-parents = <&cru PLL_CPLL>;
+	assigned-clock-parents = <&cru PLL_VPLL>;
 	status = "okay";
 };
 
@@ -1197,7 +1197,7 @@
 
 &vopl {
 	assigned-clocks = <&cru DCLK_VOP1_DIV>;
-	assigned-clock-parents = <&cru PLL_VPLL>;
+	assigned-clock-parents = <&cru PLL_CPLL>;
 	status = "okay";
 };
 
