@@ -1,0 +1,390 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2086
+
+# Error handler for this script to exit on error
+function err_handler() {
+	ret=$?
+	[ "${ret}" -eq 0 ] && return
+
+	echo "\e[1;31mError: Running ${FUNCNAME[1]} failed!\e[0m"
+	echo "\e[1;31mError: exit code $ret from line ${BASH_LINENO[0]}: ${BASH_COMMAND}\e[0m"
+	exit "${ret}"
+}
+trap 'err_handler' ERR
+
+# Usage function for this script to show help
+function usage() {
+	print "--------------------------------------------------------------------------------"
+	print "Build script for Vicharak kernel"
+	print "Usage: ${0} [OPTIONS]"
+	print "Options:"
+	print "  lunch                \tLunch device to setup environment"
+	print "  info                 \tShow current kernel setup information"
+	print "  clean                \tCleanup the kernel build files"
+	print "  kernel               \tBuild linux kernel image"
+	print "  update               \tUpdate defconfig with latest changes"
+	print "  help                 \tShow this help"
+	print ""
+	print "Example: ${0} <lunch|info|clean|kernel|update|help>"
+	print "--------------------------------------------------------------------------------"
+}
+
+# Finish build and exit
+function finish_build() {
+	print "Running ${FUNCNAME[1]} succeeded."
+	cd "${KERNEL_DIR}" || exit
+}
+
+# Prints the string in bold yellow color if the line is a header
+# if the line is not a header then it prints the string in bold green color
+function print() {
+	# check if the line is a header or not
+	if [[ $1 == *"---"* ]]; then
+		echo -e "\e[1;33m${1}\e[0m"
+		return
+	fi
+	echo -e "\e[1;32m    ${1}\e[0m"
+}
+
+# Exit with error message
+function exit_with_error() {
+	print "----------------------------------------------------------------"
+	print "Build failed because ${1}"
+	print "----------------------------------------------------------------"
+
+	cd "${KERNEL_DIR}" || exit
+	exit 1
+}
+
+# Check bootimage size and exit if it is less than 50MB
+function check_build() {
+	if [ -f "${FILENAME}" ] && [ "$(stat -c%s "${FILENAME}")" -lt 50000000 ]; then
+		exit_with_error "boot image size is less than 50MB"
+	else
+		print "----------------------------------------------------------------"
+		print "Build successful!"
+		print "----------------------------------------------------------------"
+	fi
+}
+
+# Pack Image into boot image using extlinux config
+# and copy kernel image and dtb file to boot image
+function pack_image() {
+	if [ -f "${FILENAME}" ]; then
+		rm -f "${FILENAME}"
+	fi
+
+	if [ -z "${KERNEL_IMAGE_SIZE}" ]; then
+		KERNEL_IMAGE_SIZE=50
+	fi
+
+	mkfs.vfat -n "boot" -S 512 -C "${FILENAME}" $((KERNEL_IMAGE_SIZE * 1024))
+
+	if [ -d "${KERNEL_DIR}"/extlinux ]; then
+		cp -r "${KERNEL_DIR}"/extlinux/ "${OUT_DIR}"
+	else
+		exit_with_error "extlinux directory not found!"
+	fi
+
+	cd "${OUT_DIR}" || exit
+
+	if ! command -v mcopy &>/dev/null; then
+		exit_with_error "mtools not found!"
+	fi
+
+	mmd -i "${FILENAME}" ::/extlinux
+	mcopy -i "${FILENAME}" -s "${EXTLINUX_CONF}" ::/extlinux/extlinux.conf
+	mcopy -i "${FILENAME}" -s "${KERNEL_IMAGE}" ::
+	mcopy -i "${FILENAME}" -s "${KERNEL_DIR}"/logo.bmp ::
+	mcopy -i "${FILENAME}" -s "${KERNEL_DIR}"/logo_kernel.bmp ::
+	mcopy -i "${FILENAME}" -s "${DEVICE_DTB_FILE}" ::/rk-kernel.dtb
+
+	check_build
+
+	cd "${KERNEL_DIR}" || exit
+}
+
+# Cleanup previous build files if any
+function cleanup() {
+	if [ -f "${FILENAME}" ]; then
+		rm -f "${FILENAME}"
+	fi
+	if [ -f "${KERNEL_IMAGE}" ]; then
+		rm -f "${KERNEL_IMAGE}"
+	fi
+	if [ -f "${DEVICE_DTB_FILE}" ]; then
+		rm -f "${DEVICE_DTB_FILE}"
+	fi
+	if [ -d "${OUT_DIR}"/extlinux ]; then
+		rm -rf "${OUT_DIR}"/extlinux
+	fi
+	if [ -d "${OUT_DIR}"/modules_"${DEVICE_NAME}" ]; then
+		rm -rf "${OUT_DIR}"/modules_"${DEVICE_NAME}"
+	fi
+
+	make ${args} clean && make ${args} mrproper
+}
+
+# Set environment variables for clang
+function build_clang() {
+	local clang_dir
+	clang_dir=${KERNEL_DIR}/../clang
+
+	# check if clang is installed
+	if command -v clang &>/dev/null; then
+		local system_clang_version
+		system_clang_version=$(clang --version | head -n1 | cut -d' ' -f3 | cut -d'.' -f1)
+
+		if [ ${system_clang_version} -lt 12 ]; then
+			case "${KERNEL_VERSION}" in
+			4*) clang_version=12 ;;
+			5* | 6*) clang_version=17 ;;
+			*) clang_version=12 ;;
+			esac
+
+			if [ ! -d "${clang_dir}" ]; then
+				mkdir -p "${clang_dir}"
+
+				# check if prebuilt clang is installed
+				print "Downloading clang: ${clang_version}"
+				clang_file=$(mktemp)
+				wget -O ${clang_file} \
+					https://gitlab.com/ThankYouMario/android_prebuilts_clang-standalone/-/archive/${clang_version}/android_prebuilts_clang-standalone-${clang_version}.tar.gz \
+					-q --show-progress --progress=bar:force 2>&1
+
+				tar -xzf ${clang_file} -C "${clang_dir}"
+				mv "${clang_dir}"/android_prebuilts_clang-standalone-${clang_version}/* "${clang_dir}"
+
+				rm -f /tmp/clang.tar.gz
+			fi
+		fi
+	fi
+
+	if [ -d "${clang_dir}" ]; then
+		print "----------------------------------------------------------------"
+		print "Using standalone clang: ${clang_version}"
+		print "----------------------------------------------------------------"
+
+		PATH="${clang_dir}"/bin:${PATH}
+		LD_LIBRARY_PATH="${clang_dir}"/lib:${LD_LIBRARY_PATH}
+		export PATH
+	fi
+
+	args="ARCH=arm64 \
+		O=${OUT_DIR} \
+		LLVM=1 \
+		LLVM_IAS=1 \
+		CROSS_COMPILE=aarch64-linux-gnu- \
+		-j$(nproc --all)"
+
+	export args
+}
+
+# Set environment variables for gcc
+function build_gcc() {
+	local glibc_version
+	glibc_version=$(ldd --version | awk '/ldd/{print $NF}' | sed 's/\.//g')
+
+	# check if GLIBC version is greater than 2.33
+	if [ "${glibc_version}" -gt 233 ]; then
+		print "----------------------------------------------------------------"
+		print "System glibc(${glibc_version}) is greater than 2.31, Using baremetal GCC"
+		print "----------------------------------------------------------------"
+		if [ ! -d "${KERNEL_DIR}"/../gcc-arm64 ]; then
+			print "Downloading baremetal gcc-arm64"
+			wget -q --show-progress --progress=dot -O /tmp/gcc-arm64.zip \
+				https://github.com/mvaisakh/gcc-arm64/archive/refs/heads/gcc-master.zip
+
+			unzip -qq /tmp/gcc-arm64.zip -d "${KERNEL_DIR}"/../
+			mv "${KERNEL_DIR}"/../gcc-arm64-gcc-master "${KERNEL_DIR}"/../gcc-arm64
+			rm -f /tmp/gcc-arm64.zip
+		fi
+		if [ ! -d "${KERNEL_DIR}"/../gcc-arm ]; then
+			print "Downloading baremetal gcc-arm"
+			wget -q --show-progress --progress=dot -O /tmp/gcc-arm.zip \
+				https://github.com/mvaisakh/gcc-arm/archive/refs/heads/gcc-master.zip
+
+			unzip -qq /tmp/gcc-arm.zip -d "${KERNEL_DIR}"/../
+			mv "${KERNEL_DIR}"/../gcc-arm-gcc-master "${KERNEL_DIR}"/../gcc-arm
+			rm -f /tmp/gcc-arm.zip
+		fi
+
+		PATH=${KERNEL_DIR}/../gcc-arm64/bin:${KERNEL_DIR}/../gcc-arm/bin:${PATH}
+		args="ARCH=arm64 \
+			O=${OUT_DIR} \
+			CROSS_COMPILE=aarch64-elf- \
+			CROSS_COMPILE_COMPAT=arm-eabi- \
+			-j$(nproc --all)"
+	else
+		print "----------------------------------------------------------------"
+		print "Using System GCC"
+		print "----------------------------------------------------------------"
+
+		args="ARCH=arm64 \
+			O=${OUT_DIR} \
+			CROSS_COMPILE=aarch64-linux-gnu- \
+			CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
+			-j$(nproc --all)"
+	fi
+
+	export args
+}
+
+# Make performance defconfig with optional argument
+# If argument is passed, merge it with defconfig
+function build_config() {
+	make ${args} "${DEVICE_DEFCONFIG}"
+
+	if [ ! -f "${KERNEL_DIR}/arch/arm64/configs/${DEVICE_CONFIG_FRAGMENT}" ]; then
+		print "----------------------------------------------------------------"
+		print "${DEVICE_CONFIG_FRAGMENT} File not found!"
+		print "----------------------------------------------------------------"
+	else
+		cat "${KERNEL_DIR}/arch/arm64/configs/${DEVICE_CONFIG_FRAGMENT}" >>"${OUT_DIR}"/.config
+	fi
+
+	if is_enabled "${PERF_BUILD}"; then
+		cat "${KERNEL_DIR}"/arch/arm64/configs/rockchip_performance.config >>"${OUT_DIR}"/.config
+	fi
+}
+
+# Make modules and gz compress them to modules_${DEVICE_NAME} directory
+function build_modules() {
+	make modules_install ${args} INSTALL_MOD_PATH="${OUT_DIR}"/modules_"${DEVICE_NAME}"
+	tar -czf "${OUT_DIR}"/modules_"${DEVICE_NAME}".tar.gz -C "${OUT_DIR}"/modules_"${DEVICE_NAME}" .
+}
+
+# Build deb package for kernel
+function build_deb_kernel() {
+	make bindeb-pkg ${args} LOCALVERSION=-"${DEVICE_NAME}"
+}
+
+# Make kernel image
+function build_kernel() {
+	if is_enabled "${CLANG_BUILD}"; then
+		print "----------------------------------------------------------------"
+		print "Building with Clang"
+		print "----------------------------------------------------------------"
+		build_clang
+	else
+		print "----------------------------------------------------------------"
+		print "Building with GCC"
+		print "----------------------------------------------------------------"
+		build_gcc
+	fi
+
+	build_config
+
+	make ${args} dtbs Image modules
+
+	if is_enabled "${MODULES_BUILD}"; then
+		build_modules
+	fi
+
+	if is_enabled "${DEB_BUILD}"; then
+		build_deb_kernel
+	fi
+}
+
+# Update defconfig with savedefconfig command
+function update_defconfig() {
+	if is_enabled "${CLANG_BUILD}"; then
+		build_clang
+	else
+		build_gcc
+	fi
+
+	make ${args} "${DEVICE_DEFCONFIG}"
+	make ${args} savedefconfig
+
+	mv "${OUT_DIR}"/defconfig "${KERNEL_DIR}"/arch/arm64/configs/"${DEVICE_DEFCONFIG}"
+	print "----------------------------------------------------------------"
+	print "Updated ${DEVICE_DEFCONFIG} with savedefconfig"
+	print "----------------------------------------------------------------"
+}
+
+function print_info() {
+	# shellcheck disable=SC1090,SC1091
+	if [ -f "${CFG_DIR}/.device.mk" ]; then
+		source "${CFG_DIR}/.device.mk"
+	else
+		lunch_device
+	fi
+
+	print "----------------------------------------------------------------"
+	print "Device Building Information"
+	print "----------------------------------------------------------------"
+
+	if [ -z "${DEVICE_MAKEFILE}" ]; then
+		DEVICE_MAKEFILE="${DEVICE_NAME}.mk"
+	fi
+
+	print "Device makefile: ${DEVICE_MAKEFILE}"
+	print "Device name: ${DEVICE_NAME}"
+	print "Device defconfig: ${DEVICE_DEFCONFIG}"
+
+	if [ -n "${DEVICE_CONFIG_FRAGMENT}" ]; then
+		print "Device config fragment: ${DEVICE_CONFIG_FRAGMENT}"
+	fi
+
+	print "Device DTB: ${DEVICE_DTB_FILE}"
+
+	if is_enabled "${CLANG_BUILD}"; then
+		print "Device compiler: Clang"
+	else
+		print "Device compiler: GCC"
+	fi
+
+	if is_enabled "${PERF_BUILD}"; then
+		print "Device config: Performance config"
+	fi
+
+	if is_enabled "${MODULES_BUILD}"; then
+		print "Build kernel modules: Yes"
+	else
+		print "Build kernel modules: No"
+	fi
+
+	if is_enabled "${DEB_BUILD}"; then
+		print "Build Debian package: Yes"
+	else
+		print "Build Debian package: No"
+	fi
+
+	usage
+}
+
+function set_device_config() {
+	print "----------------------------------------------------------------"
+	cd "${CFG_DIR}" || exit 1
+	printf "\e[1;32m"
+	select device in *.mk; do
+		DEVICE_MAKEFILE="${device}"
+		break
+	done
+	cd "${KERNEL_DIR}" || exit 1
+	printf "\e[0m"
+	print "----------------------------------------------------------------"
+}
+
+function lunch_device() {
+	if [ -f "${CFG_DIR}/.device.mk" ]; then
+		rm -f "${CFG_DIR}/.device.mk"
+	fi
+
+	set_device_config
+
+	cp "${CFG_DIR}/${DEVICE_MAKEFILE}" "${CFG_DIR}/.device.mk"
+
+	# shellcheck disable=SC1090,SC1091
+	source "${CFG_DIR}/.device.mk"
+}
+
+# check if $1 is true or $1 is empty
+function is_enabled() {
+	if [ -n "${1}" ] && [ "${1}" = "true" ]; then
+		return 0
+	else
+		return 1
+	fi
+}

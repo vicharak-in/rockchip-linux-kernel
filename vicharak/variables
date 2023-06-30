@@ -1,0 +1,25 @@
+# shellcheck shell=bash
+
+# Date for boot image
+DATE=$(date +"%d.%m.%y")
+
+# Configs directory path
+CFG_DIR=${KERNEL_DIR}/vicharak
+
+# Kernel out directory path
+OUT_DIR=${KERNEL_DIR}/out
+
+# Set boot image name
+FILENAME="${OUT_DIR}/boot-${DATE}.img"
+
+# Set Kernel Image path
+KERNEL_IMAGE="${OUT_DIR}/arch/arm64/boot/Image"
+
+# Set default extlinux config
+EXTLINUX_CONF=extlinux/vicharak.conf
+
+# Kernel version
+KERNEL_VERSION=$(cat "${KERNEL_DIR}/Makefile" | grep "VERSION =" | sed 's/VERSION = //g')
+
+# set PS3 prompt
+PS3="Select device: "
