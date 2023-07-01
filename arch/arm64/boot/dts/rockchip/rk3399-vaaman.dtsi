@@ -752,9 +752,7 @@
 };
 
 &i2s1 {
-	status = "okay";
-	rockchip,playback-channels = <2>;
-	rockchip,capture-channels = <2>;
+	status = "disabled";
 };
 
 &i2s2 {

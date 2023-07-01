@@ -9,6 +9,16 @@
 / {
 	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
 
+	// Camera Clock 24Mhz: {{{
+	clk_cam_24m: external-camera-clock-24m {
+		status = "disabled";
+		compatible = "fixed-clock";
+		clock-frequency = <24000000>;
+		clock-output-names = "clk_cam_24m";
+		#clock-cells = <0>;
+	};
+	// }}}
+
 	// Camera Clock 25Mhz: {{{
 	clk_cam_25m: external-camera-clock-25m {
 		status = "disabled";
@@ -26,9 +36,9 @@
 	#size-cells = <0>;
 
 	// Camera 1: {{{
-	camera_fpga: camera-fpga@10 {
+	camera_fpga: camera-fpga@69 {
 		compatible = "rockchip,virtual-camera";
-		reg = <0x10>;
+		reg = <0x69>;
 		width = <640>;
 		height = <480>;
 		bus-format = <MEDIA_BUS_FMT_RGB888_1X24>;
