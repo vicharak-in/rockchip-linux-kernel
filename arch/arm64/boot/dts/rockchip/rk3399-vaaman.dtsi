@@ -894,6 +894,28 @@
 	};
 	// End of SDIO }}}
 
+	// SDMMC: {{{
+	sdmmc {
+		sdmmc_bus4: sdmmc-bus4 {
+			rockchip,pins =
+				<4 RK_PB0 RK_FUNC_1 &pcfg_pull_up_18ma>,
+				<4 RK_PB1 RK_FUNC_1 &pcfg_pull_up_18ma>,
+				<4 RK_PB2 RK_FUNC_1 &pcfg_pull_up_18ma>,
+				<4 RK_PB3 RK_FUNC_1 &pcfg_pull_up_18ma>;
+		};
+
+		sdmmc_clk: sdmmc-clk {
+			rockchip,pins =
+				<4 RK_PB4 RK_FUNC_1 &pcfg_pull_up_18ma>;
+		};
+
+		sdmmc_cmd: sdmmc-cmd {
+			rockchip,pins =
+				<4 RK_PB5 RK_FUNC_1 &pcfg_pull_up_18ma>;
+		};
+	};
+	// End of SDMMC }}}
+
 	// USB 2: {{{
 	usb2 {
 		vcc5v0_host_en: vcc5v0-host-en {
