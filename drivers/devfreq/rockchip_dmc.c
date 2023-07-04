@@ -3186,7 +3186,7 @@ static int ddr_power_model_simple_init(struct rockchip_dmcfreq *dmcfreq)
 	power_model_node = of_get_child_by_name(dmcfreq->dev->of_node,
 						"ddr_power_model");
 	if (!power_model_node) {
-		dev_err(dmcfreq->dev, "could not find power_model node\n");
+		dev_info(dmcfreq->dev, "could not find power_model node\n");
 		return -ENODEV;
 	}
 
