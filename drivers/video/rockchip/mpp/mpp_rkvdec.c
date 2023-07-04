@@ -161,7 +161,9 @@ struct rkvdec_dev {
 	struct mpp_clk_info hclk_info;
 	struct mpp_clk_info core_clk_info;
 	struct mpp_clk_info cabac_clk_info;
+#ifndef CONFIG_CPU_RK3399
 	struct mpp_clk_info hevc_cabac_clk_info;
+#endif
 	u32 default_max_load;
 #ifdef CONFIG_ROCKCHIP_MPP_PROC_FS
 	struct proc_dir_entry *procfs;
@@ -172,7 +174,9 @@ struct rkvdec_dev {
 	struct reset_control *rst_niu_h;
 	struct reset_control *rst_core;
 	struct reset_control *rst_cabac;
+#ifndef CONFIG_CPU_RK3399
 	struct reset_control *rst_hevc_cabac;
+#endif
 
 	unsigned long aux_iova;
 	struct page *aux_page;
@@ -1177,8 +1181,10 @@ static int rkvdec_procfs_init(struct mpp_dev *mpp)
 			      dec->procfs, &dec->core_clk_info.debug_rate_hz);
 	mpp_procfs_create_u32("clk_cabac", 0644,
 			      dec->procfs, &dec->cabac_clk_info.debug_rate_hz);
+#ifndef CONFIG_CPU_RK3399
 	mpp_procfs_create_u32("clk_hevc_cabac", 0644,
 			      dec->procfs, &dec->hevc_cabac_clk_info.debug_rate_hz);
+#endif
 	mpp_procfs_create_u32("session_buffers", 0644,
 			      dec->procfs, &mpp->session_max_buffers);
 
@@ -1217,14 +1223,18 @@ static int rkvdec_init(struct mpp_dev *mpp)
 	ret = mpp_get_clk_info(mpp, &dec->cabac_clk_info, "clk_cabac");
 	if (ret)
 		mpp_err("failed on clk_get clk_cabac\n");
+#ifndef CONFIG_CPU_RK3399
 	ret = mpp_get_clk_info(mpp, &dec->hevc_cabac_clk_info, "clk_hevc_cabac");
 	if (ret)
 		mpp_err("failed on clk_get clk_hevc_cabac\n");
+#endif
 	/* Set default rates */
 	mpp_set_clk_info_rate_hz(&dec->aclk_info, CLK_MODE_DEFAULT, 300 * MHZ);
 	mpp_set_clk_info_rate_hz(&dec->core_clk_info, CLK_MODE_DEFAULT, 200 * MHZ);
 	mpp_set_clk_info_rate_hz(&dec->cabac_clk_info, CLK_MODE_DEFAULT, 200 * MHZ);
+#ifndef CONFIG_CPU_RK3399
 	mpp_set_clk_info_rate_hz(&dec->hevc_cabac_clk_info, CLK_MODE_DEFAULT, 300 * MHZ);
+#endif
 
 	/* Get normal max workload from dtsi */
 	of_property_read_u32(mpp->dev->of_node,
@@ -1248,9 +1258,11 @@ static int rkvdec_init(struct mpp_dev *mpp)
 	dec->rst_cabac = mpp_reset_control_get(mpp, RST_TYPE_CABAC, "video_cabac");
 	if (!dec->rst_cabac)
 		mpp_err("No cabac reset resource define\n");
+#ifndef CONFIG_CPU_RK3399
 	dec->rst_hevc_cabac = mpp_reset_control_get(mpp, RST_TYPE_HEVC_CABAC, "video_hevc_cabac");
 	if (!dec->rst_hevc_cabac)
 		mpp_err("No hevc cabac reset resource define\n");
+#endif
 
 	return 0;
 }
@@ -1433,7 +1445,9 @@ static int rkvdec_clk_on(struct mpp_dev *mpp)
 	mpp_clk_safe_enable(dec->hclk_info.clk);
 	mpp_clk_safe_enable(dec->core_clk_info.clk);
 	mpp_clk_safe_enable(dec->cabac_clk_info.clk);
+#ifndef CONFIG_CPU_RK3399
 	mpp_clk_safe_enable(dec->hevc_cabac_clk_info.clk);
+#endif
 
 	return 0;
 }
@@ -1446,7 +1460,9 @@ static int rkvdec_clk_off(struct mpp_dev *mpp)
 	clk_disable_unprepare(dec->hclk_info.clk);
 	clk_disable_unprepare(dec->core_clk_info.clk);
 	clk_disable_unprepare(dec->cabac_clk_info.clk);
+#ifndef CONFIG_CPU_RK3399
 	clk_disable_unprepare(dec->hevc_cabac_clk_info.clk);
+#endif
 
 	return 0;
 }
@@ -1523,7 +1539,9 @@ static int rkvdec_set_freq(struct mpp_dev *mpp,
 	mpp_clk_set_rate(&dec->aclk_info, task->clk_mode);
 	mpp_clk_set_rate(&dec->core_clk_info, task->clk_mode);
 	mpp_clk_set_rate(&dec->cabac_clk_info, task->clk_mode);
+#ifndef CONFIG_CPU_RK3399
 	mpp_clk_set_rate(&dec->hevc_cabac_clk_info, task->clk_mode);
+#endif
 
 	return 0;
 }
@@ -1542,7 +1560,9 @@ static int rkvdec_3368_set_freq(struct mpp_dev *mpp, struct mpp_task *mpp_task)
 	mpp_clk_set_rate(&dec->aclk_info, task->clk_mode);
 	mpp_clk_set_rate(&dec->core_clk_info, task->clk_mode);
 	mpp_clk_set_rate(&dec->cabac_clk_info, task->clk_mode);
+#ifndef CONFIG_CPU_RK3399
 	mpp_clk_set_rate(&dec->hevc_cabac_clk_info, task->clk_mode);
+#endif
 
 	return 0;
 }
@@ -1587,7 +1607,9 @@ static int rkvdec_reduce_freq(struct mpp_dev *mpp)
 	mpp_clk_set_rate(&dec->aclk_info, CLK_MODE_REDUCE);
 	mpp_clk_set_rate(&dec->core_clk_info, CLK_MODE_REDUCE);
 	mpp_clk_set_rate(&dec->cabac_clk_info, CLK_MODE_REDUCE);
+#ifndef CONFIG_CPU_RK3399
 	mpp_clk_set_rate(&dec->hevc_cabac_clk_info, CLK_MODE_REDUCE);
+#endif
 
 	return 0;
 }
@@ -1636,7 +1658,9 @@ static int rkvdec_reset(struct mpp_dev *mpp)
 		mpp_safe_reset(dec->rst_h);
 		mpp_safe_reset(dec->rst_core);
 		mpp_safe_reset(dec->rst_cabac);
+#ifndef CONFIG_CPU_RK3399
 		mpp_safe_reset(dec->rst_hevc_cabac);
+#endif
 		udelay(5);
 		mpp_safe_unreset(dec->rst_niu_h);
 		mpp_safe_unreset(dec->rst_niu_a);
@@ -1644,7 +1668,9 @@ static int rkvdec_reset(struct mpp_dev *mpp)
 		mpp_safe_unreset(dec->rst_h);
 		mpp_safe_unreset(dec->rst_core);
 		mpp_safe_unreset(dec->rst_cabac);
+#ifndef CONFIG_CPU_RK3399
 		mpp_safe_unreset(dec->rst_hevc_cabac);
+#endif
 		rockchip_pmu_idle_request(mpp->dev, false);
 	}
 	mpp_debug_leave();
