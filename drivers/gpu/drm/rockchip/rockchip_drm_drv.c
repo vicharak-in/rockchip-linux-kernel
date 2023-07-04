@@ -439,7 +439,7 @@ get_framebuffer_by_node(struct drm_device *drm_dev, struct device_node *node)
 		return NULL;
 
 	if (of_property_read_u32(node, "logo,offset", &val)) {
-		pr_err("%s: failed to get logo,offset\n", __func__);
+		pr_info("%s: failed to get logo,offset\n", __func__);
 		return NULL;
 	}
 	mode_cmd.offsets[0] = val;
