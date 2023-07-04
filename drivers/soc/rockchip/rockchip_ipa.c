@@ -68,7 +68,7 @@ struct ipa_power_model_data *rockchip_ipa_power_model_init(struct device *dev,
 	model_node = of_get_compatible_child(dev->of_node,
 					     "simple-power-model");
 	if (!model_node) {
-		dev_err(dev, "failed to find power_model node\n");
+		dev_info(dev, "failed to find power_model node\n");
 		ret = -ENODEV;
 		goto err;
 	}
