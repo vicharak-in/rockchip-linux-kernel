@@ -572,7 +572,11 @@ static int rockchip_get_leakage_v1(struct device *dev, struct device_node *np,
 		ret = rockchip_nvmem_cell_read_u8(np, "leakage", &value);
 	}
 	if (ret)
+#ifndef CONFIG_CPU_RK3399
 		dev_err(dev, "Failed to get %s\n", lkg_name);
+#else
+		dev_info(dev, "Failed to get %s\n", lkg_name);
+#endif
 	else
 		*leakage = value;
 
