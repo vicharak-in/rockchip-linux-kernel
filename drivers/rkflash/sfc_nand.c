@@ -946,6 +946,9 @@ u32 sfc_nand_read(u32 row, u32 *p_page_buf, u32 column, u32 len)
 		sfc_nand_rw_preset();
 
 	sfc_nand_wait_busy(&status, 1000 * 1000);
+	if (sfc_nand_dev.manufacturer == 0x01 && status)
+		sfc_nand_wait_busy(&status, 1000 * 1000);
+
 	ecc_result = p_nand_info->ecc_status();
 
 	op.sfcmd.d32 = 0;
