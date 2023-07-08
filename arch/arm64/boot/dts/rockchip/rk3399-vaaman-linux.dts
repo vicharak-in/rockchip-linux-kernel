@@ -23,6 +23,24 @@
 	chosen {
 		bootargs = "earlycon=uart8250,mmio32,0xff1a0000 console=ttyFIQ0 coherent_pool=1m";
 	};
+
+	// Power Button: {{{
+	gpio_keys: gpio-keys {
+		compatible = "gpio-keys";
+		autorepeat;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pwrbtn>;
+		status = "okay";
+
+		power {
+			debounce-interval = <100>;
+			gpios = <&gpio0 RK_PA5 GPIO_ACTIVE_LOW>;
+			label = "GPIO Key Power";
+			linux,code = <KEY_POWER>;
+			wakeup-source;
+		};
+	};
+	// End of Power Button }}}
 };
 
 &fiq_debugger {
@@ -53,4 +71,15 @@
 
 &hdmi_sound {
 	status = "okay";
+};
+
+&pinctrl {
+	// Power Button: {{{
+	power-button {
+		pwrbtn: pwrbtn {
+			rockchip,pins =
+				<0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+	// End of Power Button }}}
 };
