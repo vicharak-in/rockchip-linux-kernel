@@ -29,7 +29,7 @@ struct ws_panel {
 	struct mipi_dsi_device *dsi;
 	struct i2c_client *i2c;
 	const struct drm_display_mode *mode;
-	enum drm_panel_orientation orientation;
+	struct backlight_device *backlight;
 };
 
 /* 2.8inch 480x640
@@ -158,6 +158,12 @@ static int ws_panel_disable(struct drm_panel *panel)
 
 	ws_panel_i2c_write(ts, 0xad, 0x00);
 
+	if (ts->backlight) {
+		ts->backlight->props.power = FB_BLANK_POWERDOWN;
+		ts->backlight->props.state |= BL_CORE_FBBLANK;
+		backlight_update_status(ts->backlight);
+	}
+
 	return 0;
 }
 
@@ -177,21 +183,26 @@ static int ws_panel_enable(struct drm_panel *panel)
 
 	ws_panel_i2c_write(ts, 0xad, 0x01);
 
+	if (ts->backlight) {
+		ts->backlight->props.state &= ~BL_CORE_FBBLANK;
+		ts->backlight->props.power = FB_BLANK_UNBLANK;
+		backlight_update_status(ts->backlight);
+	}
+
 	return 0;
 }
 
-static int ws_panel_get_modes(struct drm_panel *panel,
-			      struct drm_connector *connector)
+static int ws_panel_get_modes(struct drm_panel *panel)
 {
 	static const u32 bus_format = MEDIA_BUS_FMT_RGB888_1X24;
 	struct ws_panel *ts = panel_to_ts(panel);
 	struct drm_display_mode *mode;
+	struct drm_connector *connector = ts->base.connector;
 
 	mode = drm_mode_duplicate(connector->dev, ts->mode);
 	if (!mode) {
 		dev_err(panel->dev, "failed to add mode %ux%u@%u\n",
-			ts->mode->hdisplay,
-			ts->mode->vdisplay,
+			ts->mode->hdisplay, ts->mode->vdisplay,
 			drm_mode_vrefresh(ts->mode));
 	}
 
@@ -204,23 +215,10 @@ static int ws_panel_get_modes(struct drm_panel *panel,
 	connector->display_info.bpc = 8;
 	connector->display_info.width_mm = 154;
 	connector->display_info.height_mm = 86;
-	drm_display_info_set_bus_formats(&connector->display_info,
-					 &bus_format, 1);
-
-	/*
-	 * TODO: Remove once all drm drivers call
-	 * drm_connector_set_orientation_from_panel()
-	 */
-	drm_connector_set_panel_orientation(connector, ts->orientation);
+	drm_display_info_set_bus_formats(&connector->display_info, &bus_format,
+					 1);
 
 	return 1;
-}
-
-static enum drm_panel_orientation ws_panel_get_orientation(struct drm_panel *panel)
-{
-	struct ws_panel *ts = panel_to_ts(panel);
-
-	return ts->orientation;
 }
 
 static const struct drm_panel_funcs ws_panel_funcs = {
@@ -229,14 +227,24 @@ static const struct drm_panel_funcs ws_panel_funcs = {
 	.prepare = ws_panel_prepare,
 	.enable = ws_panel_enable,
 	.get_modes = ws_panel_get_modes,
-	.get_orientation = ws_panel_get_orientation,
 };
+
+static int ws_panel_backlight_get_brightness(struct backlight_device *bd)
+{
+	if (bd->props.power != FB_BLANK_UNBLANK ||
+	    bd->props.fb_blank != FB_BLANK_UNBLANK ||
+	    bd->props.state & (BL_CORE_SUSPENDED | BL_CORE_FBBLANK))
+		return 0;
+	else
+		return bd->props.brightness;
+}
 
 static int ws_panel_bl_update_status(struct backlight_device *bl)
 {
 	struct ws_panel *ts = bl_get_data(bl);
 
-	ws_panel_i2c_write(ts, 0xab, 0xff - backlight_get_brightness(bl));
+	ws_panel_i2c_write(ts, 0xab,
+			   0xff - ws_panel_backlight_get_brightness(bl));
 	ws_panel_i2c_write(ts, 0xaa, 0x01);
 
 	return 0;
@@ -244,10 +252,10 @@ static int ws_panel_bl_update_status(struct backlight_device *bl)
 
 static const struct backlight_ops ws_panel_bl_ops = {
 	.update_status = ws_panel_bl_update_status,
+	.get_brightness = ws_panel_backlight_get_brightness,
 };
 
-static struct backlight_device *
-ws_panel_create_backlight(struct ws_panel *ts)
+static struct backlight_device *ws_panel_create_backlight(struct ws_panel *ts)
 {
 	struct device *dev = ts->base.dev;
 	const struct backlight_properties props = {
@@ -290,12 +298,6 @@ static int ws_panel_probe(struct i2c_client *i2c,
 	ws_panel_i2c_write(ts, 0xc2, 0x01);
 	ws_panel_i2c_write(ts, 0xac, 0x01);
 
-	ret = of_drm_get_panel_orientation(dev->of_node, &ts->orientation);
-	if (ret) {
-		dev_err(dev, "%pOF: failed to get orientation %d\n", dev->of_node, ret);
-		return ret;
-	}
-
 	/* Look up the DSI host.  It needs to probe before we do. */
 	endpoint = of_graph_get_next_endpoint(dev->of_node, NULL);
 	if (!endpoint)
@@ -318,19 +320,20 @@ static int ws_panel_probe(struct i2c_client *i2c,
 
 	of_node_put(endpoint);
 
-	ts->dsi = devm_mipi_dsi_device_register_full(dev, host, &info);
+	ts->dsi = mipi_dsi_device_register_full(host, &info);
 	if (IS_ERR(ts->dsi)) {
 		dev_err(dev, "DSI device registration failed: %ld\n",
 			PTR_ERR(ts->dsi));
 		return PTR_ERR(ts->dsi);
 	}
 
-	drm_panel_init(&ts->base, dev, &ws_panel_funcs,
-		       DRM_MODE_CONNECTOR_DSI);
+	drm_panel_init(&ts->base);
+	ts->base.funcs = &ws_panel_funcs;
+	ts->base.dev = dev;
 
-	ts->base.backlight = ws_panel_create_backlight(ts);
-	if (IS_ERR(ts->base.backlight)) {
-		ret = PTR_ERR(ts->base.backlight);
+	ts->backlight = ws_panel_create_backlight(ts);
+	if (IS_ERR(ts->backlight)) {
+		ret = PTR_ERR(ts->backlight);
 		dev_err(dev, "Failed to create backlight: %d\n", ret);
 		return ret;
 	}
@@ -340,14 +343,13 @@ static int ws_panel_probe(struct i2c_client *i2c,
 	 */
 	drm_panel_add(&ts->base);
 
-	ts->dsi->mode_flags = (MIPI_DSI_MODE_VIDEO |
-			   MIPI_DSI_MODE_VIDEO_SYNC_PULSE |
-			   MIPI_DSI_MODE_LPM);
+	ts->dsi->mode_flags =
+		(MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_SYNC_PULSE |
+		 MIPI_DSI_MODE_LPM);
 	ts->dsi->format = MIPI_DSI_FMT_RGB888;
 	ts->dsi->lanes = 2;
 
-	ret = devm_mipi_dsi_attach(dev, ts->dsi);
-
+	ret = mipi_dsi_attach(ts->dsi);
 	if (ret)
 		dev_err(dev, "failed to attach dsi to host: %d\n", ret);
 
@@ -358,39 +360,49 @@ error:
 	return -ENODEV;
 }
 
-static void ws_panel_remove(struct i2c_client *i2c)
+static int ws_panel_remove(struct i2c_client *i2c)
 {
 	struct ws_panel *ts = i2c_get_clientdata(i2c);
 
 	drm_panel_remove(&ts->base);
+
+	return 0;
 }
 
 static const struct of_device_id ws_panel_of_ids[] = {
 	{
 		.compatible = "waveshare,2.8inch-panel",
 		.data = &ws_panel_2_8_mode,
-	}, {
+	},
+	{
 		.compatible = "waveshare,3.4inch-panel",
 		.data = &ws_panel_3_4_mode,
-	}, {
+	},
+	{
 		.compatible = "waveshare,4.0inch-panel",
 		.data = &ws_panel_4_0_mode,
-	}, {
+	},
+	{
 		.compatible = "waveshare,7.0inch-c-panel",
 		.data = &ws_panel_7_0_c_mode,
-	}, {
+	},
+	{
 		.compatible = "waveshare,7.9inch-panel",
 		.data = &ws_panel_7_9_mode,
-	}, {
+	},
+	{
 		.compatible = "waveshare,8.0inch-panel",
 		.data = &ws_panel_10_1_mode,
-	}, {
+	},
+	{
 		.compatible = "waveshare,10.1inch-panel",
 		.data = &ws_panel_10_1_mode,
-	}, {
+	},
+	{
 		.compatible = "waveshare,11.9inch-panel",
 		.data = &ws_panel_11_9_mode,
-	}, {
+	},
+	{
 		/* sentinel */
 	}
 };
