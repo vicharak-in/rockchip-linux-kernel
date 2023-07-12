@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2020-23 Utsav Balar <utsavbalar1231@gmail.com>
-# Version: 4.0
+# Version: 4.2
 #
 
 # Set bash shell options
@@ -35,7 +35,7 @@ if echo "${@}" | grep -wqE "help|-h"; then
 	exit 0
 fi
 
-OPTIONS=("${@:-info}")
+OPTIONS=("${@:-kernel}")
 for option in "${OPTIONS[@]}"; do
 	print "processing option: $option"
 	case ${option} in
@@ -53,9 +53,8 @@ for option in "${OPTIONS[@]}"; do
 		DEVICE_MAKEFILE="${config}"
 		export DEVICE_MAKEFILE
 
-		if [ -f "${KERNEL_DIR}"/vicharak/.device.mk ]; then
-			rm -rf "${KERNEL_DIR}"/vicharak/.device.mk
-		fi
+		ln -f "${DEVICE_MAKEFILE}" "${KERNEL_DIR}"/vicharak/.device.mk
+		source "${KERNEL_DIR}"/vicharak/.device.mk
 
 		print_info
 		;;
@@ -63,6 +62,8 @@ for option in "${OPTIONS[@]}"; do
 	info) print_info ;;
 	clean) cleanup ;;
 	kernel) build_kernel ;;
+	dtbs) build_dtbs ;;
+	kerneldeb) build_kernel_deb ;;
 	update_defconfig) update_defconfig ;;
 	*)
 		usage

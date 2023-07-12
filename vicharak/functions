@@ -78,7 +78,7 @@ function pack_image() {
 		KERNEL_IMAGE_SIZE=50
 	fi
 
-	mkfs.vfat -n "boot" -S 512 -C "${FILENAME}" $((KERNEL_IMAGE_SIZE * 1024))
+	mkfs.fat -n "boot" -C "${FILENAME}" $((KERNEL_IMAGE_SIZE * 1024))
 
 	if [ -d "${KERNEL_DIR}"/extlinux ]; then
 		cp -r "${KERNEL_DIR}"/extlinux/ "${OUT_DIR}"
@@ -93,11 +93,20 @@ function pack_image() {
 	fi
 
 	mmd -i "${FILENAME}" ::/extlinux
-	mcopy -i "${FILENAME}" -s "${EXTLINUX_CONF}" ::/extlinux/extlinux.conf
+	mcopy -i "${FILENAME}" -s "${KERNEL_DIR}/${EXTLINUX_CONF}" ::/extlinux/extlinux.conf
 	mcopy -i "${FILENAME}" -s "${KERNEL_IMAGE}" ::
 	mcopy -i "${FILENAME}" -s "${KERNEL_DIR}"/logo.bmp ::
 	mcopy -i "${FILENAME}" -s "${KERNEL_DIR}"/logo_kernel.bmp ::
-	mcopy -i "${FILENAME}" -s "${DEVICE_DTB_FILE}" ::/rk-kernel.dtb
+
+	if [ -d "${DEVICE_DTB_DIR}"/overlay ]; then
+		mmd -i "${FILENAME}" ::/overlay
+
+		for dtbo in "${DEVICE_DTB_DIR}"/overlay/*.dtbo; do
+			mcopy -i "${FILENAME}" -s "${dtbo}" ::/overlay
+		done
+	fi
+
+	mcopy -i "${FILENAME}" -s "${DEVICE_DTB_DIR}"/${DEVICE_DTB_FILE}.dtb ::/rk-kernel.dtb
 
 	check_build
 
@@ -284,6 +293,8 @@ function build_kernel() {
 	if is_enabled "${DEB_BUILD}"; then
 		build_deb_kernel
 	fi
+
+	pack_image
 }
 
 # Update defconfig with savedefconfig command

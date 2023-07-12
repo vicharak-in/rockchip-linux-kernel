@@ -15,6 +15,9 @@ FILENAME="${OUT_DIR}/boot-${DATE}.img"
 # Set Kernel Image path
 KERNEL_IMAGE="${OUT_DIR}/arch/arm64/boot/Image"
 
+# Set DTB directory path
+DEVICE_DTB_DIR="${OUT_DIR}/arch/arm64/boot/dts/rockchip"
+
 # Set default extlinux config
 EXTLINUX_CONF=extlinux/vicharak.conf
 
