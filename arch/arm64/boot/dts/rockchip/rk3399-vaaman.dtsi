@@ -729,6 +729,8 @@
 // I2C 7: {{{
 &i2c7 {
 	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
 
 	pca9570: gpio@24 {
 		status = "okay";
@@ -737,6 +739,31 @@
 		reg = <0x24>;
 		gpio-controller;
 		#gpio-cells = <2>;
+	};
+
+	waveshare_panel: panel@45 {
+		compatible = "waveshare,4.0inch-panel";
+		reg = <0x45>;
+		status = "okay";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				panel_in_dsi: endpoint {
+					remote-endpoint = <&dsi_out_panel>;
+				};
+			};
+		};
+	};
+
+	touch: goodix@14 {
+		reg = <0x14>;
+		compatible = "goodix,gt911";
+		status = "disabled";
 	};
 };
 // End of I2C 7 }}}

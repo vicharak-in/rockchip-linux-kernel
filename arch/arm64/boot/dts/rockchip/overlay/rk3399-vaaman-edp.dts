@@ -36,4 +36,37 @@
 			status = "okay";
 		};
 	};
+
+	fragment@3 {
+		target = <&route_edp>;
+
+		__overlay__ {
+			status = "okay";
+			connect = <&vopl_out_edp>;
+		};
+	};
+
+	fragment@4 {
+		target = <&dp_in_vopl>;
+
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@5 {
+		target = <&hdmi_in_vopl>;
+
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@6 {
+		target = <&dsi_in_vopl>;
+
+		__overlay__ {
+			status = "disabled";
+		};
+	};
 };

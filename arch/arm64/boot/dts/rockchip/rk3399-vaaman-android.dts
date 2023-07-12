@@ -50,6 +50,26 @@
 	status = "okay";
 };
 
+// DSI: {{{
+&dsi {
+	status = "disabled";
+};
+
+&dsi_in_vopl {
+	status = "disabled";
+};
+
+&dsi_in_vopb {
+	status = "disabled";
+};
+
+&route_dsi {
+	status = "disabled";
+	connect = <&dsi_in_vopb>;
+};
+// End of DSI }}}
+
+// CDN DP: {{{
 &cdn_dp {
 	status = "okay";
 };
@@ -66,6 +86,7 @@
 	connect = <&vopl_out_edp>;
 	status = "okay";
 };
+// End of CDN DP }}}
 
 // Power Button: {{{
 &gpio_keys {

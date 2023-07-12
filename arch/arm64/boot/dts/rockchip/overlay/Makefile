@@ -3,6 +3,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rk3399-vaaman-cdn-dp.dtbo \
 	rk3399-vaaman-camera-imx219.dtbo \
 	rk3399-vaaman-camera-ov5647.dtbo \
+	rk3399-vaaman-dsi-waveshare.dtbo \
 	rk3399-vaaman-dwc3-0-host.dtbo \
 	rk3399-vaaman-dwc3-0-otg.dtbo \
 	rk3399-vaaman-edp.dtbo \

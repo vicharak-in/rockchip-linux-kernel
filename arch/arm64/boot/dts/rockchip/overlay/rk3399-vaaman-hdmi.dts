@@ -68,4 +68,28 @@
 			status = "okay";
 		};
 	};
+
+	fragment@7 {
+		target = <&edp_in_vopb>;
+
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@8 {
+		target = <&dsi_in_vopb>;
+
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragement@9 {
+		target = <&route_dsi>;
+
+		__overlay__ {
+			status = "disabled";
+		};
+	};
 };
