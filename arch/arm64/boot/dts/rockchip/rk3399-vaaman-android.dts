@@ -53,6 +53,7 @@
 // DSI: {{{
 &dsi {
 	status = "disabled";
+	/delete-node/ panel@0;
 };
 
 &dsi_in_vopl {
