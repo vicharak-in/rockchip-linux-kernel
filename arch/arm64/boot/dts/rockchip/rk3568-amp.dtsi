@@ -9,11 +9,6 @@
 		clocks = <&cru SCLK_UART4>, <&cru PCLK_UART4>,
 			 <&cru PCLK_TIMER>, <&cru CLK_TIMER4>, <&cru CLK_TIMER5>,
 			 <&cru ACLK_MCU>;
-		clock-names = "baudclk", "apb_pclk", "pclk", "timer";
-		assigned-clocks = <&cru SCLK_UART4>,
-				<&cru CLK_TIMER4>,
-				<&cru CLK_TIMER5>;
-		assigned-clock-rates = <24000000>;
 
 		pinctrl-names = "default";
 		pinctrl-0 = <&uart4m1_xfer>;
@@ -22,7 +17,7 @@
 		amp_cpus: amp-cpus {
 			amp-cpu3 {
 				id = <0x0 0x300>;
-				entry = <0x0 0x1800000>;
+				entry = <0x0 0x2800000>;
 				mode = <0>;
 			};
 		};
