@@ -183,6 +183,26 @@
  * 10.dynamic memory alloc for params and stats function
  * 11.fix rawhist weight config error for multi device
  * 12.add csm params config for isp21
+ *
+ * v1.9.0: (AIQ v5.1.3)
+ * 1.add version to querycap
+ * 2.add cgc config
+ * 3.fix imx327 hdr mode for isp21
+ * 4.params buf alloc remove to first buf queue
+ * 5.fix ldch err
+ * 6.fix dhaz config for multi isp21
+ * 7.fill extend line data for fix dhaz bug
+ * 8.expand ispp dev max size
+ * 9.fix dmatx loss first buf
+ * 10.cif/isp support compat_ioctl32 for video
+ * 11.fix sensor off to enable reset
+ * 12.fix raw output fail for multi sensor
+ * 13.fix 3a wr no output with selfpath
+ * 14.fix isp no work due to irq_ends_mask error
+ * 15.remove dmatx lock by hw dev_lock
+ * 16.set MI_RD_CTRL2 default after reset
+ * 17.stats buf add application params frame id
+ * 18.fix open video during device register
  */
 
 #define RKISP_DRIVER_VERSION RKISP_API_VERSION
