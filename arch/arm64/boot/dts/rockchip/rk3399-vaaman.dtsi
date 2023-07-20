@@ -744,7 +744,7 @@
 	waveshare_panel: panel@45 {
 		compatible = "waveshare,4.0inch-panel";
 		reg = <0x45>;
-		status = "okay";
+		status = "disabled";
 
 		ports {
 			#address-cells = <1>;
