@@ -6,8 +6,8 @@ function err_handler() {
 	ret=$?
 	[ "${ret}" -eq 0 ] && return
 
-	echo "\e[1;31mError: Running ${FUNCNAME[1]} failed!\e[0m"
-	echo "\e[1;31mError: exit code $ret from line ${BASH_LINENO[0]}: ${BASH_COMMAND}\e[0m"
+	printf "\e[1;31mError: Running %s failed!\e[0m\n" "${FUNCNAME[1]}"
+	printf "\e[1;31mError: exit code %s from line %s: %s\e[0m\n" "${ret}" "${BASH_LINENO[0]}" "${BASH_COMMAND}"
 	exit "${ret}"
 }
 trap 'err_handler' ERR
@@ -101,7 +101,7 @@ function pack_image() {
 	if [ -d "${DEVICE_DTB_DIR}"/overlay ]; then
 		mmd -i "${FILENAME}" ::/overlay
 
-		for dtbo in "${DEVICE_DTB_DIR}"/overlay/*.dtbo; do
+		for dtbo in "${DEVICE_DTB_DIR}"/overlay/*; do
 			mcopy -i "${FILENAME}" -s "${dtbo}" ::/overlay
 		done
 	fi
@@ -265,11 +265,35 @@ function build_modules() {
 
 # Build deb package for kernel
 function build_deb_kernel() {
-	make bindeb-pkg ${args} LOCALVERSION=-"${DEVICE_NAME}"
+	local build_id
+	local deb_files
+	local device_name
+
+	device_name=$(echo "${DEVICE_NAME}" | cut -d'_' -f2)
+	build_id="$(date +%Y%m%d)-${device_name}"
+
+	make bindeb-pkg ${args} KDEB_PKGVERSION="${build_id}" RK_KERNEL_DTS="${DEVICE_DTB_FILE}" LOCALVERSION="-${device_name}"
+
+	deb_files=$(find "${KERNEL_DIR}" -maxdepth 1 -name "linux-*")
+
+	if [ -n "${deb_files}" ]; then
+		for deb_file in ${deb_files}; do
+			mv "${deb_file}" "${OUT_DIR}"/
+		done
+	else
+		exit_with_error "Deb package build failed!"
+	fi
 }
 
-# Make kernel image
-function build_kernel() {
+# Build dtbs
+function build_dtbs() {
+	source_toolchain
+
+	make dtbs ${args}
+}
+
+# Set environment variables for clang or gcc
+function source_toolchain() {
 	if is_enabled "${CLANG_BUILD}"; then
 		print "----------------------------------------------------------------"
 		print "Building with Clang"
@@ -281,6 +305,11 @@ function build_kernel() {
 		print "----------------------------------------------------------------"
 		build_gcc
 	fi
+}
+
+# Make kernel image
+function build_kernel() {
+	source_toolchain
 
 	build_config
 

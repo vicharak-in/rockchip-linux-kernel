@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2020-23 Utsav Balar <utsavbalar1231@gmail.com>
-# Version: 4.2
+# Version: 4.3
 #
 
 # Set bash shell options

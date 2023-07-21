@@ -18,4 +18,4 @@ CLANG_BUILD=true
 # Build modules along with kernel
 MODULES_BUILD=true
 # Build debian package
-DEB_BUILD=false
+DEB_BUILD=true
