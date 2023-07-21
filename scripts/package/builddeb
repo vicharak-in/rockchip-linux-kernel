@@ -93,6 +93,26 @@ if grep -q "^CONFIG_OF=y" $KCONFIG_CONFIG ; then
 	fi
 fi
 
+if grep -q "^CONFIG_ARCH_VICHARAK=y" "$KCONFIG_CONFIG" ; then
+	mkdir -p "$tmpdir/boot/extlinux"
+	echo "label ${RK_KERNEL_DTS} linux-$version" > "$tmpdir"/boot/extlinux/extlinux.conf
+	echo -e "\tkernel /Image-$version" >> "$tmpdir"/boot/extlinux/extlinux.conf
+
+	cp -f "$tmpdir/usr/lib/$packagename/rockchip/${RK_KERNEL_DTS}.dtb" "$tmpdir/boot/"
+	ln -sf "$tmpdir/boot/${RK_KERNEL_DTS}.dtb" "$tmpdir/boot/rk-kernel.dtb"
+
+	echo -e "\tfdt /${RK_KERNEL_DTS}.dtb" >> "$tmpdir"/boot/extlinux/extlinux.conf
+
+	if [ -d "${tmpdir}/usr/lib/$packagename/rockchip/overlay" ]; then
+		cp -af "$tmpdir/usr/lib/$packagename/rockchip/overlay" "$tmpdir/boot/"
+	fi
+
+	if [ -e "ramdisk.img" ]; then
+		cp "ramdisk.img" "$tmpdir/boot/initrd-$version"
+		echo -e "\tinitrd /initrd-$version" >> "$tmpdir"/boot/extlinux/extlinux.conf
+	fi
+fi
+
 if grep -q '^CONFIG_MODULES=y' $KCONFIG_CONFIG ; then
 	INSTALL_MOD_PATH="$tmpdir" $MAKE KBUILD_SRC= modules_install
 	rm -f "$tmpdir/lib/modules/$version/build"
@@ -137,6 +157,11 @@ if grep -q '^CONFIG_BLK_DEV_INITRD=y' $KCONFIG_CONFIG; then
 else
 	want_initrd=No
 fi
+
+if grep -q "^CONFIG_ARCH_ROCKCHIP=y" $KCONFIG_CONFIG ; then
+	want_initrd=No
+fi
+
 for script in postinst postrm preinst prerm ; do
 	mkdir -p "$tmpdir$debhookdir/$script.d"
 	cat <<EOF > "$tmpdir/DEBIAN/$script"
@@ -158,7 +183,7 @@ done
 
 # Build kernel header package
 (cd $srctree; find . -name Makefile\* -o -name Kconfig\* -o -name \*.pl) > "$objtree/debian/hdrsrcfiles"
-(cd $srctree; find arch/*/include tools/include include scripts -type f) >> "$objtree/debian/hdrsrcfiles"
+(cd $srctree; find arch/arm{,64}/include tools/include include scripts -type f) >> "$objtree/debian/hdrsrcfiles"
 (cd $srctree; find security/selinux/include tools/include include scripts -type f) >> "$objtree/debian/hdrsrcfiles"
 (cd $srctree; find arch/$SRCARCH -name module.lds -o -name Kbuild.platforms -o -name Platform) >> "$objtree/debian/hdrsrcfiles"
 (cd $srctree; find $(find arch/$SRCARCH -name include -o -name scripts -type d) -type f) >> "$objtree/debian/hdrsrcfiles"
