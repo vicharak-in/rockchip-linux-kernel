@@ -177,14 +177,16 @@ void rtw_tx_report_purge_timer(struct timer_list *t)
 	struct rtw_tx_report *tx_report = &rtwdev->tx_report;
 	unsigned long flags;
 
-	if (skb_queue_len(&tx_report->queue) == 0)
-		return;
-
-	rtw_warn(rtwdev, "failed to get tx report from firmware\n");
+	uint32_t qlen;
 
 	spin_lock_irqsave(&tx_report->q_lock, flags);
-	skb_queue_purge(&tx_report->queue);
+	qlen = skb_queue_len(&tx_report->queue);
+	if (qlen > 0)
+		skb_queue_purge(&tx_report->queue);
 	spin_unlock_irqrestore(&tx_report->q_lock, flags);
+
+	rtw_dbg(rtwdev, RTW_DBG_TX, "failed to get tx report from firmware: "
+		"txreport qlen %u\n", qlen);
 }
 
 void rtw_tx_report_enqueue(struct rtw_dev *rtwdev, struct sk_buff *skb, u8 sn)
