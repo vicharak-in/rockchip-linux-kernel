@@ -174,7 +174,7 @@ define archhelp
   echo  '                  install to $$(INSTALL_PATH) and run lilo'
 endef
 
-kernel.img: Image.lz4
+kernel.img: Image
 	$(Q)scripts/mkkrnlimg $(objtree)/arch/arm64/boot/Image $(objtree)/kernel.img >/dev/null
 	@echo '  Image:  kernel.img is ready'
 ifdef CONFIG_MODULES
