@@ -120,6 +120,9 @@ fi
 # XXX: have each arch Makefile export a variable of the canonical image install
 # path instead
 case $ARCH in
+arm*)
+	installed_image_path="boot/Image-$version"
+	;;
 um)
 	installed_image_path="usr/bin/linux-$version"
 	;;
