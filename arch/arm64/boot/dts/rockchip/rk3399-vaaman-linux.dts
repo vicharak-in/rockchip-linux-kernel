@@ -25,6 +25,32 @@
 		bootargs = "earlycon=uart8250,mmio32,0xff1a0000 console=ttyFIQ0 coherent_pool=1m";
 	};
 
+	adc-keys {
+		compatible = "adc-keys";
+		io-channels = <&saradc 0>;
+		io-channel-names = "buttons";
+		poll-interval = <20>;
+		keyup-threshold-microvolt = <2600000>;
+
+		noop-key-1 {
+			label = "Noop1";
+			linux,code = <KEY_LEFT>;
+			press-threshold-microvolt = <100000>;
+		};
+
+		left-key {
+			label = "Left Arrow";
+			linux,code = <KEY_RESERVED>;
+			press-threshold-microvolt = <450000>;
+		};
+
+		right-key {
+			label = "Right Arrow";
+			linux,code = <KEY_RIGHT>;
+			press-threshold-microvolt = <900000>;
+		};
+	};
+
 	// Power Button: {{{
 	gpio_keys: gpio-keys {
 		compatible = "gpio-keys";
@@ -42,6 +68,26 @@
 		};
 	};
 	// End of Power Button }}}
+
+	gpio_keys_polled: gpio-keys-polled {
+		compatible = "gpio-keys-polled";
+		pinctrl-names = "up", "down";
+		pinctrl-0 = <&upbtn>, <&downbtn>;
+		poll-interval = <20>;
+		status = "okay";
+
+		up {
+			gpios = <&gpio4 RK_PA5 GPIO_ACTIVE_HIGH>;
+			label = "GPIO Key Up";
+			linux,code = <KEY_UP>;
+		};
+
+		down {
+			gpios = <&gpio4 RK_PD6 GPIO_ACTIVE_HIGH>;
+			label = "GPIO Key Down";
+			linux,code = <KEY_DOWN>;
+		};
+	};
 };
 
 &fiq_debugger {
@@ -49,8 +95,12 @@
 };
 
 // DSI: {{{
+&waveshare_panel {
+	status = "okay";
+};
+
 &dsi {
-	status = "disabled";
+	status = "okay";
 
 	ports {
 		#address-cells = <1>;
@@ -71,11 +121,11 @@
 };
 
 &dsi_in_vopb {
-	status = "disabled";
+	status = "okay";
 };
 
 &route_dsi {
-	status = "disabled";
+	status = "okay";
 	connect = <&dsi_in_vopb>;
 };
 // End of DSI }}}
@@ -86,20 +136,20 @@
 
 // HDMI: {{{
 &hdmi {
-	status = "okay";
+	status = "disabled";
 };
 
 &hdmi_in_vopb {
-	status = "okay";
+	status = "disabled";
 };
 
 &hdmi_sound {
-	status = "okay";
+	status = "disabled";
 };
 
 &route_hdmi {
 	connect = <&vopb_out_hdmi>;
-	status = "okay";
+	status = "disabled";
 };
 // End of HDMI }}}
 
@@ -109,6 +159,16 @@
 		pwrbtn: pwrbtn {
 			rockchip,pins =
 				<0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+
+		upbtn: upbtn {
+			rockchip,pins =
+				<4 RK_PD6 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		downbtn: downbtn {
+			rockchip,pins =
+				<4 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 	// End of Power Button }}}
