@@ -21,4 +21,4 @@ dtbotxt-$(CONFIG_ARCH_ROCKCHIP) += \
 targets += $(dtbo-y) $(dtbotxt-y)
 
 always			:= $(dtbo-y) $(dtbotxt-y)
-clean-files		:= *.dtbo
+clean-files		:= *.dtbo.disabled
