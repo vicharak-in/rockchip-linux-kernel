@@ -213,6 +213,10 @@ fi
 
 cmdline=\$(cat /proc/cmdline)
 
+if [ ! -f /etc/kernel/cmdline ]; then
+	ln -sf /proc/cmdline /etc/kernel/cmdline
+fi
+
 __get_root_dev() {
 	realpath "\$(findmnt --nofsroot --noheadings --output SOURCE /)"
 }
