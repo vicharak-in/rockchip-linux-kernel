@@ -126,4 +126,4 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568j-core-ddr4-v10.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk630-rk3568-ddr3-v10.dtb
 endif
 
-subdir-y := $(dts-dirs) overlay
+subdir-y := $(dts-dirs) overlays
