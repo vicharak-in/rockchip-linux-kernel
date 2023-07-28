@@ -418,6 +418,15 @@ function lunch_device() {
 
 	# shellcheck disable=SC1090,SC1091
 	source "${CFG_DIR}/.device.mk"
+
+	if [ -z "${DEVICE_DEFCONFIG}" ]; then
+		print "----------------------------------------------------------------"
+		print "Device defconfig not set!"
+		print "----------------------------------------------------------------"
+		exit 1
+	fi
+	source_toolchain
+	build_config
 }
 
 # check if $1 is true or $1 is empty
