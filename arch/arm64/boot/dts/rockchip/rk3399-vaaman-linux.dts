@@ -13,6 +13,7 @@
 	compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
 
 	aliases {
+		mmc0 = &sdmmc;
 		mmc1 = &sdhci;
 	};
 
