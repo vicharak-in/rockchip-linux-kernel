@@ -134,39 +134,74 @@ function cleanup() {
 	make ${args} clean && make ${args} mrproper
 }
 
+# Check if the GLIBC version is greater than 2.33
+# This is required to use latest GCC and Clang compilers
+function new_system_glibc() {
+	local glibc_version
+	glibc_version=$(ldd --version | awk '/ldd/{print $NF}' | sed 's/\.//g')
+
+	# check if GLIBC version is greater than 2.33
+	if [ "${glibc_version}" -gt 233 ]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+function get_clang_toolchain() {
+	local clang_dir
+	clang_dir=${KERNEL_DIR}/../clang
+	local clang_version
+	clang_version=${1}
+
+	if [ -z ${clang_version} ]; then
+		exit_with_error "Clang version Not set!"
+	fi
+
+	if [ ! -d "${clang_dir}" ]; then
+		mkdir -p "${clang_dir}"
+
+		# check if prebuilt clang is installed
+		print "Downloading clang: ${clang_version}"
+		clang_file=$(mktemp)
+		wget -O ${clang_file} \
+			https://gitlab.com/ThankYouMario/android_prebuilts_clang-standalone/-/archive/${clang_version}/android_prebuilts_clang-standalone-${clang_version}.tar.gz \
+			-q --show-progress --progress=bar:force 2>&1
+
+		tar -xzf ${clang_file} -C "${clang_dir}"
+		mv "${clang_dir}"/android_prebuilts_clang-standalone-${clang_version}/* "${clang_dir}"
+
+		rm -f /tmp/clang.tar.gz
+	else
+		local local_clang_version
+		local_clang_version=$(cat ${clang_dir}/AndroidVersion.txt | sed '2,$d' | cut -d '.' -f 1)
+
+		if [[ ${local_clang_version} -ne ${clang_version} ]] || [ -z ${local_clang_version} ]; then
+			rm -rf ${clang_dir}
+
+			get_clang_toolchain ${clang_version}
+		fi
+	fi
+}
+
 # Set environment variables for clang
 function build_clang() {
 	local clang_dir
 	clang_dir=${KERNEL_DIR}/../clang
+	local clang_version
+	clang_version=${DEFAULT_CLANG_VERSION}
 
 	# check if clang is installed
 	if command -v clang &>/dev/null; then
 		local system_clang_version
 		system_clang_version=$(clang --version | head -n1 | cut -d' ' -f3 | cut -d'.' -f1)
 
-		if [ ${system_clang_version} -lt 12 ]; then
-			case "${KERNEL_VERSION}" in
-			4*) clang_version=12 ;;
-			5* | 6*) clang_version=17 ;;
-			*) clang_version=12 ;;
-			esac
-
-			if [ ! -d "${clang_dir}" ]; then
-				mkdir -p "${clang_dir}"
-
-				# check if prebuilt clang is installed
-				print "Downloading clang: ${clang_version}"
-				clang_file=$(mktemp)
-				wget -O ${clang_file} \
-					https://gitlab.com/ThankYouMario/android_prebuilts_clang-standalone/-/archive/${clang_version}/android_prebuilts_clang-standalone-${clang_version}.tar.gz \
-					-q --show-progress --progress=bar:force 2>&1
-
-				tar -xzf ${clang_file} -C "${clang_dir}"
-				mv "${clang_dir}"/android_prebuilts_clang-standalone-${clang_version}/* "${clang_dir}"
-
-				rm -f /tmp/clang.tar.gz
-			fi
+		if [[ ${system_clang_version} -lt ${DEFAULT_CLANG_VERSION} ]]; then
+			get_clang_toolchain ${clang_version}
 		fi
+	else
+		# No clang toolchain found! download it
+		get_clang_toolchain ${clang_version}
 	fi
 
 	if [ -d "${clang_dir}" ]; then
@@ -191,14 +226,7 @@ function build_clang() {
 
 # Set environment variables for gcc
 function build_gcc() {
-	local glibc_version
-	glibc_version=$(ldd --version | awk '/ldd/{print $NF}' | sed 's/\.//g')
-
-	# check if GLIBC version is greater than 2.33
-	if [ "${glibc_version}" -gt 233 ]; then
-		print "----------------------------------------------------------------"
-		print "System glibc(${glibc_version}) is greater than 2.31, Using baremetal GCC"
-		print "----------------------------------------------------------------"
+	if new_system_glibc; then
 		if [ ! -d "${KERNEL_DIR}"/../gcc-arm64 ]; then
 			print "Downloading baremetal gcc-arm64"
 			wget -q --show-progress --progress=dot -O /tmp/gcc-arm64.zip \

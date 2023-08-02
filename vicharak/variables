@@ -22,7 +22,10 @@ DEVICE_DTB_DIR="${OUT_DIR}/arch/arm64/boot/dts/rockchip"
 EXTLINUX_CONF=extlinux/vicharak.conf
 
 # Kernel version
-KERNEL_VERSION=$(cat "${KERNEL_DIR}/Makefile" | grep "VERSION =" | sed 's/VERSION = //g')
+KERNEL_VERSION=$(cat "${KERNEL_DIR}/Makefile" | grep "VERSION =" | cut -d " " -f 3 | sed '2,$d')
+
+# Default Clang version
+DEFAULT_CLANG_VERSION=17
 
 # set PS3 prompt
 PS3="Select device: "
