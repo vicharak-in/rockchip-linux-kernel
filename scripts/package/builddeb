@@ -166,19 +166,19 @@ if grep -q "^CONFIG_ARCH_VICHARAK=y" "$KCONFIG_CONFIG" ; then
 #!/bin/sh
 set -e
 
-if find /boot -name 'Image*' | grep -q . ; then
+if find /boot -name 'Image*'; then
 	rm -f /boot/Image*
 fi
 if [ -f /boot/rk-kernel.dtb ]; then
 	rm -f /boot/rk-kernel.dtb
 fi
-if [ -d /boot/overlay ]; then
-	rm -rf /boot/overlay
+if [ -d /boot/overlays ]; then
+	rm -rf /boot/overlays
 fi
-if find /boot -name 'initrd*' | grep -q . ; then
+if find /boot -name 'initrd*'; then
 	rm -f /boot/initrd*
 fi
-if find /boot -name 'config*' | grep -q . ; then
+if find /boot -name 'config*'; then
 	rm -f /boot/config*
 fi
 
@@ -203,7 +203,7 @@ echo "\tfdt /${RK_KERNEL_DTS}.dtb" >> /boot/extlinux/extlinux.conf
 cp -f "/usr/lib/$packagename/rockchip/${RK_KERNEL_DTS}.dtb" /boot
 
 if [ -d "/usr/lib/$packagename/rockchip/overlays" ]; then
-	cp -af "/usr/lib/$packagename/rockchip/overlays" /boot
+	ln -sf "/usr/lib/$packagename/rockchip/overlays" /boot/overlays
 fi
 
 if [ -e "ramdisk.img" ]; then
@@ -245,6 +245,24 @@ fi
 exit 0
 EOF
 	chmod 0755 "$tmpdir$debhookdir/postinst.d/99-vicharak-postinst"
+
+	cat > "$tmpdir$debhookdir/prerm.d/99-vicharak-prerm" <<EOF
+#!/bin/sh
+set -e
+
+rm -rf /boot/overlays
+
+if [ -f /boot/${RK_KERNEL_DTS}.dtb ]; then
+	rm -f /boot/${RK_KERNEL_DTS}.dtb
+fi
+
+if [ -d /usr/lib/$packagename ]; then
+	rm -rf /usr/lib/$packagename
+fi
+
+exit 0
+EOF
+	chmod 0755 "$tmpdir$debhookdir/prerm.d/99-vicharak-prerm"
 fi
 
 # Build kernel header package
