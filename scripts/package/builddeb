@@ -178,6 +178,9 @@ fi
 if find /boot -name 'initrd*'; then
 	rm -f /boot/initrd*
 fi
+if find /boot -name '*.bak'; then
+	rm -f /boot/*.bak
+fi
 if find /boot -name 'config*'; then
 	rm -f /boot/config*
 fi
@@ -250,14 +253,14 @@ EOF
 #!/bin/sh
 set -e
 
-rm -rf /boot/overlays
-
-if [ -f /boot/${RK_KERNEL_DTS}.dtb ]; then
-	rm -f /boot/${RK_KERNEL_DTS}.dtb
+if [ -f /boot/Image-$version ]; then
+	cp -f /boot/Image-$version /boot/Image-$version.bak
+	sed -i "s/Image-$version/Image-$version.bak/g" /boot/extlinux/extlinux.conf
 fi
 
-if [ -d /usr/lib/$packagename ]; then
-	rm -rf /usr/lib/$packagename
+if [ -f /boot/${RK_KERNEL_DTS}.dtb ]; then
+	cp -f /boot/${RK_KERNEL_DTS}.dtb /boot/${RK_KERNEL_DTS}.dtb.bak
+	sed -i "s/${RK_KERNEL_DTS}.dtb/${RK_KERNEL_DTS}.dtb.bak/g" /boot/extlinux/extlinux.conf
 fi
 
 exit 0
