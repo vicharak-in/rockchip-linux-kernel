@@ -206,7 +206,7 @@ echo "\tfdt /${RK_KERNEL_DTS}.dtb" >> /boot/extlinux/extlinux.conf
 cp -f "/usr/lib/$packagename/rockchip/${RK_KERNEL_DTS}.dtb" /boot
 
 if [ -d "/usr/lib/$packagename/rockchip/overlays" ]; then
-	ln -sf "/usr/lib/$packagename/rockchip/overlays" /boot/overlays
+	cp -ar "/usr/lib/$packagename/rockchip/overlays" /boot/overlays
 fi
 
 if [ -e "ramdisk.img" ]; then
