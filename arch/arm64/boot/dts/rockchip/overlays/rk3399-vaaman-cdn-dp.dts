@@ -9,7 +9,7 @@
 		title = "Enable CDN DP on Vicharak Vaaman";
 		compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
 		category = "display";
-		exclusive = "hdmi, cdn_dp";
+		exclusive = "hdmi, cdn_dp", "dsi";
 		description = "Enables CDN DP display on Vicharak Vaaman\n This will enable DP port while disabling HDMI and display LOGO support.\nThis is required due to the hardware limitation of RK3399 VOP";
 	};
 
@@ -71,6 +71,22 @@
 
 	fragement@7 {
 		target = <&spdif_sound>;
+
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@8 {
+		target = <&dsi>;
+
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@9 {
+		target = <&dsi_in_vopb>;
 
 		__overlay__ {
 			status = "disabled";

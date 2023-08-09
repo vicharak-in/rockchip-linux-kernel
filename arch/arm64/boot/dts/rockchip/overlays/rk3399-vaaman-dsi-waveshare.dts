@@ -13,7 +13,7 @@
 		title = "Enable Waveshare 4inch DSI LCD";
 		compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
 		category = "display";
-		exclusive = "dsi";
+		exclusive = "dsi", "hdmi";
 		description = "Enable support for Waveshare 4inch DSI LCD\nWARNING: This will disable HDMI/DP output";
 	};
 
@@ -119,6 +119,38 @@
 
 	fragment@9 {
 		target = <&route_hdmi>;
+
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@10 {
+		target = <&hdmi>;
+
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@11 {
+		target = <&hdmi_sound>;
+
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@12 {
+		target = <&cdn_dp>;
+
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@13 {
+		target = <&dp_sound>;
 
 		__overlay__ {
 			status = "disabled";
