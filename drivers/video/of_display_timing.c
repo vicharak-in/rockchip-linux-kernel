@@ -150,7 +150,8 @@ struct display_timings *of_get_display_timings(const struct device_node *np)
 
 	timings_np = of_get_child_by_name(np, "display-timings");
 	if (!timings_np) {
-		pr_err("%pOF: could not find display-timings node\n", np);
+		if (strcmp(np->name, "edp-panel"))
+			pr_err("%pOF: could not find display-timings node\n", np);
 		return NULL;
 	}
 
@@ -177,7 +178,8 @@ struct display_timings *of_get_display_timings(const struct device_node *np)
 	disp->num_timings = of_get_child_count(timings_np);
 	if (disp->num_timings == 0) {
 		/* should never happen, as entry was already found above */
-		pr_err("%pOF: no timings specified\n", np);
+		if (strcmp(np->name, "edp-panel"))
+			pr_err("%pOF: no timings specified\n", np);
 		goto entryfail;
 	}
 
