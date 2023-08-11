@@ -292,7 +292,7 @@ static int __init rksfc_driver_init(void)
 {
 	int ret = 0;
 
-	pr_err("%s\n", RKSFC_VERSION_AND_DATE);
+	pr_info("%s\n", RKSFC_VERSION_AND_DATE);
 	ret = platform_driver_register(&rksfc_driver);
 	return ret;
 }
