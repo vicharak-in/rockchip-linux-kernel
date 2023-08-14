@@ -3296,6 +3296,73 @@ static void rockchip_dmcfreq_boost_init(struct rockchip_dmcfreq *dmcfreq)
 		dev_err(dmcfreq->dev, "failed to register input handler\n");
 }
 
+static int rk3588_dmc_get_soc_info(struct device *dev, struct device_node *np,
+			       int *bin, int *process)
+{
+	int ret = 0;
+	u8 value = 0;
+
+	if (!bin)
+		return 0;
+
+	if (of_property_match_string(np, "nvmem-cell-names",
+				     "specification_serial_number") >= 0) {
+		ret = rockchip_nvmem_cell_read_u8(np,
+						  "specification_serial_number",
+						  &value);
+		if (ret) {
+			dev_err(dev,
+				"Failed to get specification_serial_number\n");
+			return ret;
+		}
+		/* RK3588M */
+		if (value == 0xd)
+			*bin = 1;
+		/* RK3588J */
+		else if (value == 0xa)
+			*bin = 2;
+	}
+	if (*bin < 0)
+		*bin = 0;
+	dev_info(dev, "bin=%d\n", *bin);
+
+	return ret;
+}
+
+static int rk3588_dmc_set_soc_info(struct device *dev, struct device_node *np,
+				   struct rockchip_opp_info *opp_info)
+{
+	int bin = opp_info->bin;
+
+	if (opp_info->volt_sel < 0)
+		return 0;
+	if (bin < 0)
+		bin = 0;
+
+	if (!of_property_read_bool(np, "rockchip,supported-hw"))
+		return 0;
+
+	/* SoC Version */
+	opp_info->supported_hw[0] = BIT(bin);
+	/* Speed Grade */
+	opp_info->supported_hw[1] = BIT(opp_info->volt_sel);
+
+	return 0;
+}
+
+static const struct rockchip_opp_data rk3588_dmc_opp_data = {
+	.get_soc_info = rk3588_dmc_get_soc_info,
+	.set_soc_info = rk3588_dmc_set_soc_info,
+};
+
+static const struct of_device_id rockchip_dmc_opp_of_match[] = {
+	{
+		.compatible = "rockchip,rk3588",
+		.data = (void *)&rk3588_dmc_opp_data,
+	},
+	{},
+};
+
 static int rockchip_dmcfreq_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -3316,6 +3383,7 @@ static int rockchip_dmcfreq_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
+	rockchip_get_opp_data(rockchip_dmc_opp_of_match, &data->opp_info);
 	ret = rockchip_init_opp_table(dev, &data->opp_info, "dmc_clk", "center");
 	if (ret)
 		return ret;
