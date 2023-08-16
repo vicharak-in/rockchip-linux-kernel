@@ -230,6 +230,18 @@ config ARCH_VICHARAK
 	help
 	  This enables support for Vicharak Family devices.
 
+menu "Vicharak Family board selection"
+
+config BOARD_VICHARAK_VAAMAN
+	bool "Vicharak Vaaman Board based on Rockchip RK3399"
+	select ARCH_ROCKCHIP
+	select ARCH_VICHARAK
+	help
+	  This enables support for Vicharak Vaaman Board which is a single board
+	  computer based on Rockchip RK3399 SoC with additional on-board FPGA.
+
+endmenu
+
 config ARCH_S32
 	bool "NXP S32 SoC Family"
 	help
