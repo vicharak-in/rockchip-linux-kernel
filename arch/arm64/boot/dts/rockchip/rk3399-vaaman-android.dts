@@ -15,6 +15,7 @@
 	aliases {
 		mmc0 = &sdmmc;
 		mmc1 = &sdhci;
+		mmc2 = &sdio0;
 	};
 
 	/delete-node/ chosen;
