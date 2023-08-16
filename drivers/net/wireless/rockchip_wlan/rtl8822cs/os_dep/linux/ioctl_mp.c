@@ -694,7 +694,7 @@ int rtw_mp_txpower(struct net_device *dev,
 	u32 idx_a = 0, idx_b = 0, idx_c = 0, idx_d = 0;
 	int MsetPower = 1;
 	u8 input[RTW_IWD_MAX_LEN];
-	char pout_str_buf[7];
+	char pout_str_buf[8];
 	u8 res = 0;
 	char *pextra;
 
@@ -1933,7 +1933,7 @@ int rtw_mp_get_tsside(struct net_device *dev,
 
 	u8 legal_param_num = 1;
 	int param_num;
-	char pout_str_buf[7];
+	char pout_str_buf[8];
 	u8 signed_flag = 0;
 	int integer_num;
 	u32 decimal_num;
