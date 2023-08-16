@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright (C) 2023 Vicharak Computers LLP
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	metadata {
+		title = "Enable PWM1";
+		compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+		category = "misc";
+		exclusive = "GPIO4_C6";
+		description = "Enable PWM1 on pin 13.";
+	};
+
+	fragment@0 {
+		target = <&pwm1>;
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+};
