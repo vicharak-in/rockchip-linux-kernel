@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright (C) 2023 Vicharak Computers LLP
+
+/dts-v1/;
+/plugin/;
+
+&{/} {
+	metadata {
+		title = "Enable PWM0 on 40-Pin GPIO";
+		compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+		category = "misc";
+		exclusive = "GPIO4_C2";
+		description = "Enable PWM0 at Pin 11 on Vicharak Vaaman.";
+	};
+};
+
+&pwm0 {
+	status = "okay";
+};

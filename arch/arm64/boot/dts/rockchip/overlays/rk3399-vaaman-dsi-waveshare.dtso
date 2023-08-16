@@ -1,0 +1,101 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright (C) 2023 Vicharak Computers LLP
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+#include <dt-bindings/display/drm_mipi_dsi.h>
+
+&{/} {
+	metadata {
+		title = "Enable Waveshare 4inch DSI LCD";
+		compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+		category = "display";
+		exclusive = "dsi", "hdmi", "cdn_dp";
+		description = "Enables support for the Waveshare 4-inch DSI LCD screen.\nPlease note that HDMI/DP output will be disabled as a result.";
+	};
+};
+
+&dsi {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@1 {
+			reg = <1>;
+
+			dsi_out_panel: endpoint {
+				remote-endpoint = <&panel_in_dsi>;
+			};
+		};
+	};
+};
+
+&i2c1 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	waveshare_panel: panel@45 {
+		compatible = "waveshare,4.0inch-panel";
+		reg = <0x45>;
+		status = "okay";
+
+		port {
+			panel_in_dsi: endpoint {
+				remote-endpoint = <&dsi_out_panel>;
+			};
+		};
+	};
+
+	touch: goodix@14 {
+		reg = <0x14>;
+		compatible = "goodix,gt911";
+		status = "okay";
+	};
+};
+
+&dsi_in_vopl {
+	status = "disabled";
+};
+
+&dsi_in_vopb {
+	status = "okay";
+};
+
+&dp_in_vopb {
+	status = "disabled";
+};
+
+&edp_in_vopb {
+	status = "disabled";
+};
+
+&hdmi_in_vopb {
+	status = "disabled";
+};
+
+&route_dsi {
+	status = "okay";
+	connect = <&dsi_in_vopb>;
+};
+
+&route_hdmi {
+	status = "disabled";
+};
+
+&hdmi {
+	status = "disabled";
+};
+
+&hdmi_sound {
+	status = "disabled";
+};
+
+&cdn_dp {
+	status = "disabled";
+};

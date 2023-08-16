@@ -1,0 +1,75 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright (C) 2023 Vicharak Computers LLP
+
+/dts-v1/;
+/plugin/;
+
+&{/} {
+	metadata {
+		title = "Enable CDN DisplayPort for USB-C display";
+		compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+		category = "display";
+		exclusive = "hdmi", "cdn_dp", "dsi";
+		description = "Enables CDN DP display on Vicharak Vaaman by enabling\nthe DP port while disabling HDMI and display logo support.\nThis configuration is necessary due to the hardware limitations of RK3399 VOP.";
+	};
+
+	spdif_sound: spdif-sound {
+		status = "okay";
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "ROCKCHIP,SPDIF";
+		simple-audio-card,mclk-fs = <128>;
+
+		simple-audio-card,cpu {
+			sound-dai = <&spdif>;
+		};
+		simple-audio-card,codec {
+			sound-dai = <&spdif_out>;
+		};
+	};
+
+	spdif_out: spdif-out {
+		status = "okay";
+		compatible = "linux,spdif-dit";
+		#sound-dai-cells = <0>;
+	};
+};
+
+&cdn_dp {
+	status = "okay";
+};
+
+&hdmi {
+	status = "disabled";
+};
+
+&dp_in_vopb {
+	status = "okay";
+};
+
+&hdmi_in_vopb {
+	status = "disabled";
+};
+
+&route_hdmi {
+	status = "disabled";
+};
+
+&hdmi_sound {
+	status = "disabled";
+};
+
+&dsi {
+	status = "disabled";
+};
+
+&dsi_in_vopb {
+	status = "disabled";
+};
+
+&spdif {
+	status = "okay";
+	pinctrl-0 = <&spdif_bus>;
+	i2c-scl-rising-time-ns = <450>;
+	i2c-scl-falling-time-ns = <15>;
+	#sound-dai-cells = <0>;
+};
