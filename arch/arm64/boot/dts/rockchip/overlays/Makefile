@@ -6,6 +6,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rk3399-vaaman-dsi-waveshare.dtbo \
 	rk3399-vaaman-dwc3-0-host.dtbo \
 	rk3399-vaaman-dwc3-0-otg.dtbo \
+	rk3399-vaaman-fpga-communication.dtbo \
 	rk3399-vaaman-i2c2.dtbo \
 	rk3399-vaaman-i2c6.dtbo \
 	rk3399-vaaman-opp-2016.dtbo \

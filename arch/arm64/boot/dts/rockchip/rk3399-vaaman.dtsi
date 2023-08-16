@@ -24,19 +24,6 @@
 	};
 	// End of DP Sound }}}
 
-	// EDP Panel: {{{
-	edp_panel: edp-panel {
-		compatible = "simple-panel";
-		status = "okay";
-
-		port {
-			panel_in_edp: endpoint {
-				remote-endpoint = <&edp_out_panel>;
-			};
-		};
-	};
-	// End of EDP Panel }}}
-
 	// ES8316 Sound: {{{
 	es8316_sound: es8316-sound {
 		status = "okay";
@@ -376,34 +363,6 @@
 	status = "disabled";
 };
 // End of DP }}}
-
-// EDP: {{{
-&edp {
-	status = "okay";
-	force-hpd;
-
-	ports {
-		edp_out: port@1 {
-			reg = <1>;
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			edp_out_panel: endpoint@0 {
-				reg = <0>;
-				remote-endpoint = <&panel_in_edp>;
-			};
-		};
-	};
-};
-
-&edp_in_vopl {
-	status = "okay";
-};
-
-&edp_in_vopb {
-	status = "disabled";
-};
-// End of EDP }}}
 
 // Ethernet: {{{
 &gmac {
@@ -1112,19 +1071,6 @@
 };
 // End of SD/MMC/HCI/IO }}}
 
-// SPI: {{{
-&spi1 {
-	status = "okay";
-
-	w25q128: w25q128-flash@0 {
-		reg = <0>;
-		compatible = "winbond,w25q128", "jedec,spi-nor";
-		spi-max-frequency = <30000000>;
-		status = "okay";
-	};
-};
-// End of SPI }}}
-
 // Thermal Sensor: {{{
 &tsadc {
 	status = "okay";
@@ -1239,16 +1185,6 @@
 };
 
 &vopb_mmu {
-	status = "okay";
-};
-
-&vopl {
-	assigned-clocks = <&cru DCLK_VOP1_DIV>;
-	assigned-clock-parents = <&cru PLL_CPLL>;
-	status = "okay";
-};
-
-&vopl_mmu {
 	status = "okay";
 };
 // End of VOP }}}

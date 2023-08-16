@@ -7,7 +7,6 @@
 
 #include "rk3399-vaaman.dtsi"
 #include "rk3399-linux.dtsi"
-#include "rk3399-vaaman-mipi-txrx.dtsi"
 #include <dt-bindings/input/input.h>
 
 / {
