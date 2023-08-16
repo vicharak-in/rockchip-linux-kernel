@@ -101,8 +101,10 @@ extra-$(CONFIG_OF_ALL_DTBS)	+= $(dtb-)
 ifneq ($(CHECK_DTBS),)
 extra-y += $(patsubst %.dtb,%.dt.yaml, $(dtb-y))
 extra-y += $(patsubst %.dtbo,%.dt.yaml, $(dtb-y))
+extra-y += $(patsubst %.dtbo.disabled,%.dt.yaml, $(dtb-y))
 extra-$(CONFIG_OF_ALL_DTBS) += $(patsubst %.dtb,%.dt.yaml, $(dtb-))
 extra-$(CONFIG_OF_ALL_DTBS) += $(patsubst %.dtbo,%.dt.yaml, $(dtb-))
+extra-$(CONFIG_OF_ALL_DTBS) += $(patsubst %.dtbo.disabled,%.dt.yaml, $(dtb-))
 endif
 
 # Add subdir path
@@ -385,7 +387,7 @@ cmd_dtc = $(HOSTCC) -E $(dtc_cpp_flags) -x assembler-with-cpp -o $(dtc-tmp) $< ;
 $(obj)/%.dtb: $(src)/%.dts $(DTC) FORCE
 	$(call if_changed_dep,dtc)
 
-$(obj)/%.dtbo: $(src)/%.dts $(DTC) FORCE
+$(obj)/%.dtbo.disabled: $(src)/%.dts $(DTC) FORCE
 	$(call if_changed_dep,dtc)
 
 DT_CHECKER ?= dt-validate
@@ -407,12 +409,15 @@ $(obj)/%.dt.yaml: $(src)/%.dts $(DTC) $(DT_TMP_SCHEMA) FORCE
 quiet_cmd_dtco = DTCO    $@
 cmd_dtco = mkdir -p $(dir ${dtc-tmp}) ; \
 	$(CPP) $(dtc_cpp_flags) -x assembler-with-cpp -o $(dtc-tmp) $< ; \
-	$(DTC) -O dtb -o $@ -b 0 \
+   $(DTC) -O dtb -o $@.disabled -b 0 \
 		-i $(dir $<) $(DTC_FLAGS) \
 		-d $(depfile).dtc.tmp $(dtc-tmp) ; \
 	cat $(depfile).pre.tmp $(depfile).dtc.tmp > $(depfile)
 
 $(obj)/%.dtbo: $(src)/%.dts FORCE
+	$(call if_changed_dep,dtco)
+
+$(obj)/%.dtbo.disabled: $(src)/%.dts FORCE
 	$(call if_changed_dep,dtco)
 
 dtc-tmp = $(subst $(comma),_,$(dot-target).dts.tmp)
