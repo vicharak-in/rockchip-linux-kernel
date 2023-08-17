@@ -33,8 +33,8 @@
 #define N_HCI	15
 #endif
 
-#ifndef CONFIG_BT_HCIUART_H4
-#define CONFIG_BT_HCIUART_H4
+#ifndef CONFIG_BT_RTK_HCIUART_H4
+#define CONFIG_BT_RTK_HCIUART_H4
 #endif
 
 #define BTCOEX
@@ -130,7 +130,7 @@ extern int rtk_hci_uart_register_proto(struct hci_uart_proto *p);
 extern int rtk_hci_uart_unregister_proto(struct hci_uart_proto *p);
 extern int rtk_hci_uart_tx_wakeup(struct hci_uart *hu);
 
-#ifdef CONFIG_BT_HCIUART_H4
+#ifdef CONFIG_BT_RTK_HCIUART_H4
 extern int rtk_h4_init(void);
 extern int rtk_h4_deinit(void);
 #endif

@@ -1356,7 +1356,7 @@ static int __init hci_uart_init(void)
 		BT_ERR("HCI line discipline registration failed. (%d)", err);
 		return err;
 	}
-#ifdef CONFIG_BT_HCIUART_H4
+#ifdef CONFIG_BT_RTK_HCIUART_H4
 	rtk_h4_init();
 #endif
 	/* Add realtek h5 support */
@@ -1375,7 +1375,7 @@ static void __exit hci_uart_exit(void)
 	int err;
 #endif
 
-#ifdef CONFIG_BT_HCIUART_H4
+#ifdef CONFIG_BT_RTK_HCIUART_H4
 	rtk_h4_deinit();
 #endif
 	rtk_h5_deinit();
