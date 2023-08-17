@@ -9,11 +9,8 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rk3399-vaaman-fpga-communication.dtbo \
 	rk3399-vaaman-i2c2.dtbo \
 	rk3399-vaaman-i2c6.dtbo \
-	rk3399-vaaman-opp-2016.dtbo \
 	rk3399-vaaman-pwm0.dtbo \
-	rk3399-vaaman-pwm1.dtbo \
-	rk3399-vaaman-uart2.dtbo \
-	rk3399-vaaman-uart4.dtbo
+	rk3399-vaaman-pwm1.dtbo
 
 dtbotxt-$(CONFIG_ARCH_ROCKCHIP) += \
 	README.rockchip-overlays

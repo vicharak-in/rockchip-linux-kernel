@@ -6,11 +6,11 @@
 
 / {
 	metadata {
-		title = "Enable i2c6";
+		title = "Enable I2C6";
 		compatible = "rockchip,rk3399";
 		category = "misc";
 		exclusive = "GPIO2_A0", "GPIO2_A1";
-		description = "Enable i2c6 on pin GPIO2_B1 (31) SDA & GPIO2_B2 (29) SCL.";
+		description = "Enable I2C6 on pin GPIO2_B1 (31) SDA & GPIO2_B2 (29) SCL.";
 	};
 
 	fragment@0 {
