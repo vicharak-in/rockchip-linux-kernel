@@ -232,6 +232,14 @@ config ARCH_VICHARAK
 
 menu "Vicharak Family board selection"
 
+config BOARD_VICHARAK_AXON
+	bool "Vicharak Axon Board based on Rockchip RK3588"
+	select ARCH_ROCKCHIP
+	select ARCH_VICHARAK
+	help
+	  This enables support for Vicharak Axon Board which is a single board
+	  computer based on High Performance Rockchip RK3588 SoC.
+
 config BOARD_VICHARAK_VAAMAN
 	bool "Vicharak Vaaman Board based on Rockchip RK3399"
 	select ARCH_ROCKCHIP
