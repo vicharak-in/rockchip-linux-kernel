@@ -38,7 +38,7 @@ static int rockchip_gem_iommu_map(struct rockchip_gem_object *rk_obj)
 {
 	struct drm_device *drm = rk_obj->base.dev;
 	struct rockchip_drm_private *private = drm->dev_private;
-	int prot = IOMMU_READ | IOMMU_WRITE | IOMMU_TLB_SHOT_ENTIRE;
+	int prot = IOMMU_READ | IOMMU_WRITE;
 	ssize_t ret;
 
 	mutex_lock(&private->mm_lock);
@@ -62,6 +62,11 @@ static int rockchip_gem_iommu_map(struct rockchip_gem_object *rk_obj)
 		ret = -ENOMEM;
 		goto err_remove_node;
 	}
+
+#ifdef CONFIG_IOMMU_API
+	if (private->domain->ops->flush_iotlb_all)
+		private->domain->ops->flush_iotlb_all(private->domain);
+#endif
 
 	rk_obj->size = ret;
 
@@ -460,6 +465,11 @@ static void rockchip_gem_free_secure(struct rockchip_gem_object *rk_obj)
 		      rk_obj->base.size);
 }
 
+static inline bool is_vop_enabled(void)
+{
+	return (IS_ENABLED(CONFIG_ROCKCHIP_VOP) || IS_ENABLED(CONFIG_ROCKCHIP_VOP2));
+}
+
 static int rockchip_gem_alloc_buf(struct rockchip_gem_object *rk_obj,
 				  bool alloc_kmap)
 {
@@ -468,7 +478,7 @@ static int rockchip_gem_alloc_buf(struct rockchip_gem_object *rk_obj,
 	struct rockchip_drm_private *private = drm->dev_private;
 	int ret = 0;
 
-	if (!private->domain)
+	if (!private->domain && is_vop_enabled())
 		rk_obj->flags |= ROCKCHIP_BO_CONTIG;
 
 	if (rk_obj->flags & ROCKCHIP_BO_SECURE) {
@@ -508,7 +518,7 @@ static int rockchip_gem_alloc_buf(struct rockchip_gem_object *rk_obj,
 		ret = rockchip_gem_iommu_map(rk_obj);
 		if (ret < 0)
 			goto err_free;
-	} else {
+	} else if (is_vop_enabled()) {
 		WARN_ON(!rk_obj->dma_handle);
 		rk_obj->dma_addr = rk_obj->dma_handle;
 	}
@@ -820,7 +830,7 @@ int rockchip_gem_dumb_create(struct drm_file *file_priv,
 			     struct drm_mode_create_dumb *args)
 {
 	struct rockchip_gem_object *rk_obj;
-	int min_pitch = DIV_ROUND_UP(args->width * args->bpp, 8);
+	u32 min_pitch = args->width * DIV_ROUND_UP(args->bpp, 8);
 
 	/*
 	 * align to 64 bytes since Mali requires it.

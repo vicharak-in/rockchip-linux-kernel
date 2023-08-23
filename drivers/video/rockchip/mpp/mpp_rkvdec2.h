@@ -33,6 +33,10 @@
 
 #define RKVDEC_DRIVER_NAME		"mpp_rkvdec2"
 
+#define RKVDEC_REG_IMPORTANT_BASE	0x2c
+#define RKVDEC_REG_IMPORTANT_INDEX	11
+#define RKVDEC_SOFTREST_EN		BIT(20)
+
 #define	RKVDEC_SESSION_MAX_BUFFERS	40
 /* The maximum registers number of all the version */
 #define RKVDEC_REG_NUM			279
@@ -71,6 +75,7 @@
 					RKVDEC_BUF_EMPTY_STA |\
 					RKVDEC_TIMEOUT_STA |\
 					RKVDEC_ERROR_STA)
+#define RKVDEC_PERF_WORKING_CNT		0x41c
 
 /* perf sel reference register */
 #define RKVDEC_PERF_SEL_OFFSET		0x20000
@@ -202,6 +207,8 @@ struct rkvdec2_dev {
 	/* for link mode */
 	struct rkvdec_link_dev *link_dec;
 	struct mpp_dma_buffer *fix;
+
+	u32 err_ref_hack;
 };
 
 void *rkvdec2_alloc_task(struct mpp_session *session,

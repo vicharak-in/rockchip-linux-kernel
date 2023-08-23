@@ -425,7 +425,7 @@ static int rockchip_show_interrupts(char *p, int irq)
 	struct irq_desc *desc;
 
 	if (i > nr_irqs)
-		return 0;
+		return -EINVAL;
 
 	/* print header and calculate the width of the first column */
 	if (i == 0) {
@@ -433,24 +433,24 @@ static int rockchip_show_interrupts(char *p, int irq)
 			j *= 10;
 
 		buf += sprintf(buf, "%*s", prec + 8, "");
-		for_each_online_cpu(j)
+		for_each_possible_cpu(j)
 			buf += sprintf(buf, "CPU%-8d", j);
 		buf += sprintf(buf, "\n");
 	}
 
 	desc = irq_to_desc(i);
 	if (!desc)
-		goto outsparse;
+		return -EINVAL;
 
 	if (desc->kstat_irqs)
-		for_each_online_cpu(j)
+		for_each_possible_cpu(j)
 			any_count |= *per_cpu_ptr(desc->kstat_irqs, j);
 
 	if ((!desc->action || (desc->action && desc->action == &chained_action)) && !any_count)
-		goto outsparse;
+		return -EINVAL;
 
 	buf += sprintf(buf, "%*d: ", prec, i);
-	for_each_online_cpu(j)
+	for_each_possible_cpu(j)
 		buf += sprintf(buf, "%10u ", desc->kstat_irqs ?
 					*per_cpu_ptr(desc->kstat_irqs, j) : 0);
 
@@ -480,7 +480,6 @@ static int rockchip_show_interrupts(char *p, int irq)
 	}
 
 	sprintf(buf, "\n");
-outsparse:
 	return 0;
 }
 

@@ -26,7 +26,7 @@
 #endif /* RTT_SUPPORT */
 
 #define VENDOR_SCAN_RESULT_EXPIRE	(7 * HZ)
-#define WIFI_SUBCMD_SET_COUNTRY_CODE  0x0006
+#define WIFI_SUBCMD_SET_COUNTRY_CODE  0x100E
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
 static const u8 *wpa_scan_get_ie(u8 *res, u8 ie_len, u8 ie)
@@ -874,7 +874,7 @@ static int sprdwl_vendor_gscan_start(struct wiphy *wiphy,
 static int sprdwl_vendor_set_country(struct wiphy *wiphy,
 	struct wireless_dev *wdev, const void  *data, int len)
 {
-#define ANDR_WIFI_ATTRIBUTE_COUNTRY 8
+#define ANDR_WIFI_ATTRIBUTE_COUNTRY 4
 	int err = 0, rem, type;
 	char country_code[2] = {0};
 	const struct nlattr *iter;

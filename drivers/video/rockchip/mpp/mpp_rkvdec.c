@@ -948,11 +948,11 @@ static int rkvdec_3328_run(struct mpp_dev *mpp,
 	task = to_rkvdec_task(mpp_task);
 
 	/*
-	 * HW defeat workaround: VP9 power save optimization cause decoding
+	 * HW defeat workaround: VP9 and H.265 power save optimization cause decoding
 	 * corruption, disable optimization here.
 	 */
 	fmt = RKVDEC_GET_FORMAT(task->reg[RKVDEC_REG_SYS_CTRL_INDEX]);
-	if (fmt == RKVDEC_FMT_VP9D) {
+	if (fmt == RKVDEC_FMT_VP9D || fmt == RKVDEC_FMT_H265D) {
 		cfg = task->reg[RKVDEC_POWER_CTL_INDEX] | 0xFFFF;
 		task->reg[RKVDEC_POWER_CTL_INDEX] = cfg & (~(1 << 12));
 		mpp_write_relaxed(mpp, RKVDEC_POWER_CTL_BASE,
@@ -1175,6 +1175,10 @@ static int rkvdec_procfs_init(struct mpp_dev *mpp)
 		dec->procfs = NULL;
 		return -EIO;
 	}
+
+	/* for common mpp_dev options */
+	mpp_procfs_create_common(dec->procfs, mpp);
+
 	mpp_procfs_create_u32("aclk", 0644,
 			      dec->procfs, &dec->aclk_info.debug_rate_hz);
 	mpp_procfs_create_u32("clk_core", 0644,
@@ -1651,7 +1655,7 @@ static int rkvdec_reset(struct mpp_dev *mpp)
 
 	mpp_debug_enter();
 	if (dec->rst_a && dec->rst_h) {
-		rockchip_pmu_idle_request(mpp->dev, true);
+		mpp_pmu_idle_request(mpp, true);
 		mpp_safe_reset(dec->rst_niu_a);
 		mpp_safe_reset(dec->rst_niu_h);
 		mpp_safe_reset(dec->rst_a);
@@ -1671,7 +1675,7 @@ static int rkvdec_reset(struct mpp_dev *mpp)
 #ifndef CONFIG_CPU_RK3399
 		mpp_safe_unreset(dec->rst_hevc_cabac);
 #endif
-		rockchip_pmu_idle_request(mpp->dev, false);
+		mpp_pmu_idle_request(mpp, false);
 	}
 	mpp_debug_leave();
 

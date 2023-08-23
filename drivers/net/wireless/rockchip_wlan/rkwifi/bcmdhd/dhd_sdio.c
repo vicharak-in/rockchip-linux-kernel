@@ -2008,7 +2008,8 @@ dhdsdio_bussleep(dhd_bus_t *bus, bool sleep)
 #if defined(WL_EXT_IAPSTA) && defined(DHD_LOSSLESS_ROAMING)
 		state = wl_ext_any_sta_handshaking(bus->dhd);
 		if (state) {
-			DHD_ERROR(("handshaking %d\n", state));
+			if (dump_msg_level & DUMP_EAPOL_VAL)
+				DHD_ERROR(("handshaking %d\n", state));
 			return BCME_BUSY;
 		}
 #endif /* WL_EXT_IAPSTA && DHD_LOSSLESS_ROAMING */

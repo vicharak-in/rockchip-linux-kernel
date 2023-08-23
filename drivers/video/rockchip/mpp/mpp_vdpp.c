@@ -18,6 +18,8 @@
 #include <linux/uaccess.h>
 #include <linux/regmap.h>
 #include <linux/proc_fs.h>
+#include <linux/mfd/syscon.h>
+#include <linux/rockchip/cpu.h>
 #include <soc/rockchip/pm_domains.h>
 
 #include "mpp_debug.h"
@@ -27,6 +29,8 @@
 #define VDPP_DRIVER_NAME		"mpp_vdpp"
 
 #define	VDPP_SESSION_MAX_BUFFERS	15
+#define VDPP_REG_WORK_MODE			0x0008
+#define VDPP_REG_VDPP_MODE			BIT(1)
 
 #define to_vdpp_info(info)	\
 		container_of(info, struct vdpp_hw_info, hw)
@@ -87,6 +91,7 @@ struct vdpp_dev {
 	struct reset_control *rst_s;
 	/* for zme */
 	void __iomem *zme_base;
+	struct regmap *grf;
 };
 
 static struct vdpp_hw_info vdpp_v1_hw_info = {
@@ -332,6 +337,9 @@ static int vdpp_run(struct mpp_dev *mpp,
 		}
 	}
 
+	/* flush tlb before starting hardware */
+	mpp_iommu_flush_tlb(mpp->iommu_info);
+
 	/* init current task */
 	mpp->cur_task = mpp_task;
 	/* Flush the register before the start the device */
@@ -474,6 +482,8 @@ static int vdpp_init(struct mpp_dev *mpp)
 	int ret;
 	struct vdpp_dev *vdpp = to_vdpp_dev(mpp);
 
+	mpp->grf_info = &mpp->srv->grf_infos[MPP_DRIVER_VDPP];
+
 	/* Get clock info from dtsi */
 	ret = mpp_get_clk_info(mpp, &vdpp->aclk_info, "aclk");
 	if (ret)
@@ -546,12 +556,18 @@ static int vdpp_irq(struct mpp_dev *mpp)
 {
 	struct vdpp_dev *vdpp = to_vdpp_dev(mpp);
 	struct vdpp_hw_info *hw_info = vdpp->hw_info;
+	u32 work_mode = mpp_read(mpp, VDPP_REG_WORK_MODE);
 
+	if (!(work_mode & VDPP_REG_VDPP_MODE))
+		return IRQ_NONE;
 	mpp->irq_status = mpp_read(mpp, hw_info->int_sta_base);
 	if (!(mpp->irq_status & hw_info->int_mask))
 		return IRQ_NONE;
 	mpp_write(mpp, hw_info->int_en_base, 0);
 	mpp_write(mpp, hw_info->int_clr_base, mpp->irq_status);
+
+	/* ensure hardware is being off status */
+	mpp_write(mpp, hw_info->start_base, 0);
 
 	return IRQ_WAKE_THREAD;
 }
@@ -590,7 +606,7 @@ static int _vdpp_reset(struct mpp_dev *mpp, struct vdpp_dev *vdpp)
 		mpp_debug(DEBUG_RESET, "reset in\n");
 
 		/* Don't skip this or iommu won't work after reset */
-		rockchip_pmu_idle_request(mpp->dev, true);
+		mpp_pmu_idle_request(mpp, true);
 		mpp_safe_reset(vdpp->rst_a);
 		mpp_safe_reset(vdpp->rst_h);
 		mpp_safe_reset(vdpp->rst_s);
@@ -598,7 +614,7 @@ static int _vdpp_reset(struct mpp_dev *mpp, struct vdpp_dev *vdpp)
 		mpp_safe_unreset(vdpp->rst_a);
 		mpp_safe_unreset(vdpp->rst_h);
 		mpp_safe_unreset(vdpp->rst_s);
-		rockchip_pmu_idle_request(mpp->dev, false);
+		mpp_pmu_idle_request(mpp, false);
 
 		mpp_debug(DEBUG_RESET, "reset out\n");
 	}
@@ -617,14 +633,18 @@ static int vdpp_reset(struct mpp_dev *mpp)
 	mpp_write(mpp, hw_info->cfg_base, hw_info->bit_rst_en);
 	ret = readl_relaxed_poll_timeout(mpp->reg_base + hw_info->rst_sta_base,
 					 rst_status,
-					 !(rst_status & hw_info->bit_rst_done),
-					 0, 2);
+					 rst_status & hw_info->bit_rst_done,
+					 0, 5);
 	if (ret) {
 		mpp_err("soft reset timeout, use cru reset\n");
 		return _vdpp_reset(mpp, vdpp);
 	}
 
 	mpp_write(mpp, hw_info->rst_sta_base, 0);
+
+	/* ensure hardware is being off status */
+	mpp_write(mpp, hw_info->start_base, 0);
+
 
 	return 0;
 }
@@ -710,6 +730,7 @@ static int vdpp_probe(struct platform_device *pdev)
 		dev_err(dev, "register interrupter runtime failed\n");
 		return -EINVAL;
 	}
+
 	mpp->session_max_buffers = VDPP_SESSION_MAX_BUFFERS;
 	vdpp->hw_info = to_vdpp_info(mpp->var->hw_info);
 	vdpp_procfs_init(mpp);
@@ -751,12 +772,53 @@ static void vdpp_shutdown(struct platform_device *pdev)
 		dev_err(dev, "wait total running time out\n");
 }
 
+static int vdpp_runtime_suspend(struct device *dev)
+{
+	struct mpp_dev *mpp = dev_get_drvdata(dev);
+	struct mpp_grf_info *info = mpp->grf_info;
+	struct mpp_taskqueue *queue = mpp->queue;
+
+	if (cpu_is_rk3528() && info && info->mem_offset) {
+		mutex_lock(&queue->ref_lock);
+		if (!atomic_dec_if_positive(&queue->runtime_cnt)) {
+			regmap_write(info->grf, info->mem_offset,
+				     info->val_mem_off);
+		}
+		mutex_unlock(&queue->ref_lock);
+	}
+
+	return 0;
+}
+
+static int vdpp_runtime_resume(struct device *dev)
+{
+	struct mpp_dev *mpp = dev_get_drvdata(dev);
+	struct mpp_grf_info *info = mpp->grf_info;
+	struct mpp_taskqueue *queue = mpp->queue;
+
+	if (cpu_is_rk3528() && info && info->mem_offset) {
+		mutex_lock(&queue->ref_lock);
+		regmap_write(info->grf, info->mem_offset,
+			     info->val_mem_on);
+		atomic_inc(&queue->runtime_cnt);
+		mutex_unlock(&queue->ref_lock);
+	}
+
+	return 0;
+}
+
+static const struct dev_pm_ops vdpp_pm_ops = {
+	.runtime_suspend		= vdpp_runtime_suspend,
+	.runtime_resume			= vdpp_runtime_resume,
+};
+
 struct platform_driver rockchip_vdpp_driver = {
 	.probe = vdpp_probe,
 	.remove = vdpp_remove,
 	.shutdown = vdpp_shutdown,
 	.driver = {
 		.name = VDPP_DRIVER_NAME,
+		.pm = &vdpp_pm_ops,
 		.of_match_table = of_match_ptr(mpp_vdpp_dt_match),
 	},
 };

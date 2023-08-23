@@ -107,6 +107,30 @@ bool rga_is_yuv420_packed_format(uint32_t format)
 	}
 }
 
+bool rga_is_yuv420_planar_format(uint32_t format)
+{
+	switch (format) {
+	case RGA_FORMAT_YCbCr_420_P:
+	case RGA_FORMAT_YCrCb_420_P:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool rga_is_yuv420_semi_planar_format(uint32_t format)
+{
+	switch (format) {
+	case RGA_FORMAT_YCbCr_420_SP:
+	case RGA_FORMAT_YCrCb_420_SP:
+	case RGA_FORMAT_YCbCr_420_SP_10B:
+	case RGA_FORMAT_YCrCb_420_SP_10B:
+		return true;
+	default:
+		return false;
+	}
+}
+
 bool rga_is_yuv422_packed_format(uint32_t format)
 {
 	switch (format) {
@@ -114,6 +138,30 @@ bool rga_is_yuv422_packed_format(uint32_t format)
 	case RGA_FORMAT_VYUY_422:
 	case RGA_FORMAT_YUYV_422:
 	case RGA_FORMAT_UYVY_422:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool rga_is_yuv422_planar_format(uint32_t format)
+{
+	switch (format) {
+	case RGA_FORMAT_YCbCr_422_P:
+	case RGA_FORMAT_YCrCb_422_P:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool rga_is_yuv422_semi_planar_format(uint32_t format)
+{
+	switch (format) {
+	case RGA_FORMAT_YCbCr_422_SP:
+	case RGA_FORMAT_YCrCb_422_SP:
+	case RGA_FORMAT_YCbCr_422_SP_10B:
+	case RGA_FORMAT_YCrCb_422_SP_10B:
 		return true;
 	default:
 		return false;
@@ -664,4 +712,18 @@ int rga_image_size_cal(int w, int h, int format,
 		*v_size = v;
 
 	return (yrgb + uv + v);
+}
+
+void rga_dump_memory_parm(struct rga_memory_parm *parm)
+{
+	pr_info("memory param: w = %d, h = %d, f = %s(0x%x), size = %d\n",
+		parm->width, parm->height, rga_get_format_name(parm->format),
+		parm->format, parm->size);
+}
+
+void rga_dump_external_buffer(struct rga_external_buffer *buffer)
+{
+	pr_info("external: memory = 0x%lx, type = %s\n",
+		(unsigned long)buffer->memory, rga_get_memory_type_str(buffer->type));
+	rga_dump_memory_parm(&buffer->memory_parm);
 }

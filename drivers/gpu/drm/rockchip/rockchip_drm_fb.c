@@ -114,8 +114,6 @@ rockchip_fb_alloc(struct drm_device *dev, const struct drm_mode_fb_cmd2 *mode_cm
 {
 	struct rockchip_drm_fb *rockchip_fb;
 	struct rockchip_gem_object *rk_obj;
-	struct rockchip_drm_private *private = dev->dev_private;
-	struct drm_fb_helper *fb_helper = private->fbdev_helper;
 	int ret = 0;
 	int i;
 
@@ -141,9 +139,6 @@ rockchip_fb_alloc(struct drm_device *dev, const struct drm_mode_fb_cmd2 *mode_cm
 			rk_obj = to_rockchip_obj(obj[i]);
 			rockchip_fb->dma_addr[i] = rk_obj->dma_addr;
 			rockchip_fb->kvaddr[i] = rk_obj->kvaddr;
-			private->fbdev_bo = &rk_obj->base;
-			if (fb_helper && fb_helper->fbdev && rk_obj->kvaddr)
-				fb_helper->fbdev->screen_base = rk_obj->kvaddr;
 		}
 #ifndef MODULE
 	} else if (logo) {
@@ -366,6 +361,24 @@ rockchip_drm_atomic_helper_wait_for_vblanks(struct drm_device *dev,
 	}
 }
 
+static void drm_atomic_helper_connector_commit(struct drm_device *dev,
+					       struct drm_atomic_state *old_state)
+{
+	struct drm_connector *connector;
+	struct drm_connector_state *new_conn_state;
+	int i;
+
+	for_each_new_connector_in_state(old_state, connector, new_conn_state, i) {
+		const struct drm_connector_helper_funcs *funcs;
+
+		funcs = connector->helper_private;
+		if (!funcs->atomic_commit)
+			continue;
+
+		funcs->atomic_commit(connector, new_conn_state);
+	}
+}
+
 static void
 rockchip_atomic_helper_commit_tail_rpm(struct drm_atomic_state *old_state)
 {
@@ -381,6 +394,8 @@ rockchip_atomic_helper_commit_tail_rpm(struct drm_atomic_state *old_state)
 					DRM_PLANE_COMMIT_ACTIVE_ONLY);
 
 	rockchip_drm_psr_inhibit_put_state(old_state);
+
+	drm_atomic_helper_connector_commit(dev, old_state);
 
 	drm_atomic_helper_commit_hw_done(old_state);
 
@@ -444,6 +459,8 @@ rockchip_atomic_commit_complete(struct rockchip_atomic_commit *commit)
 	mutex_unlock(&prv->ovl_lock);
 
 	rockchip_drm_psr_inhibit_put_state(state);
+
+	drm_atomic_helper_connector_commit(dev, state);
 
 	drm_atomic_helper_commit_hw_done(state);
 

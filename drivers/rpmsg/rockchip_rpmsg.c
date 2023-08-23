@@ -113,7 +113,6 @@ static bool rk_rpmsg_notify(struct virtqueue *vq)
 		dev_err(dev, "mbox send failed!\n");
 		return false;
 	}
-	mbox_chan_txdone(rpdev->mbox_tx_chan, 0);
 
 	return true;
 }

@@ -59,7 +59,9 @@ dhd_ring_proc_open(struct inode *inode, struct file *file)
 {
 	int ret = BCME_ERROR;
 	if (inode) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0))
+		ret = single_open(file, 0, pde_data(inode));
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0))
 		ret = single_open(file, 0, PDE_DATA(inode));
 #else
 		/* This feature is not supported for lower kernel versions */

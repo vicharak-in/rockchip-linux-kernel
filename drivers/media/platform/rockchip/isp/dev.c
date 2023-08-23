@@ -289,6 +289,12 @@ static int rkisp_pipeline_set_stream(struct rkisp_pipeline *p, bool on)
 				goto err_stream_off;
 		}
 	} else {
+		if (dev->hw_dev->monitor.is_en) {
+			dev->hw_dev->monitor.is_en = 0;
+			dev->hw_dev->monitor.state = ISP_STOP;
+			if (!completion_done(&dev->hw_dev->monitor.cmpl))
+				complete(&dev->hw_dev->monitor.cmpl);
+		}
 		/* sensor -> phy */
 		for (i = p->num_subdevs - 1; i >= 0; --i)
 			v4l2_subdev_call(p->subdevs[i], video, s_stream, on);
@@ -797,6 +803,7 @@ static int rkisp_plat_probe(struct platform_device *pdev)
 	pm_runtime_enable(dev);
 	if (isp_dev->hw_dev->is_thunderboot && isp_dev->is_thunderboot)
 		pm_runtime_get_noresume(isp_dev->hw_dev->dev);
+	isp_dev->is_probe_end = true;
 	return 0;
 
 err_unreg_media_dev:

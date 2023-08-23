@@ -19,6 +19,7 @@
 #include <linux/slab.h>
 #include <linux/nospec.h>
 #include <linux/mfd/syscon.h>
+#include <linux/regmap.h>
 
 #include "mpp_debug.h"
 #include "mpp_common.h"
@@ -42,34 +43,47 @@ static int mpp_init_grf(struct device_node *np,
 			struct mpp_grf_info *grf_info,
 			const char *grf_name)
 {
-	int ret;
 	int index;
 	u32 grf_offset = 0;
 	u32 grf_value = 0;
+	u32 mem_offset = 0;
+	u32 val_mem_on = 0;
+	u32 val_mem_off = 0;
 	struct regmap *grf;
 
 	grf = syscon_regmap_lookup_by_phandle(np, "rockchip,grf");
 	if (IS_ERR_OR_NULL(grf))
 		return -EINVAL;
 
-	ret = of_property_read_u32(np, "rockchip,grf-offset", &grf_offset);
-	if (ret)
-		return -ENODATA;
-
 	index = of_property_match_string(np, "rockchip,grf-names", grf_name);
 	if (index < 0)
 		return -ENODATA;
 
-	ret = of_property_read_u32_index(np, "rockchip,grf-values",
-					 index, &grf_value);
-	if (ret)
-		return -ENODATA;
+	of_property_read_u32(np, "rockchip,grf-offset", &grf_offset);
+	of_property_read_u32_index(np, "rockchip,grf-values",
+				   index, &grf_value);
+	of_property_read_u32_index(np, "rockchip,grf-mem-offset",
+				   index, &mem_offset);
+	of_property_read_u32_index(np, "rockchip,grf-mem-on-values",
+				   index, &val_mem_on);
+	of_property_read_u32_index(np, "rockchip,grf-mem-off-values",
+				   index, &val_mem_off);
+
 
 	grf_info->grf = grf;
 	grf_info->offset = grf_offset;
 	grf_info->val = grf_value;
 
-	mpp_set_grf(grf_info);
+	grf_info->mem_offset = mem_offset;
+	grf_info->val_mem_on = val_mem_on;
+	grf_info->val_mem_off = val_mem_off;
+
+	if (grf_info->offset && grf_info->val)
+		mpp_set_grf(grf_info);
+
+	if (grf_info->mem_offset && grf_info->val_mem_off)
+		regmap_write(grf_info->grf, grf_info->mem_offset,
+			     grf_info->val_mem_off);
 
 	return 0;
 }
@@ -261,6 +275,7 @@ static int mpp_procfs_init(struct mpp_service *srv)
 	/* show support devices */
 	proc_create_single_data("supports-device", 0444,
 				srv->procfs, mpp_show_support_device, srv);
+	mpp_procfs_create_u32("timing_en", 0644, srv->procfs, &srv->timing_en);
 
 	return 0;
 }

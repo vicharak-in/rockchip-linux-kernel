@@ -189,7 +189,12 @@ extern s32 wl_cfg80211_change_virtual_iface(struct wiphy *wiphy, struct net_devi
 s32
 wl_cfg80211_set_channel(struct wiphy *wiphy, struct net_device *dev,
 	struct ieee80211_channel *chan,
-	enum nl80211_channel_type channel_type);
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 6, 0))
+	enum nl80211_channel_type channel_type
+#else
+	enum nl80211_chan_width width
+#endif
+);
 #endif /* ((LINUX_VERSION < VERSION(3, 6, 0)) || WL_COMPAT_WIRELESS */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)) || \
 	defined(WL_COMPAT_WIRELESS)
@@ -200,7 +205,7 @@ extern s32 wl_cfg80211_stop_ap(struct wiphy *wiphy, struct net_device *dev,
 	unsigned int link_id);
 #else
 extern s32 wl_cfg80211_stop_ap(struct wiphy *wiphy, struct net_device *dev);
-#endif
+#endif /* CFG80211_BKPORT_MLO */
 extern s32 wl_cfg80211_change_beacon(struct wiphy *wiphy, struct net_device *dev,
 	struct cfg80211_beacon_data *info);
 #else

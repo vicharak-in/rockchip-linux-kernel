@@ -18,7 +18,11 @@ bool rga_is_rgb_format(uint32_t format);
 bool rga_is_yuv_format(uint32_t format);
 bool rga_is_alpha_format(uint32_t format);
 bool rga_is_yuv420_packed_format(uint32_t format);
+bool rga_is_yuv420_planar_format(uint32_t format);
+bool rga_is_yuv420_semi_planar_format(uint32_t format);
 bool rga_is_yuv422_packed_format(uint32_t format);
+bool rga_is_yuv422_planar_format(uint32_t format);
+bool rga_is_yuv422_semi_planar_format(uint32_t format);
 bool rga_is_yuv8bit_format(uint32_t format);
 bool rga_is_yuv10bit_format(uint32_t format);
 bool rga_is_yuv422p_format(uint32_t format);
@@ -40,5 +44,7 @@ void rga_convert_addr(struct rga_img_info_t *img, bool before_vir_get_channel);
 void rga_swap_pd_mode(struct rga_req *req_rga);
 int rga_image_size_cal(int w, int h, int format,
 		       int *yrgb_size, int *uv_size, int *v_size);
+void rga_dump_memory_parm(struct rga_memory_parm *parm);
+void rga_dump_external_buffer(struct rga_external_buffer *buffer);
 
 #endif

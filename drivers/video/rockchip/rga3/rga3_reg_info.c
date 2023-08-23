@@ -8,6 +8,8 @@
 #define pr_fmt(fmt) "rga3_reg: " fmt
 
 #include "rga3_reg_info.h"
+#include "rga_dma_buf.h"
+#include "rga_iommu.h"
 #include "rga_common.h"
 #include "rga_debugger.h"
 #include "rga_hw_config.h"
@@ -91,14 +93,12 @@ static void RGA3_set_reg_win0_info(u8 *base, struct rga3_req *msg)
 	dw = msg->win0.dst_act_w;
 	dh = msg->win0.dst_act_h;
 
-	if (msg->win0.rotate_mode != 0) {
-		if (rotate_mode) {
-			sh = msg->win0.src_act_w;
-			sw = msg->win0.src_act_h;
-		} else {
-			sw = msg->win0.src_act_w;
-			sh = msg->win0.src_act_h;
-		}
+	if (rotate_mode) {
+		sh = msg->win0.src_act_w;
+		sw = msg->win0.src_act_h;
+	} else {
+		sw = msg->win0.src_act_w;
+		sh = msg->win0.src_act_h;
 	}
 
 	if (sw > dw) {
@@ -289,7 +289,7 @@ static void RGA3_set_reg_win0_info(u8 *base, struct rga3_req *msg)
 	}
 
 	/* rotate & mirror */
-	if (msg->win1.yrgb_addr == 0) {
+	if (msg->win0.rotate_mode == 1) {
 		reg =
 			((reg & (~m_RGA3_WIN0_RD_CTRL_SW_WIN0_ROT)) |
 			 (s_RGA3_WIN0_RD_CTRL_SW_WIN0_ROT(rotate_mode)));
@@ -299,36 +299,23 @@ static void RGA3_set_reg_win0_info(u8 *base, struct rga3_req *msg)
 		reg =
 			((reg & (~m_RGA3_WIN0_RD_CTRL_SW_WIN0_YMIRROR)) |
 			 (s_RGA3_WIN0_RD_CTRL_SW_WIN0_YMIRROR(ymirror)));
-
-		/* scale */
-		*bRGA3_WIN0_SCL_FAC = param_x | param_y << 16;
-
-		reg =
-			((reg & (~m_RGA3_WIN0_RD_CTRL_SW_WIN0_HOR_BY)) |
-			 (s_RGA3_WIN0_RD_CTRL_SW_WIN0_HOR_BY(x_by)));
-		reg =
-			((reg & (~m_RGA3_WIN0_RD_CTRL_SW_WIN0_HOR_UP)) |
-			 (s_RGA3_WIN0_RD_CTRL_SW_WIN0_HOR_UP(x_up)));
-		reg =
-			((reg & (~m_RGA3_WIN0_RD_CTRL_SW_WIN0_VER_BY)) |
-			 (s_RGA3_WIN0_RD_CTRL_SW_WIN0_VER_BY(y_by)));
-		reg =
-			((reg & (~m_RGA3_WIN0_RD_CTRL_SW_WIN0_VER_UP)) |
-			 (s_RGA3_WIN0_RD_CTRL_SW_WIN0_VER_UP(y_up)));
-	} else {
-		reg =
-			((reg & (~m_RGA3_WIN0_RD_CTRL_SW_WIN0_HOR_BY)) |
-			 (s_RGA3_WIN0_RD_CTRL_SW_WIN0_HOR_BY(1)));
-		reg =
-			((reg & (~m_RGA3_WIN0_RD_CTRL_SW_WIN0_HOR_UP)) |
-			 (s_RGA3_WIN0_RD_CTRL_SW_WIN0_HOR_UP(0)));
-		reg =
-			((reg & (~m_RGA3_WIN0_RD_CTRL_SW_WIN0_VER_BY)) |
-			 (s_RGA3_WIN0_RD_CTRL_SW_WIN0_VER_BY(1)));
-		reg =
-			((reg & (~m_RGA3_WIN0_RD_CTRL_SW_WIN0_VER_UP)) |
-			 (s_RGA3_WIN0_RD_CTRL_SW_WIN0_VER_UP(0)));
 	}
+
+	/* scale */
+	*bRGA3_WIN0_SCL_FAC = param_x | param_y << 16;
+
+	reg =
+		((reg & (~m_RGA3_WIN0_RD_CTRL_SW_WIN0_HOR_BY)) |
+			(s_RGA3_WIN0_RD_CTRL_SW_WIN0_HOR_BY(x_by)));
+	reg =
+		((reg & (~m_RGA3_WIN0_RD_CTRL_SW_WIN0_HOR_UP)) |
+			(s_RGA3_WIN0_RD_CTRL_SW_WIN0_HOR_UP(x_up)));
+	reg =
+		((reg & (~m_RGA3_WIN0_RD_CTRL_SW_WIN0_VER_BY)) |
+			(s_RGA3_WIN0_RD_CTRL_SW_WIN0_VER_BY(y_by)));
+	reg =
+		((reg & (~m_RGA3_WIN0_RD_CTRL_SW_WIN0_VER_UP)) |
+			(s_RGA3_WIN0_RD_CTRL_SW_WIN0_VER_UP(y_up)));
 
 	/* rd_mode */
 	reg =
@@ -357,19 +344,36 @@ static void RGA3_set_reg_win0_info(u8 *base, struct rga3_req *msg)
 
 	*bRGA3_WIN0_RD_CTRL = reg;
 
-	/* stride need align to 16 */
-	if (msg->win0.rd_mode != 1)
+	switch (msg->win0.rd_mode) {
+	case 0: /* raster */
 		stride = (((msg->win0.vir_w * pixel_width) + 15) & ~15) >> 2;
-	else
-		stride = ((msg->win0.vir_w + 15) & ~15) >> 2;
+		if (rga_is_yuv420_semi_planar_format(msg->win0.format))
+			uv_stride = ((msg->win0.vir_w + 15) & ~15) >> 2;
+		else
+			uv_stride = stride;
+		break;
 
-	if (msg->win0.format == RGA_FORMAT_YCbCr_420_SP
-		|| msg->win0.format == RGA_FORMAT_YCrCb_420_SP
-		|| msg->win0.format == RGA_FORMAT_YCbCr_420_SP_10B
-		|| msg->win0.format == RGA_FORMAT_YCrCb_420_SP_10B)
-		uv_stride = ((msg->win0.vir_w + 15) & ~15) >> 2;
-	else
-		uv_stride = stride;
+	case 1: /* fbc */
+		stride = ((msg->win0.vir_w + 15) & ~15) >> 2;
+		if (rga_is_yuv420_semi_planar_format(msg->win0.format))
+			uv_stride = ((msg->win0.vir_w + 15) & ~15) >> 2;
+		else
+			uv_stride = stride;
+		break;
+
+	case 2: /* tile 8*8 */
+		/*
+		 * tile 8*8 mode 8 lines of data are read/written at one time,
+		 * so stride needs * 8. YUV420 only has 4 lines of UV data, so
+		 * it needs to >>1.
+		 */
+		stride = (((msg->win0.vir_w * pixel_width * 8) + 15) & ~15) >> 2;
+		if (rga_is_yuv420_semi_planar_format(msg->win0.format))
+			uv_stride = ((((msg->win0.vir_w * 8) + 15) & ~15) >> 1) >> 2;
+		else
+			uv_stride = stride;
+		break;
+	}
 
 	*bRGA3_WIN0_Y_BASE = (u32) msg->win0.yrgb_addr;
 	*bRGA3_WIN0_U_BASE = (u32) msg->win0.uv_addr;
@@ -386,9 +390,9 @@ static void RGA3_set_reg_win0_info(u8 *base, struct rga3_req *msg)
 	 */
 
 	/* do not use win0 src size except fbcd */
-	*bRGA3_WIN0_SRC_SIZE = (msg->win0.src_act_w +
-		msg->win0.x_offset) | ((msg->win0.y_offset +
-		msg->win0.src_act_h) << 16);
+	/* in FBCD, src_width needs to be aligned at 16 */
+	*bRGA3_WIN0_SRC_SIZE = ALIGN(msg->win0.src_act_w + msg->win0.x_offset, 16) |
+			       (ALIGN(msg->win0.y_offset + msg->win0.src_act_h, 16) << 16);
 	*bRGA3_WIN0_ACT_SIZE =
 		msg->win0.src_act_w | (msg->win0.src_act_h << 16);
 	*bRGA3_WIN0_DST_SIZE =
@@ -721,19 +725,31 @@ static void RGA3_set_reg_win1_info(u8 *base, struct rga3_req *msg)
 
 	*bRGA3_WIN1_RD_CTRL = reg;
 
-	/* stride need align to 16 */
-	if (msg->win1.rd_mode != 1)
+	switch (msg->win1.rd_mode) {
+	case 0: /* raster */
 		stride = (((msg->win1.vir_w * pixel_width) + 15) & ~15) >> 2;
-	else
-		stride = ((msg->win1.vir_w + 15) & ~15) >> 2;
+		if (rga_is_yuv420_semi_planar_format(msg->win1.format))
+			uv_stride = ((msg->win1.vir_w + 15) & ~15) >> 2;
+		else
+			uv_stride = stride;
+		break;
 
-	if (msg->win1.format == RGA_FORMAT_YCbCr_420_SP
-		|| msg->win1.format == RGA_FORMAT_YCrCb_420_SP
-		|| msg->win1.format == RGA_FORMAT_YCbCr_420_SP_10B
-		|| msg->win1.format == RGA_FORMAT_YCrCb_420_SP_10B)
-		uv_stride = ((msg->win1.vir_w + 15) & ~15) >> 2;
-	else
-		uv_stride = stride;
+	case 1: /* fbc */
+		stride = ((msg->win1.vir_w + 15) & ~15) >> 2;
+		if (rga_is_yuv420_semi_planar_format(msg->win1.format))
+			uv_stride = ((msg->win1.vir_w + 15) & ~15) >> 2;
+		else
+			uv_stride = stride;
+		break;
+
+	case 2: /* tile 8*8 */
+		stride = (((msg->win1.vir_w * pixel_width * 8) + 15) & ~15) >> 2;
+		if (rga_is_yuv420_semi_planar_format(msg->win1.format))
+			uv_stride = ((((msg->win1.vir_w * 8) + 15) & ~15) >> 1) >> 2;
+		else
+			uv_stride = stride;
+		break;
+	}
 
 	*bRGA3_WIN1_Y_BASE = (u32) msg->win1.yrgb_addr;
 	*bRGA3_WIN1_U_BASE = (u32) msg->win1.uv_addr;
@@ -947,16 +963,20 @@ static void RGA3_set_reg_wr_info(u8 *base, struct rga3_req *msg)
 	*bRGA3_WR_RD_CTRL = reg;
 	*bRGA3_WR_FBCD_CTRL = fbcd_reg;
 
-	/* stride need align to 16 */
-	if (msg->wr.rd_mode != 1) {
+	switch (msg->wr.rd_mode) {
+	case 0: /* raster */
 		stride = (((msg->wr.vir_w * pixel_width) + 15) & ~15) >> 2;
-		*bRGA3_WR_U_BASE = (u32) msg->wr.uv_addr;
 		uv_stride = ((msg->wr.vir_w + 15) & ~15) >> 2;
-	} else {
+
+		*bRGA3_WR_U_BASE = (u32) msg->wr.uv_addr;
+
+		break;
+
+	case 1: /* fbc */
 		stride = ((msg->wr.vir_w + 15) & ~15) >> 2;
 		/* need to calculate fbcd header size */
 		vir_h = ((msg->wr.vir_h + 15) & ~15);
-		*bRGA3_WR_U_BASE = (u32) (msg->wr.uv_addr + ((stride * vir_h)>>2));
+
 		/* RGBA8888 */
 		if (wr_format == 0x6)
 			uv_stride = ((msg->wr.vir_w + 15) & ~15);
@@ -972,6 +992,20 @@ static void RGA3_set_reg_wr_info(u8 *base, struct rga3_req *msg)
 		/* yuv422 10bit */
 		else if (wr_format == 0x3)
 			uv_stride = (((msg->wr.vir_w + 15) & ~15) >> 3) * 5;
+
+		*bRGA3_WR_U_BASE = (u32) (msg->wr.uv_addr + ((stride * vir_h)>>2));
+
+		break;
+
+	case 2: /* tile 8*8 */
+		stride = (((msg->wr.vir_w * pixel_width * 8) + 15) & ~15) >> 2;
+		if (rga_is_yuv420_semi_planar_format(msg->win0.format))
+			uv_stride = ((((msg->wr.vir_w * 8) + 15) & ~15) >> 1) >> 2;
+		else
+			uv_stride = stride;
+
+		*bRGA3_WR_U_BASE = (u32) msg->wr.uv_addr;
+		break;
 	}
 
 	*bRGA3_WR_Y_BASE = (u32) msg->wr.yrgb_addr;
@@ -1141,7 +1175,7 @@ static void RGA3_set_reg_overlap_info(u8 *base, struct rga3_req *msg)
 	*bRGA3_OVLP_OFF = msg->wr.x_offset | (msg->wr.y_offset << 16);
 }
 
-int rga3_gen_reg_info(u8 *base, struct rga3_req *msg)
+static int rga3_gen_reg_info(u8 *base, struct rga3_req *msg)
 {
 	switch (msg->render_mode) {
 	case BITBLT_MODE:
@@ -1225,7 +1259,7 @@ static void set_wr_info(struct rga_req *req_rga, struct rga3_req *req)
 }
 
 /* TODO: common part */
-void rga_cmd_to_rga3_cmd(struct rga_req *req_rga, struct rga3_req *req)
+static void rga_cmd_to_rga3_cmd(struct rga_req *req_rga, struct rga3_req *req)
 {
 	u16 alpha_mode_0, alpha_mode_1;
 	struct rga_img_info_t tmp;
@@ -1385,18 +1419,18 @@ void rga_cmd_to_rga3_cmd(struct rga_req *req_rga, struct rga3_req *req)
 			if (req->win0.x_offset || req->win0.y_offset) {
 				req->win0.src_act_w = req->win0.src_act_w + req->win0.x_offset;
 				req->win0.src_act_h = req->win0.src_act_h + req->win0.y_offset;
-				req->win0.dst_act_w = req_rga->pat.act_w + req->win0.x_offset;
-				req->win0.dst_act_h = req_rga->pat.act_h + req->win0.y_offset;
+				req->win0.dst_act_w = req_rga->dst.act_w + req->win0.x_offset;
+				req->win0.dst_act_h = req_rga->dst.act_h + req->win0.y_offset;
 
 				req->win0.x_offset = 0;
 				req->win0.y_offset = 0;
 			} else {
-				req->win0.dst_act_w = req_rga->pat.act_w;
-				req->win0.dst_act_h = req_rga->pat.act_h;
+				req->win0.dst_act_w = req_rga->dst.act_w;
+				req->win0.dst_act_h = req_rga->dst.act_h;
 			}
 			/* set win1 dst size */
-			req->win1.dst_act_w = req_rga->pat.act_w;
-			req->win1.dst_act_h = req_rga->pat.act_h;
+			req->win1.dst_act_w = req_rga->dst.act_w;
+			req->win1.dst_act_h = req_rga->dst.act_h;
 		} else {
 			/* A+B->B mode */
 			set_win_info(&req->win0, &req_rga->dst);
@@ -1589,54 +1623,38 @@ void rga_cmd_to_rga3_cmd(struct rga_req *req_rga, struct rga3_req *req)
 	}
 }
 
-void rga3_soft_reset(struct rga_scheduler_t *scheduler)
+static void rga3_soft_reset(struct rga_scheduler_t *scheduler)
 {
 	u32 i;
-	u32 reg;
-	u32 mmu_addr;
+	u32 iommu_dte_addr = 0;
 
-	mmu_addr = rga_read(0xf00, scheduler);
+	if (scheduler->data->mmu == RGA_IOMMU)
+		iommu_dte_addr = rga_read(RGA_IOMMU_DTE_ADDR, scheduler);
 
-	rga_write((1 << 3) | (1 << 4), RGA3_SYS_CTRL, scheduler);
-
-	pr_err("soft reset sys_ctrl = %x, ro_rest = %x",
-		rga_read(RGA3_SYS_CTRL, scheduler),
-		rga_read(RGA3_RO_SRST, scheduler));
-
-	mdelay(20);
-
-	pr_err("soft reset sys_ctrl = %x, ro_rest = %x",
-		rga_read(RGA3_SYS_CTRL, scheduler),
-		rga_read(RGA3_RO_SRST, scheduler));
-
-	rga_write((0 << 3) | (0 << 4), RGA3_SYS_CTRL, scheduler);
-
-	pr_err("soft after reset sys_ctrl = %x, ro_rest = %x",
-		rga_read(RGA3_SYS_CTRL, scheduler),
-		rga_read(RGA3_RO_SRST, scheduler));
-
-	rga_write(1, RGA3_INT_CLR, scheduler);
-
-	rga_write(mmu_addr, 0xf00, scheduler);
-	rga_write(0, 0xf08, scheduler);
-
-	if (DEBUGGER_EN(INT_FLAG))
-		pr_info("irq INT[%x], STATS0[%x], STATS1[%x]\n",
-			rga_read(RGA3_INT_RAW, scheduler),
-			rga_read(RGA3_STATUS0, scheduler),
-			rga_read(RGA3_STATUS1, scheduler));
+	rga_write(s_RGA3_SYS_CTRL_CCLK_SRESET(1) | s_RGA3_SYS_CTRL_ACLK_SRESET(1),
+		  RGA3_SYS_CTRL, scheduler);
 
 	for (i = 0; i < RGA_RESET_TIMEOUT; i++) {
-		reg = rga_read(RGA3_SYS_CTRL, scheduler) & 1;
-
-		if (reg == 0)
+		if (rga_read(RGA3_RO_SRST, scheduler) & m_RGA3_RO_SRST_RO_RST_DONE)
 			break;
 
 		udelay(1);
 	}
 
+	rga_write(s_RGA3_SYS_CTRL_CCLK_SRESET(0) | s_RGA3_SYS_CTRL_ACLK_SRESET(0),
+		  RGA3_SYS_CTRL, scheduler);
+
+	if (scheduler->data->mmu == RGA_IOMMU) {
+		rga_write(iommu_dte_addr, RGA_IOMMU_DTE_ADDR, scheduler);
+		/* enable iommu */
+		rga_write(RGA_IOMMU_CMD_ENABLE_PAGING, RGA_IOMMU_COMMAND, scheduler);
+	}
+
 	if (i == RGA_RESET_TIMEOUT)
-		pr_err("soft reset timeout.\n");
+		pr_err("RGA3 soft reset timeout. SYS_CTRL[0x%x], RO_SRST[0x%x]\n",
+		       rga_read(RGA3_SYS_CTRL, scheduler), rga_read(RGA3_RO_SRST, scheduler));
+	else
+		pr_info("RGA3 soft reset complete.\n");
 }
 
 static int rga3_scale_check(const struct rga3_req *req)
@@ -1836,7 +1854,7 @@ static int rga3_align_check(struct rga3_req *req)
 	return 0;
 }
 
-int rga3_init_reg(struct rga_job *job)
+static int rga3_init_reg(struct rga_job *job)
 {
 	struct rga3_req req;
 	int ret = 0;
@@ -1893,29 +1911,24 @@ static void rga3_dump_read_back_reg(struct rga_scheduler_t *scheduler)
 			cmd_reg[2 + i * 4], cmd_reg[3 + i * 4]);
 }
 
-int rga3_set_reg(struct rga_job *job, struct rga_scheduler_t *scheduler)
+static int rga3_set_reg(struct rga_job *job, struct rga_scheduler_t *scheduler)
 {
+	int i;
+	bool master_mode_en;
+	uint32_t sys_ctrl;
 	ktime_t now = ktime_get();
 
-	//rga_dma_flush_range(&job->cmd_reg[0], &job->cmd_reg[50], scheduler);
-
-	rga_write(0x0, RGA3_SYS_CTRL, scheduler);
-
-#if 0
-	/* CMD buff */
-	rga_write(virt_to_phys(job->cmd_reg), RGA3_CMD_ADDR, scheduler);
-#else
-	{
-		int32_t m, *cmd;
-
-		cmd = job->cmd_reg;
-		for (m = 0; m <= 50; m++)
-			rga_write(cmd[m], 0x100 + m * 4, scheduler);
-	}
-#endif
+	/*
+	 * Currently there is no iova allocated for storing cmd for the IOMMU device,
+	 * so the iommu device needs to use the slave mode.
+	 */
+	if (scheduler->data->mmu != RGA_IOMMU)
+		master_mode_en = true;
+	else
+		master_mode_en = false;
 
 	if (DEBUGGER_EN(REG)) {
-		int32_t i, *p;
+		uint32_t *p;
 
 		p = job->cmd_reg;
 		pr_info("CMD_REG\n");
@@ -1925,27 +1938,39 @@ int rga3_set_reg(struct rga_job *job, struct rga_scheduler_t *scheduler)
 				p[2 + i * 4], p[3 + i * 4]);
 	}
 
-#if 0
-	/* master mode */
-	rga_write((0x1 << 1) | (0x1 << 2) | (0x1 << 5) | (0x1 << 6),
-		 RGA3_SYS_CTRL, scheduler);
-#else
-	/* slave mode */
-	//rga_write(1, 0xf08, scheduler);
-#endif
-
 	/* All CMD finish int */
-	rga_write(1, RGA3_INT_EN, scheduler);
+	rga_write(m_RGA3_INT_FRM_DONE | m_RGA3_INT_CMD_LINE_FINISH | m_RGA3_INT_ERROR_MASK,
+		  RGA3_INT_EN, scheduler);
 
-	if (DEBUGGER_EN(MSG)) {
-		pr_info("sys_ctrl = %x, int_en = %x, int_raw = %x\n",
+	if (master_mode_en) {
+		/* master mode */
+		sys_ctrl = s_RGA3_SYS_CTRL_CMD_MODE(1);
+
+		/* cmd buffer flush cache to ddr */
+		rga_dma_sync_flush_range(&job->cmd_reg[0], &job->cmd_reg[50], scheduler);
+
+		rga_write(virt_to_phys(job->cmd_reg), RGA3_CMD_ADDR, scheduler);
+		rga_write(sys_ctrl, RGA3_SYS_CTRL, scheduler);
+		rga_write(m_RGA3_CMD_CTRL_CMD_LINE_ST_P, RGA3_CMD_CTRL, scheduler);
+	} else {
+		/* slave mode */
+		sys_ctrl = s_RGA3_SYS_CTRL_CMD_MODE(0) | m_RGA3_SYS_CTRL_RGA_SART;
+
+		for (i = 0; i <= 50; i++)
+			rga_write(job->cmd_reg[i], 0x100 + i * 4, scheduler);
+
+		rga_write(sys_ctrl, RGA3_SYS_CTRL, scheduler);
+	}
+
+	if (DEBUGGER_EN(REG)) {
+		pr_info("sys_ctrl = 0x%x, int_en = 0x%x, int_raw = 0x%x\n",
 			rga_read(RGA3_SYS_CTRL, scheduler),
 			rga_read(RGA3_INT_EN, scheduler),
 			rga_read(RGA3_INT_RAW, scheduler));
 
-		pr_info("status0 = %x, status1 = %x\n",
+		pr_info("hw_status = 0x%x, cmd_status = 0x%x\n",
 			rga_read(RGA3_STATUS0, scheduler),
-			rga_read(RGA3_STATUS1, scheduler));
+			rga_read(RGA3_CMD_STATE, scheduler));
 	}
 
 	if (DEBUGGER_EN(TIME))
@@ -1954,15 +1979,13 @@ int rga3_set_reg(struct rga_job *job, struct rga_scheduler_t *scheduler)
 	job->hw_running_time = now;
 	job->hw_recoder_time = now;
 
-	rga_write(1, RGA3_SYS_CTRL, scheduler);
-
 	if (DEBUGGER_EN(REG))
 		rga3_dump_read_back_reg(scheduler);
 
 	return 0;
 }
 
-int rga3_get_version(struct rga_scheduler_t *scheduler)
+static int rga3_get_version(struct rga_scheduler_t *scheduler)
 {
 	u32 major_version, minor_version, svn_version;
 	u32 reg_version;
@@ -1987,3 +2010,80 @@ int rga3_get_version(struct rga_scheduler_t *scheduler)
 
 	return 0;
 }
+
+static int rga3_irq(struct rga_scheduler_t *scheduler)
+{
+	struct rga_job *job = scheduler->running_job;
+
+	if (job == NULL)
+		return IRQ_HANDLED;
+
+	if (test_bit(RGA_JOB_STATE_INTR_ERR, &job->state))
+		return IRQ_WAKE_THREAD;
+
+	job->intr_status = rga_read(RGA3_INT_RAW, scheduler);
+	job->hw_status = rga_read(RGA3_STATUS0, scheduler);
+	job->cmd_status = rga_read(RGA3_CMD_STATE, scheduler);
+
+	if (DEBUGGER_EN(INT_FLAG))
+		pr_info("irq handler, INTR[0x%x], HW_STATUS[0x%x], CMD_STATUS[0x%x]\n",
+			job->intr_status, job->hw_status, job->cmd_status);
+
+	if (job->intr_status & (m_RGA3_INT_FRM_DONE | m_RGA3_INT_CMD_LINE_FINISH)) {
+		set_bit(RGA_JOB_STATE_FINISH, &job->state);
+	} else if (job->intr_status & m_RGA3_INT_ERROR_MASK) {
+		set_bit(RGA_JOB_STATE_INTR_ERR, &job->state);
+
+		pr_err("irq handler err! INTR[0x%x], HW_STATUS[0x%x], CMD_STATUS[0x%x]\n",
+		       job->intr_status, job->hw_status, job->cmd_status);
+		scheduler->ops->soft_reset(scheduler);
+	}
+
+	/*clear INTR */
+	rga_write(m_RGA3_INT_FRM_DONE | m_RGA3_INT_CMD_LINE_FINISH | m_RGA3_INT_ERROR_MASK,
+		  RGA3_INT_CLR, scheduler);
+
+	return IRQ_WAKE_THREAD;
+}
+
+static int rga3_isr_thread(struct rga_job *job, struct rga_scheduler_t *scheduler)
+{
+	if (DEBUGGER_EN(INT_FLAG))
+		pr_info("isr thread, INTR[0x%x], HW_STATUS[0x%x], CMD_STATUS[0x%x]\n",
+			rga_read(RGA3_INT_RAW, scheduler),
+			rga_read(RGA3_STATUS0, scheduler),
+			rga_read(RGA3_CMD_STATE, scheduler));
+
+	if (test_bit(RGA_JOB_STATE_INTR_ERR, &job->state)) {
+		if (job->intr_status & m_RGA3_INT_RAG_MI_RD_BUS_ERR) {
+			pr_err("DMA read bus error, please check size of the input_buffer or whether the buffer has been freed.\n");
+			job->ret = -EFAULT;
+		} else if (job->intr_status & m_RGA3_INT_WIN0_FBCD_DEC_ERR) {
+			pr_err("win0 FBC decoder error, please check the fbc image of the source.\n");
+			job->ret = -EFAULT;
+		} else if (job->intr_status & m_RGA3_INT_WIN1_FBCD_DEC_ERR) {
+			pr_err("win1 FBC decoder error, please check the fbc image of the source.\n");
+			job->ret = -EFAULT;
+		} else if (job->intr_status & m_RGA3_INT_RGA_MI_WR_BUS_ERR) {
+			pr_err("wr buss error, please check size of the output_buffer or whether the buffer has been freed.\n");
+			job->ret = -EFAULT;
+		}
+
+		if (job->ret == 0) {
+			pr_err("rga intr error[0x%x]!\n", job->intr_status);
+			job->ret = -EFAULT;
+		}
+	}
+
+	return IRQ_HANDLED;
+}
+
+const struct rga_backend_ops rga3_ops = {
+	.get_version = rga3_get_version,
+	.set_reg = rga3_set_reg,
+	.init_reg = rga3_init_reg,
+	.soft_reset = rga3_soft_reset,
+	.read_back_reg = NULL,
+	.irq = rga3_irq,
+	.isr_thread = rga3_isr_thread,
+};

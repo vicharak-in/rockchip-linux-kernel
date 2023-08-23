@@ -361,6 +361,7 @@ enum ICM406xx_fio_format {
 #define FIFO_FSYNC_BITS         0x0C
 #define HAVANA_MAX_PACKET_SIZE      20
 #define ICM40605_FIFO_COUNT_LIMIT         60
+#define ICM40605_DATA_BUFF_SIZE 960
 
 // BANK SEL
 enum icm40605_bank_index {
@@ -427,7 +428,7 @@ struct icm40605_data {
 	s64 period_max;
 	int period_divider;
 	int interrupt_regval;
-	u8  data_buff[ICM40605_FIFO_COUNT_LIMIT];
+	u8  data_buff[ICM40605_DATA_BUFF_SIZE];
 };
 
 /* scan indexes follow DATA register order */

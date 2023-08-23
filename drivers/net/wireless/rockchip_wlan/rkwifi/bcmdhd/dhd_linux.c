@@ -65,6 +65,11 @@
 #include <asm/uaccess.h>
 #include <asm/unaligned.h>
 #include <dhd_linux_priv.h>
+#ifdef BCMPCIE
+#if defined(CUSTOMER_HW_ROCKCHIP) && defined(CUSTOMER_HW_ROCKCHIP_RK3588)
+#include <rk_dhd_pcie_linux.h>
+#endif /* CUSTOMER_HW_ROCKCHIP && CUSTOMER_HW_ROCKCHIP_RK3588 */
+#endif /* BCMPCIE */
 
 #include <epivers.h>
 #include <bcmutils.h>
@@ -1142,9 +1147,16 @@ static int dhd_pm_callback(struct notifier_block *nfb, unsigned long action, voi
 	dhd_pub_t *dhd = &dhdinfo->pub;
 	struct dhd_conf *conf = dhd->conf;
 	int suspend_mode = conf->suspend_mode;
+#if defined(BCMDBUS) && defined(WL_EXT_WOWL)
+	int wowl_dngldown = 0;
+#endif
 
 	BCM_REFERENCE(dhdinfo);
 	BCM_REFERENCE(suspend);
+
+#if defined(BCMDBUS) && defined(WL_EXT_WOWL)
+	wowl_dngldown = dhd_conf_wowl_dngldown(dhd);
+#endif
 
 	switch (action) {
 	case PM_HIBERNATION_PREPARE:
@@ -1189,7 +1201,16 @@ static int dhd_pm_callback(struct notifier_block *nfb, unsigned long action, voi
 			dhd_suspend_resume_helper(dhdinfo, suspend, 0);
 #ifdef BCMDBUS
 		} else {
-			printf("%s: skip resume since bus suspeneded\n", __FUNCTION__);
+#if defined(BCMDBUS) && defined(WL_EXT_WOWL)
+			if (wowl_dngldown) {
+				printf("%s: reset power\n", __FUNCTION__);
+				dhd_wifi_platform_set_power(dhd, FALSE);
+				dhd_wifi_platform_set_power(dhd, TRUE);
+			} else
+#endif
+			{
+				printf("%s: skip resume since bus suspeneded\n", __FUNCTION__);
+			}
 		}
 #endif
 	}
@@ -3545,6 +3566,9 @@ dhd_set_mac_addr_handler(void *handle, void *event_info, u8 event)
 		return;
 	}
 
+#ifdef DHD_NOTIFY_MAC_CHANGED
+	rtnl_lock();
+#endif /* DHD_NOTIFY_MAC_CHANGED */
 	dhd_net_if_lock_local(dhd);
 	DHD_OS_WAKE_LOCK(&dhd->pub);
 
@@ -3559,22 +3583,17 @@ dhd_set_mac_addr_handler(void *handle, void *event_info, u8 event)
 
 	ifp->set_macaddress = FALSE;
 
-#ifdef DHD_NOTIFY_MAC_CHANGED
-	rtnl_lock();
-#endif /* DHD_NOTIFY_MAC_CHANGED */
-
 	if (_dhd_set_mac_address(dhd, ifp->idx, ifp->mac_addr, TRUE) == 0)
 		DHD_INFO(("%s: MACID is overwritten\n",	__FUNCTION__));
 	else
 		DHD_ERROR(("%s: _dhd_set_mac_address() failed\n", __FUNCTION__));
 
-#ifdef DHD_NOTIFY_MAC_CHANGED
-	rtnl_unlock();
-#endif /* DHD_NOTIFY_MAC_CHANGED */
-
 done:
 	DHD_OS_WAKE_UNLOCK(&dhd->pub);
 	dhd_net_if_unlock_local(dhd);
+#ifdef DHD_NOTIFY_MAC_CHANGED
+	rtnl_unlock();
+#endif /* DHD_NOTIFY_MAC_CHANGED */
 }
 
 static void
@@ -4413,24 +4432,13 @@ BCMFASTPATH(dhd_start_xmit)(struct sk_buff *skb, struct net_device *net)
 #endif
 	/* Make sure there's enough room for any header */
 #if !defined(BCM_ROUTER_DHD)
-	if (skb_headroom(skb) < dhd->pub.hdrlen + htsfdlystat_sz) {
-		struct sk_buff *skb2;
-
-		DHD_INFO(("%s: insufficient headroom\n",
-		          dhd_ifname(&dhd->pub, ifidx)));
-		dhd->pub.tx_realloc++;
-
+	if (skb_cow(skb, (dhd->pub.hdrlen + htsfdlystat_sz))) {
+		DHD_ERROR(("%s: skb_cow failed\n",
+		           dhd_ifname(&dhd->pub, ifidx)));
 		bcm_object_trace_opr(skb, BCM_OBJDBG_REMOVE, __FUNCTION__, __LINE__);
-		skb2 = skb_realloc_headroom(skb, dhd->pub.hdrlen + htsfdlystat_sz);
-
-		dev_kfree_skb(skb);
-		if ((skb = skb2) == NULL) {
-			DHD_ERROR(("%s: skb_realloc_headroom failed\n",
-			           dhd_ifname(&dhd->pub, ifidx)));
-			ret = -ENOMEM;
-			goto done;
-		}
-		bcm_object_trace_opr(skb, BCM_OBJDBG_ADD_PKT, __FUNCTION__, __LINE__);
+		dev_kfree_skb_any(skb);
+		ret = -ENOMEM;
+		goto done;
 	}
 #endif /* !BCM_ROUTER_DHD */
 
@@ -8705,16 +8713,6 @@ dhd_ioctl_entry_wrapper(struct net_device *net, struct ifreq *ifr,
 }
 #endif /* DHD_PCIE_NATIVE_RUNTIMEPM */
 
-#ifdef CONFIG_HAS_WAKELOCK
-#define dhd_wake_lock_unlock_destroy(wlock) \
-{ \
-	if (dhd_wake_lock_active(wlock)) { \
-		dhd_wake_unlock(wlock); \
-	} \
-	dhd_wake_lock_destroy(wlock); \
-}
-#endif /* CONFIG_HAS_WAKELOCK */
-
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0) && defined(DHD_TCP_LIMIT_OUTPUT)
 #define DHD_TCP_LIMIT_OUTPUT_BYTES (4 * 1024 * 1024)
 #ifndef TCP_DEFAULT_LIMIT_OUTPUT
@@ -8784,7 +8782,7 @@ dhd_stop(struct net_device *net)
 
 #if defined(WL_STATIC_IF) && defined(WL_CFG80211)
 	/* If static if is operational, don't reset the chip */
-	if (wl_cfg80211_static_if_active(cfg)) {
+	if ((!dhd->pub.hang_was_sent) && wl_cfg80211_static_if_active(cfg)) {
 		WL_MSG(net->name, "static if operational. skip chip reset.\n");
 		skip_reset = true;
 		wl_cfg80211_sta_ifdown(net);
@@ -8792,7 +8790,7 @@ dhd_stop(struct net_device *net)
 	}
 #endif /* WL_STATIC_IF && WL_CFG80211 */
 #ifdef DHD_NOTIFY_MAC_CHANGED
-	if (dhd->pub.skip_dhd_stop) {
+	if (!dhd->pub.hang_was_sent && dhd->pub.skip_dhd_stop) {
 		WL_MSG(net->name, "skip chip reset.\n");
 		skip_reset = true;
 #if defined(WL_CFG80211)
@@ -10448,8 +10446,13 @@ dhd_remove_if(dhd_pub_t *dhdpub, int ifidx, bool need_rtnl_lock)
 #endif /* DHDTCPACK_SUPPRESS && BCMPCIE */
 				if (need_rtnl_lock)
 					unregister_netdev(ifp->net);
-				else
+				else {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)) && defined(WL_CFG80211)
+					cfg80211_unregister_netdevice(ifp->net);
+#else
 					unregister_netdevice(ifp->net);
+#endif
+				}
 #if defined(WLDWDS) && defined(WL_EXT_IAPSTA)
 				if (ifp->dwds) {
 					wl_ext_iapsta_dettach_dwds_netdev(ifp->net, ifidx, ifp->bssidx);
@@ -11649,9 +11652,7 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen
 	dhd->wakelock_counter = 0;
 	/* wakelocks prevent a system from going into a low power state */
 #ifdef CONFIG_HAS_WAKELOCK
-	// terence 20161023: can not destroy wl_wifi when wlan down, it will happen null pointer in dhd_ioctl_entry
-	dhd_wake_lock_init(&dhd->wl_wifi, WAKE_LOCK_SUSPEND, "wlan_wake");
-	dhd_wake_lock_init(&dhd->wl_wdwake, WAKE_LOCK_SUSPEND, "wlan_wd_wake");
+	dhd_wake_lock_init(dhd->wl_wdwake, dhd_bus_to_dev(bus), "wlan_wd_wake");
 #endif /* CONFIG_HAS_WAKELOCK */
 
 #if defined(OEM_ANDROID)
@@ -11757,11 +11758,7 @@ dhd_attach(osl_t *osh, struct dhd_bus *bus, uint bus_hdrlen
 	dhd_os_start_logging(&dhd->pub, BT_LOG_RING_NAME, 3, 0, 0, 0);
 #endif /* !OEM_ANDROID && BTLOG */
 #ifdef DBG_PKT_MON
-	dhd->pub.dbg->pkt_mon_lock = osl_mutex_lock_init(dhd->pub.osh);
-	if (!dhd->pub.dbg->pkt_mon_lock) {
-		DHD_ERROR(("%s: pkt_mon_lock init failed !\n", __FUNCTION__));
-		goto fail;
-	}
+	dhd->pub.dbg->pkt_mon_lock = osl_spin_lock_init(dhd->pub.osh);
 #ifdef DBG_PKT_MON_INIT_DEFAULT
 	dhd_os_dbg_attach_pkt_monitor(&dhd->pub);
 #endif /* DBG_PKT_MON_INIT_DEFAULT */
@@ -12790,6 +12787,13 @@ dhd_bus_start(dhd_pub_t *dhdp)
 	/* Enable L1SS of RC and EP */
 	dhd_bus_l1ss_enable_rc_ep(dhdp->bus, TRUE);
 #endif /* BT_OVER_PCIE */
+
+#ifdef BCMPCIE
+#if defined(CUSTOMER_HW_ROCKCHIP) && defined(CUSTOMER_HW_ROCKCHIP_RK3588)
+	if (IS_ENABLED(CONFIG_PCIEASPM_ROCKCHIP_WIFI_EXTENSION))
+		rk_dhd_bus_l1ss_enable_rc_ep(dhdp->bus, TRUE);
+#endif /* CUSTOMER_HW_ROCKCHIP && BCMPCIE */
+#endif /* BCMPCIE */
 
 #if defined(CONFIG_ARCH_EXYNOS) && defined(BCMPCIE)
 #if !defined(CONFIG_SOC_EXYNOS8890) && !defined(SUPPORT_EXYNOS7420)
@@ -17455,7 +17459,7 @@ void dhd_detach(dhd_pub_t *dhdp)
 	if (dhdp->dbg) {
 #ifdef DBG_PKT_MON
 		dhd_os_dbg_detach_pkt_monitor(dhdp);
-		osl_mutex_lock_deinit(dhd->pub.osh, dhd->pub.dbg->pkt_mon_lock);
+		osl_spin_lock_deinit(dhd->pub.osh, dhd->pub.dbg->pkt_mon_lock);
 #endif /* DBG_PKT_MON */
 	}
 #endif /* DEBUGABILITY */
@@ -17541,9 +17545,7 @@ void dhd_detach(dhd_pub_t *dhdp)
 	DHD_TRACE(("wd wakelock count:%d\n", dhd->wakelock_wd_counter));
 #ifdef CONFIG_HAS_WAKELOCK
 	dhd->wakelock_wd_counter = 0;
-	dhd_wake_lock_unlock_destroy(&dhd->wl_wdwake);
-	// terence 20161023: can not destroy wl_wifi when wlan down, it will happen null pointer in dhd_ioctl_entry
-	dhd_wake_lock_unlock_destroy(&dhd->wl_wifi);
+	dhd_wake_lock_destroy(dhd->wl_wdwake);
 #endif /* CONFIG_HAS_WAKELOCK */
 	if (dhd->dhd_state & DHD_ATTACH_STATE_WAKELOCKS_INIT) {
 		DHD_OS_WAKE_LOCK_DESTROY(dhd);
@@ -18423,7 +18425,7 @@ dhd_os_get_img_fwreq(const struct firmware **fw, char *file_path)
 		/* convert to BCME_NOTFOUND error for error handling */
 		ret = BCME_NOTFOUND;
 	} else
-		 DHD_ERROR(("%s: %s (%zu bytes) open success\n", __FUNCTION__, file_path, (*fw)->size));
+		DHD_ERROR(("%s: %s (%zu bytes) open success\n", __FUNCTION__, file_path, (*fw)->size));
 
 	return ret;
 }
@@ -21151,11 +21153,15 @@ int dhd_os_wake_lock_timeout(dhd_pub_t *pub)
 		ret = dhd->wakelock_rx_timeout_enable > dhd->wakelock_ctrl_timeout_enable ?
 			dhd->wakelock_rx_timeout_enable : dhd->wakelock_ctrl_timeout_enable;
 #ifdef CONFIG_HAS_WAKELOCK
+#ifdef DHD_DEBUG_WAKE_LOCK
+		printf("%s: rx_timeout=%dms, ctrl_timeout=%dms\n", __FUNCTION__,
+		dhd->wakelock_rx_timeout_enable, dhd->wakelock_ctrl_timeout_enable);
+#endif
 		if (dhd->wakelock_rx_timeout_enable)
-			dhd_wake_lock_timeout(&dhd->wl_rxwake,
+			dhd_wake_lock_timeout(dhd->wl_rxwake,
 				msecs_to_jiffies(dhd->wakelock_rx_timeout_enable));
 		if (dhd->wakelock_ctrl_timeout_enable)
-			dhd_wake_lock_timeout(&dhd->wl_ctrlwake,
+			dhd_wake_lock_timeout(dhd->wl_ctrlwake,
 				msecs_to_jiffies(dhd->wakelock_ctrl_timeout_enable));
 #endif
 		dhd->wakelock_rx_timeout_enable = 0;
@@ -21212,8 +21218,8 @@ int dhd_os_wake_lock_ctrl_timeout_cancel(dhd_pub_t *pub)
 		DHD_WAKE_SPIN_LOCK(&dhd->wakelock_spinlock, flags);
 		dhd->wakelock_ctrl_timeout_enable = 0;
 #ifdef CONFIG_HAS_WAKELOCK
-		if (dhd_wake_lock_active(&dhd->wl_ctrlwake))
-			dhd_wake_unlock(&dhd->wl_ctrlwake);
+		if (dhd_wake_lock_active(dhd->wl_ctrlwake))
+			dhd_wake_unlock(dhd->wl_ctrlwake);
 #endif
 		DHD_WAKE_SPIN_UNLOCK(&dhd->wakelock_spinlock, flags);
 	}
@@ -21447,7 +21453,7 @@ int dhd_os_wake_lock(dhd_pub_t *pub)
 		DHD_WAKE_SPIN_LOCK(&dhd->wakelock_spinlock, flags);
 		if (dhd->wakelock_counter == 0 && !dhd->waive_wakelock) {
 #ifdef CONFIG_HAS_WAKELOCK
-			dhd_wake_lock(&dhd->wl_wifi);
+			dhd_wake_lock(dhd->wl_wifi);
 #elif defined(BCMSDIO)
 			dhd_bus_dev_pm_stay_awake(pub);
 #endif
@@ -21471,7 +21477,7 @@ void dhd_event_wake_lock(dhd_pub_t *pub)
 
 	if (dhd) {
 #ifdef CONFIG_HAS_WAKELOCK
-		dhd_wake_lock(&dhd->wl_evtwake);
+		dhd_wake_lock(dhd->wl_evtwake);
 #elif defined(BCMSDIO)
 		dhd_bus_dev_pm_stay_awake(pub);
 #endif
@@ -21485,7 +21491,7 @@ dhd_pm_wake_lock_timeout(dhd_pub_t *pub, int val)
 	dhd_info_t *dhd = (dhd_info_t *)(pub->info);
 
 	if (dhd) {
-		dhd_wake_lock_timeout(&dhd->wl_pmwake, msecs_to_jiffies(val));
+		dhd_wake_lock_timeout(dhd->wl_pmwake, msecs_to_jiffies(val));
 	}
 #endif /* CONFIG_HAS_WAKE_LOCK */
 }
@@ -21497,7 +21503,7 @@ dhd_txfl_wake_lock_timeout(dhd_pub_t *pub, int val)
 	dhd_info_t *dhd = (dhd_info_t *)(pub->info);
 
 	if (dhd) {
-		dhd_wake_lock_timeout(&dhd->wl_txflwake, msecs_to_jiffies(val));
+		dhd_wake_lock_timeout(dhd->wl_txflwake, msecs_to_jiffies(val));
 	}
 #endif /* CONFIG_HAS_WAKE_LOCK */
 }
@@ -21509,7 +21515,7 @@ dhd_nan_wake_lock_timeout(dhd_pub_t *pub, int val)
 	dhd_info_t *dhd = (dhd_info_t *)(pub->info);
 
 	if (dhd) {
-		dhd_wake_lock_timeout(&dhd->wl_nanwake, msecs_to_jiffies(val));
+		dhd_wake_lock_timeout(dhd->wl_nanwake, msecs_to_jiffies(val));
 	}
 #endif /* CONFIG_HAS_WAKE_LOCK */
 }
@@ -21543,7 +21549,7 @@ int dhd_os_wake_unlock(dhd_pub_t *pub)
 #endif /* DHD_TRACE_WAKE_LOCK */
 			if (dhd->wakelock_counter == 0 && !dhd->waive_wakelock) {
 #ifdef CONFIG_HAS_WAKELOCK
-				dhd_wake_unlock(&dhd->wl_wifi);
+				dhd_wake_unlock(dhd->wl_wifi);
 #elif defined(BCMSDIO)
 				dhd_bus_dev_pm_relax(pub);
 #endif
@@ -21561,7 +21567,7 @@ void dhd_event_wake_unlock(dhd_pub_t *pub)
 
 	if (dhd) {
 #ifdef CONFIG_HAS_WAKELOCK
-		dhd_wake_unlock(&dhd->wl_evtwake);
+		dhd_wake_unlock(dhd->wl_evtwake);
 #elif defined(BCMSDIO)
 		dhd_bus_dev_pm_relax(pub);
 #endif
@@ -21575,8 +21581,8 @@ void dhd_pm_wake_unlock(dhd_pub_t *pub)
 
 	if (dhd) {
 		/* if wl_pmwake is active, unlock it */
-		if (dhd_wake_lock_active(&dhd->wl_pmwake)) {
-			dhd_wake_unlock(&dhd->wl_pmwake);
+		if (dhd_wake_lock_active(dhd->wl_pmwake)) {
+			dhd_wake_unlock(dhd->wl_pmwake);
 		}
 	}
 #endif /* CONFIG_HAS_WAKELOCK */
@@ -21589,8 +21595,8 @@ void dhd_txfl_wake_unlock(dhd_pub_t *pub)
 
 	if (dhd) {
 		/* if wl_txflwake is active, unlock it */
-		if (dhd_wake_lock_active(&dhd->wl_txflwake)) {
-			dhd_wake_unlock(&dhd->wl_txflwake);
+		if (dhd_wake_lock_active(dhd->wl_txflwake)) {
+			dhd_wake_unlock(dhd->wl_txflwake);
 		}
 	}
 #endif /* CONFIG_HAS_WAKELOCK */
@@ -21603,8 +21609,8 @@ void dhd_nan_wake_unlock(dhd_pub_t *pub)
 
 	if (dhd) {
 		/* if wl_nanwake is active, unlock it */
-		if (dhd_wake_lock_active(&dhd->wl_nanwake)) {
-			dhd_wake_unlock(&dhd->wl_nanwake);
+		if (dhd_wake_lock_active(dhd->wl_nanwake)) {
+			dhd_wake_unlock(dhd->wl_nanwake);
 		}
 	}
 #endif /* CONFIG_HAS_WAKELOCK */
@@ -21629,8 +21635,8 @@ int dhd_os_check_wakelock(dhd_pub_t *pub)
 
 #ifdef CONFIG_HAS_WAKELOCK
 	c = dhd->wakelock_counter;
-	l1 = dhd_wake_lock_active(&dhd->wl_wifi);
-	l2 = dhd_wake_lock_active(&dhd->wl_wdwake);
+	l1 = dhd_wake_lock_active(dhd->wl_wifi);
+	l2 = dhd_wake_lock_active(dhd->wl_wdwake);
 	lock_active = (l1 || l2);
 	/* Indicate to the SD Host to avoid going to suspend if internal locks are up */
 	if (lock_active) {
@@ -21673,20 +21679,20 @@ dhd_os_check_wakelock_all(dhd_pub_t *pub)
 
 #ifdef CONFIG_HAS_WAKELOCK
 	c = dhd->wakelock_counter;
-	l1 = dhd_wake_lock_active(&dhd->wl_wifi);
-	l2 = dhd_wake_lock_active(&dhd->wl_wdwake);
-	l3 = dhd_wake_lock_active(&dhd->wl_rxwake);
-	l4 = dhd_wake_lock_active(&dhd->wl_ctrlwake);
-	l7 = dhd_wake_lock_active(&dhd->wl_evtwake);
+	l1 = dhd_wake_lock_active(dhd->wl_wifi);
+	l2 = dhd_wake_lock_active(dhd->wl_wdwake);
+	l3 = dhd_wake_lock_active(dhd->wl_rxwake);
+	l4 = dhd_wake_lock_active(dhd->wl_ctrlwake);
+	l7 = dhd_wake_lock_active(dhd->wl_evtwake);
 #ifdef BCMPCIE_OOB_HOST_WAKE
-	l5 = dhd_wake_lock_active(&dhd->wl_intrwake);
+	l5 = dhd_wake_lock_active(dhd->wl_intrwake);
 #endif /* BCMPCIE_OOB_HOST_WAKE */
 #ifdef DHD_USE_SCAN_WAKELOCK
-	l6 = dhd_wake_lock_active(&dhd->wl_scanwake);
+	l6 = dhd_wake_lock_active(dhd->wl_scanwake);
 #endif /* DHD_USE_SCAN_WAKELOCK */
-	l8 = dhd_wake_lock_active(&dhd->wl_pmwake);
-	l9 = dhd_wake_lock_active(&dhd->wl_txflwake);
-	l10 = dhd_wake_lock_active(&dhd->wl_nanwake);
+	l8 = dhd_wake_lock_active(dhd->wl_pmwake);
+	l9 = dhd_wake_lock_active(dhd->wl_txflwake);
+	l10 = dhd_wake_lock_active(dhd->wl_nanwake);
 	lock_active = (l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9 || l10);
 
 	/* Indicate to the Host to avoid going to suspend if internal locks are up */
@@ -21726,7 +21732,7 @@ int dhd_os_wd_wake_lock(dhd_pub_t *pub)
 		if (dhd->wakelock_wd_counter == 0 && !dhd->waive_wakelock) {
 #ifdef CONFIG_HAS_WAKELOCK
 			/* if wakelock_wd_counter was never used : lock it at once */
-			dhd_wake_lock(&dhd->wl_wdwake);
+			dhd_wake_lock(dhd->wl_wdwake);
 #endif
 		}
 		dhd->wakelock_wd_counter++;
@@ -21748,7 +21754,7 @@ int dhd_os_wd_wake_unlock(dhd_pub_t *pub)
 			dhd->wakelock_wd_counter = 0;
 			if (!dhd->waive_wakelock) {
 #ifdef CONFIG_HAS_WAKELOCK
-				dhd_wake_unlock(&dhd->wl_wdwake);
+				dhd_wake_unlock(dhd->wl_wdwake);
 #endif
 			}
 		}
@@ -21765,7 +21771,7 @@ dhd_os_oob_irq_wake_lock_timeout(dhd_pub_t *pub, int val)
 	dhd_info_t *dhd = (dhd_info_t *)(pub->info);
 
 	if (dhd) {
-		dhd_wake_lock_timeout(&dhd->wl_intrwake, msecs_to_jiffies(val));
+		dhd_wake_lock_timeout(dhd->wl_intrwake, msecs_to_jiffies(val));
 	}
 #endif /* CONFIG_HAS_WAKELOCK */
 }
@@ -21778,8 +21784,8 @@ dhd_os_oob_irq_wake_unlock(dhd_pub_t *pub)
 
 	if (dhd) {
 		/* if wl_intrwake is active, unlock it */
-		if (dhd_wake_lock_active(&dhd->wl_intrwake)) {
-			dhd_wake_unlock(&dhd->wl_intrwake);
+		if (dhd_wake_lock_active(dhd->wl_intrwake)) {
+			dhd_wake_unlock(dhd->wl_intrwake);
 		}
 	}
 #endif /* CONFIG_HAS_WAKELOCK */
@@ -21794,7 +21800,7 @@ dhd_os_scan_wake_lock_timeout(dhd_pub_t *pub, int val)
 	dhd_info_t *dhd = (dhd_info_t *)(pub->info);
 
 	if (dhd) {
-		dhd_wake_lock_timeout(&dhd->wl_scanwake, msecs_to_jiffies(val));
+		dhd_wake_lock_timeout(dhd->wl_scanwake, msecs_to_jiffies(val));
 	}
 #endif /* CONFIG_HAS_WAKELOCK */
 }
@@ -21807,8 +21813,8 @@ dhd_os_scan_wake_unlock(dhd_pub_t *pub)
 
 	if (dhd) {
 		/* if wl_scanwake is active, unlock it */
-		if (dhd_wake_lock_active(&dhd->wl_scanwake)) {
-			dhd_wake_unlock(&dhd->wl_scanwake);
+		if (dhd_wake_lock_active(dhd->wl_scanwake)) {
+			dhd_wake_unlock(dhd->wl_scanwake);
 		}
 	}
 #endif /* CONFIG_HAS_WAKELOCK */
@@ -21874,13 +21880,13 @@ int dhd_os_wake_lock_restore(dhd_pub_t *pub)
 
 	if (dhd->wakelock_before_waive == 0 && dhd->wakelock_counter > 0) {
 #ifdef CONFIG_HAS_WAKELOCK
-		dhd_wake_lock(&dhd->wl_wifi);
+		dhd_wake_lock(dhd->wl_wifi);
 #elif defined(BCMSDIO)
 		dhd_bus_dev_pm_stay_awake(&dhd->pub);
 #endif
 	} else if (dhd->wakelock_before_waive > 0 && dhd->wakelock_counter == 0) {
 #ifdef CONFIG_HAS_WAKELOCK
-		dhd_wake_unlock(&dhd->wl_wifi);
+		dhd_wake_unlock(dhd->wl_wifi);
 #elif defined(BCMSDIO)
 		dhd_bus_dev_pm_relax(&dhd->pub);
 #endif
@@ -21900,19 +21906,19 @@ void dhd_os_wake_lock_init(struct dhd_info *dhd)
 	dhd->wakelock_ctrl_timeout_enable = 0;
 	/* wakelocks prevent a system from going into a low power state */
 #ifdef CONFIG_HAS_WAKELOCK
-	// terence 20161023: can not destroy wl_wifi when wlan down, it will happen null pointer in dhd_ioctl_entry
-	dhd_wake_lock_init(&dhd->wl_rxwake, WAKE_LOCK_SUSPEND, "wlan_rx_wake");
-	dhd_wake_lock_init(&dhd->wl_ctrlwake, WAKE_LOCK_SUSPEND, "wlan_ctrl_wake");
-	dhd_wake_lock_init(&dhd->wl_evtwake, WAKE_LOCK_SUSPEND, "wlan_evt_wake");
-	dhd_wake_lock_init(&dhd->wl_pmwake, WAKE_LOCK_SUSPEND, "wlan_pm_wake");
-	dhd_wake_lock_init(&dhd->wl_txflwake, WAKE_LOCK_SUSPEND, "wlan_txfl_wake");
+	dhd_wake_lock_init(dhd->wl_wifi, dhd_bus_to_dev(dhd->pub.bus), "wlan_wake");
+	dhd_wake_lock_init(dhd->wl_rxwake, dhd_bus_to_dev(dhd->pub.bus), "wlan_rx_wake");
+	dhd_wake_lock_init(dhd->wl_ctrlwake, dhd_bus_to_dev(dhd->pub.bus), "wlan_ctrl_wake");
+	dhd_wake_lock_init(dhd->wl_evtwake, dhd_bus_to_dev(dhd->pub.bus), "wlan_evt_wake");
+	dhd_wake_lock_init(dhd->wl_pmwake, dhd_bus_to_dev(dhd->pub.bus), "wlan_pm_wake");
+	dhd_wake_lock_init(dhd->wl_txflwake, dhd_bus_to_dev(dhd->pub.bus), "wlan_txfl_wake");
 #ifdef BCMPCIE_OOB_HOST_WAKE
-	dhd_wake_lock_init(&dhd->wl_intrwake, WAKE_LOCK_SUSPEND, "wlan_oob_irq_wake");
+	dhd_wake_lock_init(dhd->wl_intrwake, dhd_bus_to_dev(dhd->pub.bus), "wlan_oob_irq_wake");
 #endif /* BCMPCIE_OOB_HOST_WAKE */
 #ifdef DHD_USE_SCAN_WAKELOCK
-	dhd_wake_lock_init(&dhd->wl_scanwake, WAKE_LOCK_SUSPEND, "wlan_scan_wake");
+	dhd_wake_lock_init(dhd->wl_scanwake, dhd_bus_to_dev(dhd->pub.bus), "wlan_scan_wake");
 #endif /* DHD_USE_SCAN_WAKELOCK */
-	dhd_wake_lock_init(&dhd->wl_nanwake, WAKE_LOCK_SUSPEND, "wlan_nan_wake");
+	dhd_wake_lock_init(dhd->wl_nanwake, dhd_bus_to_dev(dhd->pub.bus), "wlan_nan_wake");
 #endif /* CONFIG_HAS_WAKELOCK */
 #ifdef DHD_TRACE_WAKE_LOCK
 	dhd_wk_lock_trace_init(dhd);
@@ -21926,19 +21932,19 @@ void dhd_os_wake_lock_destroy(struct dhd_info *dhd)
 	dhd->wakelock_counter = 0;
 	dhd->wakelock_rx_timeout_enable = 0;
 	dhd->wakelock_ctrl_timeout_enable = 0;
-	// terence 20161023: can not destroy wl_wifi when wlan down, it will happen null pointer in dhd_ioctl_entry
-	dhd_wake_lock_unlock_destroy(&dhd->wl_rxwake);
-	dhd_wake_lock_unlock_destroy(&dhd->wl_ctrlwake);
-	dhd_wake_lock_unlock_destroy(&dhd->wl_evtwake);
-	dhd_wake_lock_unlock_destroy(&dhd->wl_pmwake);
-	dhd_wake_lock_unlock_destroy(&dhd->wl_txflwake);
+	dhd_wake_lock_destroy(dhd->wl_wifi);
+	dhd_wake_lock_destroy(dhd->wl_rxwake);
+	dhd_wake_lock_destroy(dhd->wl_ctrlwake);
+	dhd_wake_lock_destroy(dhd->wl_evtwake);
+	dhd_wake_lock_destroy(dhd->wl_pmwake);
+	dhd_wake_lock_destroy(dhd->wl_txflwake);
 #ifdef BCMPCIE_OOB_HOST_WAKE
-	dhd_wake_lock_unlock_destroy(&dhd->wl_intrwake);
+	dhd_wake_lock_destroy(dhd->wl_intrwake);
 #endif /* BCMPCIE_OOB_HOST_WAKE */
 #ifdef DHD_USE_SCAN_WAKELOCK
-	dhd_wake_lock_unlock_destroy(&dhd->wl_scanwake);
+	dhd_wake_lock_destroy(dhd->wl_scanwake);
 #endif /* DHD_USE_SCAN_WAKELOCK */
-	dhd_wake_lock_unlock_destroy(&dhd->wl_nanwake);
+	dhd_wake_lock_destroy(dhd->wl_nanwake);
 #ifdef DHD_TRACE_WAKE_LOCK
 	dhd_wk_lock_trace_deinit(dhd);
 #endif /* DHD_TRACE_WAKE_LOCK */
@@ -27166,15 +27172,7 @@ int
 dhd_get_random_bytes(uint8 *buf, uint len)
 {
 #ifdef BCMPCIE
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
-	int rndlen = get_random_bytes_arch(buf, len);
-	if (rndlen != len) {
-		bzero(buf, len);
-		get_random_bytes(buf, len);
-	}
-#else
-	get_random_bytes_arch(buf, len);
-#endif
+	get_random_bytes(buf, len);
 #endif /* BCMPCIE */
 	return BCME_OK;
 }

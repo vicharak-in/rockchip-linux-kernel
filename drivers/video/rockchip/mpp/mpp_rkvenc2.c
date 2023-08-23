@@ -28,6 +28,8 @@
 #include <linux/nospec.h>
 #include <linux/workqueue.h>
 #include <linux/dma-iommu.h>
+#include <linux/mfd/syscon.h>
+#include <linux/rockchip/cpu.h>
 #include <soc/rockchip/pm_domains.h>
 #include <soc/rockchip/rockchip_ipa.h>
 #include <soc/rockchip/rockchip_opp_select.h>
@@ -41,6 +43,7 @@
 
 #define	RKVENC_SESSION_MAX_BUFFERS		40
 #define RKVENC_MAX_CORE_NUM			4
+#define RKVENC_SCLR_DONE_STA			BIT(2)
 
 #define to_rkvenc_info(info)		\
 		container_of(info, struct rkvenc_hw_info, hw)
@@ -187,6 +190,7 @@ struct rkvenc_dev {
 	dma_addr_t sram_iova;
 	u32 sram_enabled;
 	struct page *rcb_page;
+	struct regmap *grf;
 };
 
 
@@ -699,6 +703,7 @@ static int rkvenc_run(struct mpp_dev *mpp, struct mpp_task *mpp_task)
 	struct rkvenc_dev *enc = to_rkvenc_dev(mpp);
 	struct rkvenc_task *task = to_rkvenc_task(mpp_task);
 	struct rkvenc_hw_info *hw = enc->hw_info;
+	u32 timing_en = mpp->srv->timing_en;
 
 	mpp_debug_enter();
 
@@ -735,11 +740,20 @@ static int rkvenc_run(struct mpp_dev *mpp, struct mpp_task *mpp_task)
 		}
 	}
 
+	/* flush tlb before starting hardware */
+	mpp_iommu_flush_tlb(mpp->iommu_info);
+
 	/* init current task */
 	mpp->cur_task = mpp_task;
+
+	mpp_task_run_begin(mpp_task, timing_en, MPP_WORK_TIMEOUT_DELAY);
+
 	/* Flush the register before the start the device */
 	wmb();
+
 	mpp_write(mpp, enc->hw_info->enc_start_base, start_val);
+
+	mpp_task_run_end(mpp_task, timing_en);
 
 	mpp_debug_leave();
 
@@ -793,6 +807,7 @@ static int rkvenc_isr(struct mpp_dev *mpp)
 		if (mpp_debug_unlikely(DEBUG_DUMP_ERR_REG))
 			mpp_task_dump_hw_reg(mpp, mpp_task);
 	}
+
 	mpp_task_finish(mpp_task->session, mpp_task);
 
 	mpp_debug_leave();
@@ -1031,6 +1046,10 @@ static int rkvenc_procfs_init(struct mpp_dev *mpp)
 		enc->procfs = NULL;
 		return -EIO;
 	}
+
+	/* for common mpp_dev options */
+	mpp_procfs_create_common(enc->procfs, mpp);
+
 	/* for debug */
 	mpp_procfs_create_u32("aclk", 0644,
 			      enc->procfs, &enc->aclk_info.debug_rate_hz);
@@ -1063,7 +1082,7 @@ static int rkvenc_init(struct mpp_dev *mpp)
 	struct rkvenc_dev *enc = to_rkvenc_dev(mpp);
 	int ret = 0;
 
-	mpp->grf_info = &mpp->srv->grf_infos[MPP_DRIVER_RKVENC];
+	mpp->grf_info = &mpp->srv->grf_infos[MPP_DRIVER_RKVENC2];
 
 	/* Get clock info from dtsi */
 	ret = mpp_get_clk_info(mpp, &enc->aclk_info, "aclk_vcodec");
@@ -1097,23 +1116,41 @@ static int rkvenc_init(struct mpp_dev *mpp)
 	return 0;
 }
 
-static int rkvenc_reset(struct mpp_dev *mpp)
+static int rkvenc_soft_reset(struct mpp_dev *mpp)
 {
 	struct rkvenc_dev *enc = to_rkvenc_dev(mpp);
 	struct rkvenc_hw_info *hw = enc->hw_info;
-
-	mpp_debug_enter();
+	u32 rst_status = 0;
+	int ret = 0;
 
 	/* safe reset */
 	mpp_write(mpp, hw->int_mask_base, 0x3FF);
 	mpp_write(mpp, hw->enc_clr_base, 0x1);
-	udelay(5);
+	ret = readl_relaxed_poll_timeout(mpp->reg_base + hw->int_sta_base,
+					 rst_status,
+					 rst_status & RKVENC_SCLR_DONE_STA,
+					 0, 5);
 	mpp_write(mpp, hw->int_clr_base, 0xffffffff);
 	mpp_write(mpp, hw->int_sta_base, 0);
 
+	return ret;
+
+}
+
+static int rkvenc_reset(struct mpp_dev *mpp)
+{
+	struct rkvenc_dev *enc = to_rkvenc_dev(mpp);
+	int ret = 0;
+
+	mpp_debug_enter();
+
+	/* safe reset first*/
+	ret = rkvenc_soft_reset(mpp);
+
 	/* cru reset */
-	if (enc->rst_a && enc->rst_h && enc->rst_core) {
-		rockchip_pmu_idle_request(mpp->dev, true);
+	if (ret && enc->rst_a && enc->rst_h && enc->rst_core) {
+		mpp_err("soft reset timeout, use cru reset\n");
+		mpp_pmu_idle_request(mpp, true);
 		mpp_safe_reset(enc->rst_a);
 		mpp_safe_reset(enc->rst_h);
 		mpp_safe_reset(enc->rst_core);
@@ -1121,7 +1158,7 @@ static int rkvenc_reset(struct mpp_dev *mpp)
 		mpp_safe_unreset(enc->rst_a);
 		mpp_safe_unreset(enc->rst_h);
 		mpp_safe_unreset(enc->rst_core);
-		rockchip_pmu_idle_request(mpp->dev, false);
+		mpp_pmu_idle_request(mpp, false);
 	}
 
 	mpp_debug_leave();
@@ -1338,6 +1375,7 @@ static int rkvenc_probe_default(struct platform_device *pdev)
 	}
 	mpp->session_max_buffers = RKVENC_SESSION_MAX_BUFFERS;
 	enc->hw_info = to_rkvenc_info(mpp->var->hw_info);
+
 	rkvenc_procfs_init(mpp);
 	mpp_dev_register_srv(mpp, mpp->srv);
 
@@ -1416,12 +1454,44 @@ static void rkvenc_shutdown(struct platform_device *pdev)
 	dev_info(dev, "shutdown success\n");
 }
 
+static int rkvenc_runtime_suspend(struct device *dev)
+{
+	struct mpp_dev *mpp = dev_get_drvdata(dev);
+	struct mpp_grf_info *info = mpp->grf_info;
+
+	if (cpu_is_rk3528() && info && info->mem_offset)
+		regmap_write(info->grf,
+			     info->mem_offset,
+			     info->val_mem_off);
+
+	return 0;
+}
+
+static int rkvenc_runtime_resume(struct device *dev)
+{
+	struct mpp_dev *mpp = dev_get_drvdata(dev);
+	struct mpp_grf_info *info = mpp->grf_info;
+
+	if (cpu_is_rk3528() && info && info->mem_offset)
+		regmap_write(info->grf,
+			     info->mem_offset,
+			     info->val_mem_on);
+
+	return 0;
+}
+
+static const struct dev_pm_ops rkvenc_pm_ops = {
+	.runtime_suspend		= rkvenc_runtime_suspend,
+	.runtime_resume			= rkvenc_runtime_resume,
+};
+
 struct platform_driver rockchip_rkvenc2_driver = {
 	.probe = rkvenc_probe,
 	.remove = rkvenc_remove,
 	.shutdown = rkvenc_shutdown,
 	.driver = {
 		.name = RKVENC_DRIVER_NAME,
+		.pm = &rkvenc_pm_ops,
 		.of_match_table = of_match_ptr(mpp_rkvenc_dt_match),
 	},
 };

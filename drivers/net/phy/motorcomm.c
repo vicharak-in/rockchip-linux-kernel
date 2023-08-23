@@ -573,7 +573,7 @@ static int yt8531S_config_init(struct phy_device *phydev)
 
 static int yt8531_config_init(struct phy_device *phydev)
 {
-	int ret = 0;
+	int ret = 0, val;
 
 #if (YTPHY8531A_XTAL_INIT)
 	ret = yt8531a_xtal_init(phydev);
@@ -591,10 +591,17 @@ static int yt8531_config_init(struct phy_device *phydev)
 		return ret;
 
 	/* RXC, PHY_CLK_OUT and RXData Drive strength:
-	 * Drive strength of RXC = 4, PHY_CLK_OUT = 3, RXD0 = 4 (default)
-	 * If the io voltage is 3.3v, PHY_CLK_OUT = 2, set 0xa010 = 0x9acf
+	 * Drive strength of RXC = 6, PHY_CLK_OUT = 3, RXD0 = 4 (default 1.8v)
+	 * If the io voltage is 3.3v, PHY_CLK_OUT = 2, set 0xa010 = 0xdacf
 	 */
-	ret = ytphy_write_ext(phydev, 0xa010, 0x9bcf);
+	ret = ytphy_write_ext(phydev, 0xa010, 0xdbcf);
+	if (ret < 0)
+		return ret;
+
+	/* Change 100M default BGS voltage from 0x294c to 0x274c */
+	val = ytphy_read_ext(phydev, 0x57);
+	val = (val & ~(0xf << 8)) | (7 << 8);
+	ret = ytphy_write_ext(phydev, 0x57, val);
 	if (ret < 0)
 		return ret;
 

@@ -678,14 +678,16 @@ wl_iw_get_freq(
 	struct dhd_pub *dhd = dhd_get_pub(dev);
 	struct iw_freq *fwrq = &wrqu->freq;
 	int error;
+	u32 val;
 	chanspec_t chanspec = 0;
 	int ctl_chan;
 
 	WL_TRACE(("%s: SIOCGIWFREQ\n", dev->name));
 
 	DHD_CHECK(dhd, dev);
-	if ((error = dev_wlc_intvar_get(dev, "chanspec", (s32 *)&chanspec)))
+	if ((error = dev_wlc_intvar_get(dev, "chanspec", &val)))
 		return error;
+	chanspec = val;
 	chanspec = wl_ext_chspec_driver_to_host(dhd, chanspec);
 	ctl_chan = wf_chspec_ctlchan(chanspec);
 
@@ -1379,7 +1381,8 @@ wl_iw_iscan_set_scan(
 	struct dhd_pub *dhd = dhd_get_pub(dev);
 	wlc_ssid_t ssid;
 #ifdef WL_ESCAN
-	wl_scan_info_t scan_info;
+	wl_scan_info_t *scan_info = NULL;
+	int err;
 #else
 	wl_wext_info_t *wext_info = NULL;
 	iscan_info_t *iscan;
@@ -1403,11 +1406,18 @@ wl_iw_iscan_set_scan(
 		}
 	}
 #endif
-	memset(&scan_info, 0, sizeof(wl_scan_info_t));
-	scan_info.bcast_ssid = TRUE;
-	memcpy(scan_info.ssid.SSID, ssid.SSID, ssid.SSID_len);
-	scan_info.ssid.SSID_len = ssid.SSID_len;
-	return wl_escan_set_scan(dev, &scan_info);
+	scan_info = kmalloc(sizeof(wl_scan_info_t), GFP_KERNEL);
+	if (scan_info == NULL) {
+		WL_ERROR(("kzalloc failed\n"));
+		return -ENOMEM;
+	}
+	memset(scan_info, 0, sizeof(wl_scan_info_t));
+	scan_info->bcast_ssid = TRUE;
+	memcpy(scan_info->ssid.SSID, ssid.SSID, ssid.SSID_len);
+	scan_info->ssid.SSID_len = ssid.SSID_len;
+	err = wl_escan_set_scan(dev, scan_info);
+	kfree(scan_info);
+	return err;
 #else
 	wext_info = dhd->wext_info;
 	iscan = &wext_info->iscan;

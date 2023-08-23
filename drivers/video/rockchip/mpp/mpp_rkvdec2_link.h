@@ -41,8 +41,6 @@
 
 #define RKVDEC_LINK_STA_BASE		0x024
 
-#define RKVDEC_LINK_REG_CYCLE_CNT	179
-
 struct rkvdec_link_dev {
 	struct device *dev;
 	struct mpp_dev *mpp;
@@ -99,6 +97,8 @@ struct rkvdec_link_dev {
 	u32 task_cnt;
 	u64 stuff_cycle_sum;
 	u32 stuff_cnt;
+
+	u32 error_iova;
 };
 
 extern struct rkvdec_link_info rkvdec_link_rk3568_hw_info;
