@@ -35,11 +35,11 @@
 #include <linux/kfifo.h>
 #include <linux/kthread.h>
 #include <linux/sched/rt.h>
-#include "fiq_debugger.h"
+#include <../drivers/staging/android/fiq_debugger/fiq_debugger.h>
 #include <linux/irqchip/arm-gic.h>
 #include <linux/clk.h>
 #include <linux/delay.h>
-#include "rk_fiq_debugger.h"
+#include <linux/soc/rockchip/rk_fiq_debugger.h>
 #include <linux/console.h>
 
 #ifdef CONFIG_FIQ_DEBUGGER_TRUST_ZONE
@@ -232,8 +232,7 @@ static void debug_flush(struct platform_device *pdev)
 #define LINE_MAX 1024
 static DEFINE_KFIFO(fifo, unsigned char, FIFO_SIZE);
 static char console_buf[LINE_MAX]; /* avoid FRAME WARN */
-static bool console_thread_stop; /* write on console_write */
-static bool console_thread_running; /* write on console_thread */
+static bool console_thread_stop;
 static unsigned int console_dropped_messages;
 
 static void console_putc(struct platform_device *pdev, unsigned int c)
@@ -291,11 +290,8 @@ static int console_thread(void *data)
 		unsigned int dropped;
 
 		set_current_state(TASK_INTERRUPTIBLE);
-		if (kfifo_is_empty(&fifo)) {
-			smp_store_mb(console_thread_running, false);
+		if (kfifo_is_empty(&fifo))
 			schedule();
-			smp_store_mb(console_thread_running, true);
-		}
 		if (kthread_should_stop())
 			break;
 		set_current_state(TASK_RUNNING);
@@ -352,32 +348,7 @@ static void console_write(struct platform_device *pdev, const char *s, unsigned 
 			console_dropped_messages++;
 			smp_wmb();
 		} else {
-			/*
-			 * Avoid dead lock on console_task->pi_lock and console_lock
-			 * when call printk() in try_to_wake_up().
-			 *
-			 * cpu0 hold console_lock, then try lock pi_lock fail:
-			 *   printk()->vprintk_emit()->console_unlock()->try_to_wake_up()
-			 *   ->lock(pi_lock)->deadlock
-			 *
-			 * cpu1 hold pi_lock, then try lock console_lock fail:
-			 *   console_thread()->console_put()->usleep_range()->run_hrtimer()
-			 *   ->hrtimer_wakeup()->try_to_wake_up()[hold_pi_lock]->printk()
-			 *   ->vprintk_emit()->console_trylock_spining()->cpu_relax()->deadlock
-			 *
-			 * if cpu0 does not hold console_lock, cpu1 also deadlock on pi_lock:
-			 *   ...->hrtimer_wakeup()->try_to_wake_up()[hold_pi_lock]->printk()
-			 *   ->vprintk_emit()->console_unlock()->try_to_wake_up()
-			 *   ->lock(pi_lock)->deadlock
-			 *
-			 * so when console_task is running on usleep_range(), printk()
-			 * should not wakeup console_task to avoid lock(pi_lock) again,
-			 * as run_hrtimer() will wakeup console_task later.
-			 * console_thread_running==false guarantee that console_task
-			 * is not running on usleep_range().
-			 */
-			if (!READ_ONCE(console_thread_running))
-				wake_up_process(t->console_task);
+			wake_up_process(t->console_task);
 		}
 	}
 }
@@ -414,7 +385,7 @@ int sdei_fiq_debugger_is_enabled(void)
 	return rk_fiq_sdei.fiq_en;
 }
 
-static int fiq_sdei_event_callback(u32 event, struct pt_regs *regs, void *arg)
+int fiq_sdei_event_callback(u32 event, struct pt_regs *regs, void *arg)
 {
 	int cpu_id = get_logical_index(read_cpuid_mpidr() &
 				       MPIDR_HWID_BITMASK);
@@ -423,7 +394,7 @@ static int fiq_sdei_event_callback(u32 event, struct pt_regs *regs, void *arg)
 	return 0;
 }
 
-static void rk_fiq_sdei_event_sw_cpu(int wait_disable)
+void rk_fiq_sdei_event_sw_cpu(int wait_disable)
 {
 	unsigned long affinity;
 	int cnt = 100000;
@@ -445,7 +416,7 @@ static void rk_fiq_sdei_event_sw_cpu(int wait_disable)
 	rk_fiq_sdei.cur_cpu = rk_fiq_sdei.sw_cpu;
 }
 
-static int fiq_sdei_sw_cpu_event_callback(u32 event, struct pt_regs *regs, void *arg)
+int fiq_sdei_sw_cpu_event_callback(u32 event, struct pt_regs *regs, void *arg)
 {
 	int cnt = 10000;
 	int ret = 0;
@@ -497,7 +468,7 @@ static int fiq_dbg_sdei_cpu_off_migrate_fiq(unsigned int cpu)
 	int cnt = 10000;
 
 	if (rk_fiq_sdei.cur_cpu == cpu) {
-		target_cpu = cpumask_any_but(cpu_online_mask, cpu);
+		target_cpu = cpumask_first(cpu_online_mask);
 		_rk_fiq_dbg_sdei_switch_cpu(target_cpu, 1);
 
 		while (rk_fiq_sdei.cur_cpu == cpu && cnt) {
@@ -538,7 +509,6 @@ static struct notifier_block fiq_dbg_sdei_pm_nb = {
 static int fiq_debugger_sdei_enable(struct rk_fiq_debugger *t)
 {
 	int ret, cpu, i;
-	int is_dyn_event = false;
 
 	ret = sip_fiq_debugger_sdei_get_event_id(&rk_fiq_sdei.event_id,
 						 &rk_fiq_sdei.cpu_sw_event_id,
@@ -547,17 +517,6 @@ static int fiq_debugger_sdei_enable(struct rk_fiq_debugger *t)
 	if (ret) {
 		pr_err("%s: get event id error!\n", __func__);
 		return ret;
-	}
-
-	/* If we can't get a valid fiq event, use dynamic event instead */
-	if (rk_fiq_sdei.event_id == 0) {
-		ret = sdei_interrupt_bind(serial_hwirq, &rk_fiq_sdei.event_id);
-		if (ret) {
-			pr_err("%s: bind intr:%d error!\n", __func__, serial_hwirq);
-			return ret;
-		}
-
-		is_dyn_event = true;
 	}
 
 	ret = cpuhp_setup_state_nocalls(CPUHP_AP_ONLINE_DYN,
@@ -638,9 +597,6 @@ err:
 	unregister_pm_notifier(&fiq_dbg_sdei_pm_nb);
 	sdei_event_unregister(rk_fiq_sdei.event_id);
 
-	if (is_dyn_event)
-		sdei_interrupt_release(rk_fiq_sdei.event_id);
-
 	return ret;
 }
 
@@ -710,7 +666,7 @@ static int fiq_debugger_cpu_offine_migrate_fiq(unsigned int cpu)
 
 	if ((sip_fiq_debugger_is_enabled()) &&
 	    (sip_fiq_debugger_get_target_cpu() == cpu)) {
-		target_cpu = cpumask_any_but(cpu_online_mask, cpu);
+		target_cpu = cpumask_first(cpu_online_mask);
 		sip_fiq_debugger_switch_cpu(target_cpu);
 	}
 
@@ -788,9 +744,9 @@ exit:
 }
 #endif
 
-static void rk_serial_debug_init(void __iomem *base, phys_addr_t phy_base,
-				 int irq, int signal_irq,
-				 int wakeup_irq, unsigned int baudrate)
+void rk_serial_debug_init(void __iomem *base, phys_addr_t phy_base,
+			  int irq, int signal_irq,
+			  int wakeup_irq, unsigned int baudrate)
 {
 	struct rk_fiq_debugger *t = NULL;
 	struct platform_device *pdev = NULL;
@@ -912,7 +868,7 @@ out2:
 	kfree(t);
 }
 
-static void rk_serial_debug_init_dummy(void)
+void rk_serial_debug_init_dummy(void)
 {
 	struct rk_fiq_debugger *t = NULL;
 	struct platform_device *pdev = NULL;
