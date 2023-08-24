@@ -955,9 +955,11 @@
 			thermal-sensors = <&tsadc 1>;
 
 			trips {
-				gpu_crit: gpu_crit {
-					temperature = <115000>; /* millicelsius */
-					hysteresis = <2000>; /* millicelsius */
+				gpu_crit: gpu-crit {
+					/* millicelsius */
+					temperature = <115000>;
+					/* millicelsius */
+					hysteresis = <2000>;
 					type = "critical";
 				};
 			};
