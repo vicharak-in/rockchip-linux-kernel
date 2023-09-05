@@ -88,6 +88,25 @@
 };
 // End of CDN DP }}}
 
+// HDMI: {{{
+&hdmi {
+	status = "disabled";
+};
+
+&hdmi_in_vopb {
+	status = "disabled";
+};
+
+&hdmi_sound {
+	status = "disabled";
+};
+
+&route_hdmi {
+	connect = <&vopb_out_hdmi>;
+	status = "disabled";
+};
+// End of HDMI }}}
+
 // Power Button: {{{
 &gpio_keys {
     status = "okay";
