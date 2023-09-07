@@ -281,6 +281,14 @@ config BOARD_VICHARAK_VAAMAN
 	  This enables support for Vicharak Vaaman Board which is a single board
 	  computer based on Rockchip RK3399 SoC with additional on-board FPGA.
 
+config BOARD_VICHARAK_AXON
+	bool "Vicharak Axon Board based on Rockchip RK3588"
+	select ARCH_ROCKCHIP
+	select ARCH_VICHARAK
+	help
+	  This enables support for Vicharak Axon Board which is a single board
+	  computer based on high performance Rockchip RK3588 SoC.
+
 endmenu
 
 config ARCH_SEATTLE
