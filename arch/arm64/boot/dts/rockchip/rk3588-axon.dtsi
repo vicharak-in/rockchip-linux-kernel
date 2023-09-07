@@ -7,6 +7,7 @@
 #include "rk3588-rk806-single.dtsi"
 #include <dt-bindings/leds/common.h>
 #include <dt-bindings/pinctrl/rockchip.h>
+#include <dt-bindings/usb/pd.h>
 
 / {
 	compatible = "vicharak,rk3588-axon", "rockchip,rk3588";
@@ -37,6 +38,24 @@
 			retain-state-suspended;
 			linux,default-trigger = "heartbeat";
 		};
+	};
+
+	vbus5v0_typec0: vbus5v0-typec0-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vbus5v0_typec0";
+		regulator-boot-on;
+		regulator-always-on;
+		enable-active-high;
+		vin-supply = <&vcc1_5v0>;
+	};
+
+	vbus5v0_typec1: vbus5v0-typec1-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vbus5v0_typec1";
+		regulator-boot-on;
+		regulator-always-on;
+		enable-active-high;
+		vin-supply = <&vcc1_5v0>;
 	};
 
 	vcc12v_dcin: vcc12v-dcin-regulator {
@@ -209,6 +228,110 @@
 	};
 };
 
+&i2c6 {
+	status = "okay";
+
+	usbc0: fusb302@22 {
+		compatible = "fcs,fusb302";
+		reg = <0x22>;
+		interrupt-parent = <&gpio0>;
+		interrupts = <RK_PB7 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&usbc0_int>;
+		vbus-supply = <&vbus5v0_typec0>;
+		status = "okay";
+
+		usb_con0: connector {
+			compatible = "usb-c-connector";
+			label = "USB-C0";
+			data-role = "dual";
+			power-role = "dual";
+			try-power-role = "sink";
+			op-sink-microwatt = <1000000>;
+			sink-pdos =
+				<PDO_FIXED(5000, 1000, PDO_FIXED_USB_COMM)>;
+			source-pdos =
+				<PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+					usbc0_orien_sw: endpoint {
+						remote-endpoint = <&usbdp0_phy0_orientation_switch>;
+					};
+				};
+
+				port@1 {
+					reg = <1>;
+					usbc0_role_sw: endpoint {
+						remote-endpoint = <&dwc3_0_role_switch>;
+					};
+				};
+
+				port@2 {
+					reg = <2>;
+					dp0_altmode_mux: endpoint {
+						remote-endpoint = <&usbdp0_phy0_dp0_altmode_mux>;
+					};
+				};
+			};
+		};
+	};
+
+	usbc1: fusb302@23 {
+		compatible = "fcs,fusb302";
+		reg = <0x23>;
+		interrupt-parent = <&gpio0>;
+		interrupts = <RK_PD3 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&usbc1_int>;
+		vbus-supply = <&vbus5v0_typec1>;
+		status = "okay";
+
+		usb_con1: connector {
+			compatible = "usb-c-connector";
+			label = "USB-C1";
+			data-role = "dual";
+			power-role = "dual";
+			try-power-role = "sink";
+			op-sink-microwatt = <1000000>;
+			sink-pdos =
+				<PDO_FIXED(5000, 1000, PDO_FIXED_USB_COMM)>;
+			source-pdos =
+				<PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+					usbc1_orien_sw: endpoint {
+						remote-endpoint = <&usbdp1_phy1_orientation_switch>;
+					};
+				};
+
+				port@1 {
+					reg = <1>;
+					usbc1_role_sw: endpoint {
+						remote-endpoint = <&dwc3_1_role_switch>;
+					};
+				};
+
+				port@2 {
+					reg = <2>;
+					dp1_altmode_mux: endpoint {
+						remote-endpoint = <&usbdp1_phy1_dp1_altmode_mux>;
+					};
+				};
+			};
+		};
+	};
+};
+
 &mdio1 {
 	rgmii_phy: phy@1 {
 		compatible = "ethernet-phy-ieee802.3-c22";
@@ -245,6 +368,18 @@
 				<4 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
+
+	usb-typec {
+		usbc0_int: usbc0-int {
+			rockchip,pins =
+				<0 RK_PB7 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+
+		usbc1_int: usbc1-int {
+			rockchip,pins =
+				<0 RK_PD3 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
 };
 
 &sdhci {
@@ -271,6 +406,22 @@
 	sd-uhs-sdr104;
 	vmmc-supply = <&vcc_3v3_s3>;
 	vqmmc-supply = <&vcc_1v8_s0>;
+	status = "okay";
+};
+
+&u2phy0 {
+	status = "okay";
+};
+
+&u2phy0_otg {
+	status = "okay";
+};
+
+&u2phy1 {
+	status = "okay";
+};
+
+&u2phy1_otg {
 	status = "okay";
 };
 
@@ -306,4 +457,127 @@
 
 &usb_host1_ohci {
 	status = "okay";
+};
+
+&usbdp_phy0 {
+	orientation-switch;
+	sbu1-dc-gpios = <&gpio4 RK_PA6 GPIO_ACTIVE_HIGH>;
+	sbu2-dc-gpios = <&gpio4 RK_PA7 GPIO_ACTIVE_HIGH>;
+	svid = <0xff01>;
+	status = "okay";
+
+	port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		usbdp0_phy0_orientation_switch: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&usbc0_orien_sw>;
+		};
+
+		usbdp0_phy0_dp0_altmode_mux: endpoint@1 {
+			reg = <1>;
+			remote-endpoint = <&dp0_altmode_mux>;
+		};
+	};
+};
+
+&usbdp_phy0_dp {
+	status = "okay";
+};
+
+&usbdp_phy0_u3 {
+	status = "okay";
+};
+
+&usbdp_phy1 {
+	orientation-switch;
+	sbu1-dc-gpios = <&gpio4 RK_PB1 GPIO_ACTIVE_HIGH>;
+	sbu2-dc-gpios = <&gpio4 RK_PB3 GPIO_ACTIVE_HIGH>;
+	svid = <0xff01>;
+	status = "okay";
+
+	port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		usbdp1_phy1_orientation_switch: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&usbc1_orien_sw>;
+		};
+
+		usbdp1_phy1_dp1_altmode_mux: endpoint@1 {
+			reg = <1>;
+			remote-endpoint = <&dp1_altmode_mux>;
+		};
+	};
+};
+
+&usbdp_phy1_dp {
+	status = "okay";
+};
+
+&usbdp_phy1_u3 {
+	status = "okay";
+};
+
+&usbdrd3_0 {
+	status = "okay";
+};
+
+&usbdrd_dwc3_0 {
+	dr_mode = "otg";
+	status = "okay";
+	usb-role-switch;
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			dwc3_0_role_switch: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&usbc0_role_sw>;
+			};
+		};
+	};
+};
+
+&usbhost3_0 {
+	status = "okay";
+};
+
+&usbhost_dwc3_0 {
+	dr_mode = "otg";
+	status = "okay";
+};
+
+&usbdrd3_1 {
+	status = "okay";
+};
+
+&usbdrd_dwc3_1 {
+	dr_mode = "otg";
+	status = "okay";
+	usb-role-switch;
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			dwc3_1_role_switch: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&usbc1_role_sw>;
+			};
+		};
+	};
 };
