@@ -160,6 +160,10 @@
 	mem-supply = <&vdd_cpu_lit_mem_s0>;
 };
 
+&crypto {
+	status = "okay";
+};
+
 &gmac1 {
 	clock_in_out = "output";
 	phy-handle = <&rgmii_phy>;
@@ -529,6 +533,10 @@
 };
 
 &rkvenc1_mmu {
+	status = "okay";
+};
+
+&rng {
 	status = "okay";
 };
 
