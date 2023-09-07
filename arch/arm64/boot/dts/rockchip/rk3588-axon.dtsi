@@ -5,6 +5,8 @@
 
 #include "rk3588.dtsi"
 #include "rk3588-rk806-single.dtsi"
+#include <dt-bindings/leds/common.h>
+#include <dt-bindings/pinctrl/rockchip.h>
 
 / {
 	compatible = "vicharak,rk3588-axon", "rockchip,rk3588";
@@ -12,6 +14,29 @@
 	aliases {
 		mmc0 = &sdmmc;
 		mmc1 = &sdhci;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		status = "okay";
+		pinctrl-names = "default";
+		pinctrl-0 = <&power_led_gpio &status_led_gpio>;
+
+		power_led: power-led {
+			function = LED_FUNCTION_POWER;
+			gpios = <&gpio0 RK_PB2 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+			retain-state-suspended;
+			linux,default-trigger = "default-on";
+		};
+
+		status_led: status-led {
+			function = LED_FUNCTION_STATUS;
+			gpios = <&gpio0 RK_PA0 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+			retain-state-suspended;
+			linux,default-trigger = "heartbeat";
+		};
 	};
 
 	vcc12v_dcin: vcc12v-dcin-regulator {
@@ -188,6 +213,20 @@
 
 &rknpu_mmu {
 	status = "okay";
+};
+
+&pinctrl {
+	leds {
+		power_led_gpio: power-led-gpio {
+			rockchip,pins =
+				<0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		status_led_gpio: status-led-gpio {
+			rockchip,pins =
+				<0 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
 };
 
 &sdhci {
