@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (C) 2023 Vicharak Computers LLP
+ */
+
+/dts-v1/;
+
+#include "rk3588-axon.dtsi"
+#include "rk3588-android.dtsi"
+
+/ {
+	model = "Vicharak RK3588 AXON VO.2 ANDROID";
+	compatible = "vicharak,rk3588-axon", "rockchip,rk3588";
+};

@@ -3,6 +3,10 @@ ifeq ($(CONFIG_ARCH_VICHARAK),y)
 dtb-$(CONFIG_BOARD_VICHARAK_VAAMAN) += \
 	rk3399-vaaman-android.dtb \
 	rk3399-vaaman-linux.dtb
+
+dtb-$(CONFIG_BOARD_VICHARAK_AXON) += \
+	rk3588-axon-android.dtb \
+	rk3588-axon-linux.dtb
 else
 dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-firefly-itx-3588j.dtb
 dtb-$(CONFIG_ARCH_ROCKCHIP) += px30-evb.dtb
