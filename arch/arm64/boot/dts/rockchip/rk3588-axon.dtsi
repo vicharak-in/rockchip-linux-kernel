@@ -11,6 +11,7 @@
 
 	aliases {
 		mmc0 = &sdmmc;
+		mmc1 = &sdhci;
 	};
 
 	vcc12v_dcin: vcc12v-dcin-regulator {
@@ -160,6 +161,20 @@
 };
 
 &rknpu_mmu {
+	status = "okay";
+};
+
+&sdhci {
+	bus-width = <8>;
+	full-pwr-cycle-in-suspend;
+	max-frequency = <200000000>;
+	mmc-hs400-1_8v;
+	mmc-hs400-enhanced-strobe;
+	no-sd;
+	no-sdio;
+	non-removable;
+	vmmc-supply = <&vcc_3v3_s3>;
+	vqmmc-supply = <&vcc_1v8_s3>;
 	status = "okay";
 };
 
