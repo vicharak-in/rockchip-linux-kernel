@@ -9,6 +9,10 @@
 / {
 	compatible = "vicharak,rk3588-axon", "rockchip,rk3588";
 
+	aliases {
+		mmc0 = &sdmmc;
+	};
+
 	vcc12v_dcin: vcc12v-dcin-regulator {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc12v_dcin";
@@ -156,5 +160,18 @@
 };
 
 &rknpu_mmu {
+	status = "okay";
+};
+
+&sdmmc {
+	bus-width = <4>;
+	cap-mmc-highspeed;
+	cap-sd-highspeed;
+	disable-wp;
+	no-mmc;
+	no-sdio;
+	sd-uhs-sdr104;
+	vmmc-supply = <&vcc_3v3_s3>;
+	vqmmc-supply = <&vcc_1v8_s0>;
 	status = "okay";
 };
