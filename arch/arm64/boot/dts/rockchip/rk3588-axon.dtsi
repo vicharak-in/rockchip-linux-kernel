@@ -78,6 +78,26 @@
 		};
 	};
 
+	hdmi0_sound: hdmi0-sound {
+		compatible = "rockchip,hdmi";
+		rockchip,mclk-fs = <128>;
+		rockchip,card-name = "rockchip-hdmi0";
+		rockchip,cpu = <&i2s5_8ch>;
+		rockchip,codec = <&hdmi0>;
+		rockchip,jack-det;
+		status = "okay";
+	};
+
+	hdmi1_sound: hdmi1-sound {
+		compatible = "rockchip,hdmi";
+		rockchip,mclk-fs = <128>;
+		rockchip,card-name = "rockchip-hdmi1";
+		rockchip,cpu = <&i2s6_8ch>;
+		rockchip,codec = <&hdmi1>;
+		rockchip,jack-det;
+		status = "okay";
+	};
+
 	keys {
 		compatible = "adc-keys";
 		io-channels = <&saradc 1>;
@@ -424,6 +444,50 @@
 	status = "okay";
 };
 
+&hdmi0 {
+	enable-gpios = <&gpio1 RK_PB0 GPIO_ACTIVE_HIGH>;
+	cec-enable;
+	status = "okay";
+};
+
+&hdmi0_in_vp0 {
+	status = "okay";
+};
+
+&hdptxphy_hdmi0 {
+	status = "okay";
+};
+
+&hdptxphy_hdmi_clk0 {
+	status = "okay";
+};
+
+&vp0_out_hdmi0 {
+	status = "okay";
+};
+
+&hdmi1 {
+	enable-gpios = <&gpio1 RK_PA7 GPIO_ACTIVE_HIGH>;
+	cec-enable;
+	status = "okay";
+};
+
+&hdmi1_in_vp1 {
+	status = "okay";
+};
+
+&hdptxphy_hdmi1 {
+	status = "okay";
+};
+
+&hdptxphy_hdmi_clk1 {
+	status = "okay";
+};
+
+&vp1_out_hdmi1 {
+	status = "okay";
+};
+
 &i2c0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2c0m2_xfer>;
@@ -647,6 +711,14 @@
 				&i2s0_sdi0
 				&i2s0_sdo0>;
 
+	status = "okay";
+};
+
+&i2s5_8ch {
+	status = "okay";
+};
+
+&i2s6_8ch {
 	status = "okay";
 };
 
