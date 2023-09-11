@@ -20,6 +20,26 @@
 		mmc2 = &sdio;
 	};
 
+	dp0_sound: dp0-sound {
+		compatible = "rockchip,hdmi";
+		rockchip,card-name= "rockchip,dp0";
+		rockchip,mclk-fs = <512>;
+		rockchip,cpu = <&spdif_tx2>;
+		rockchip,codec = <&dp0 1>;
+		rockchip,jack-det;
+		status = "okay";
+	};
+
+	dp1_sound: dp1-sound {
+		compatible = "rockchip,hdmi";
+		rockchip,card-name= "rockchip,dp1";
+		rockchip,mclk-fs = <512>;
+		rockchip,cpu = <&spdif_tx5>;
+		rockchip,codec = <&dp1 1>;
+		rockchip,jack-det;
+		status = "okay";
+	};
+
 	es8388_sound: es8388-sound {
 		compatible = "rockchip,multicodecs-card";
 		hp-con-gpio = <&gpio1 RK_PD5 GPIO_ACTIVE_HIGH>;
@@ -358,6 +378,30 @@
 };
 
 &crypto {
+	status = "okay";
+};
+
+&dp0 {
+	status = "okay";
+};
+
+&dp0_in_vp2 {
+	status = "okay";
+};
+
+&dp1 {
+	status = "okay";
+};
+
+&dp1_in_vp2 {
+	status = "okay";
+};
+
+&vp2_out_dp0 {
+	status = "okay";
+};
+
+&vp2_out_dp1 {
 	status = "okay";
 };
 
@@ -909,6 +953,14 @@
 	sd-uhs-sdr104;
 	vmmc-supply = <&vcc_3v3_s3>;
 	vqmmc-supply = <&vcc_1v8_s0>;
+	status = "okay";
+};
+
+&spdif_tx2 {
+	status = "okay";
+};
+
+&spdif_tx5 {
 	status = "okay";
 };
 
