@@ -72,17 +72,17 @@
 			linux,cma-default;
 		};
 
-		drm_logo: drm-logo@00000000 {
+		drm_logo: drm-logo@0 {
 			compatible = "rockchip,drm-logo";
 			reg = <0x0 0x0 0x0 0x0>;
 		};
 
-		drm_cubic_lut: drm-cubic-lut@00000000 {
+		drm_cubic_lut: drm-cubic-lut@0 {
 			compatible = "rockchip,drm-cubic-lut";
 			reg = <0x0 0x0 0x0 0x0>;
 		};
 
-		vendor_storage_rm: vendor-storage-rm@00000000 {
+		vendor_storage_rm: vendor-storage-rm@0 {
 			compatible = "rockchip,vendor-storage-rm";
 			reg = <0x0 0x0 0x0 0x0>;
 		};
