@@ -82,7 +82,7 @@
 			reg = <0x0 0x0 0x0 0x0>;
 		};
 
-		vendor_storage_rm: vendor-storage-rm@00000000 {
+		vendor_storage_rm: vendor-storage-rm@0 {
 			compatible = "rockchip,vendor-storage-rm";
 			reg = <0x0 0x0 0x0 0x0>;
 		};
