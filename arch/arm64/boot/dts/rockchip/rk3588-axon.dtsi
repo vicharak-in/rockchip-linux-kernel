@@ -113,6 +113,18 @@
 		};
 	};
 
+	sata_vcc_3v3: sata-vcc-3v3 {
+		compatible = "regulator-fixed";
+		regulator-name = "sata_vcc_3v3";
+		regulator-boot-on;
+		regulator-always-on;
+		enable-active-high;
+		gpio = <&pca9554 2 GPIO_ACTIVE_HIGH>;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		vin-supply = <&vcc1_5v0>;
+	};
+
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		clocks = <&hym8563>;
@@ -225,6 +237,10 @@
 };
 
 &avsd {
+	status = "okay";
+};
+
+&combphy0_ps {
 	status = "okay";
 };
 
@@ -777,6 +793,10 @@
 };
 
 &tsadc {
+	status = "okay";
+};
+
+&sata0 {
 	status = "okay";
 };
 
