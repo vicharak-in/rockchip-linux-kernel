@@ -16,6 +16,7 @@
 	aliases {
 		mmc0 = &sdmmc;
 		mmc1 = &sdhci;
+		mmc2 = &sdio;
 	};
 
 	es8388_sound: es8388-sound {
@@ -112,6 +113,16 @@
 		};
 	};
 
+	sdio_pwrseq: sdio-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		clocks = <&hym8563>;
+		clock-names = "ext_clock";
+		pinctrl-names = "default";
+		pinctrl-0 = <&sdio_reset_wifi>;
+		reset-gpios = <&gpio4 RK_PC6 GPIO_ACTIVE_LOW>;
+		status = "okay";
+	};
+
 	vbus5v0_typec0: vbus5v0-typec0-regulator {
 		compatible = "regulator-fixed";
 		regulator-name = "vbus5v0_typec0";
@@ -195,6 +206,16 @@
 		BT,wake_host_irq = <&gpio0 RK_PC4 GPIO_ACTIVE_HIGH>;
 		BT,wake_gpio     = <&gpio0 RK_PC5 GPIO_ACTIVE_HIGH>;
 		BT,reset_gpio    = <&gpio0 RK_PC6 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+
+	wireless_wlan: wireless-wlan {
+		compatible = "wlan-platdata";
+		wifi_chip_type = "rtl8852bs";
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_host_wake_irq>, <&wifi_poweren_gpio>;
+		WIFI,host_wake_irq = <&gpio2 RK_PB4 GPIO_ACTIVE_HIGH>;
+		WIFI,poweren_gpio = <&gpio2 RK_PB5 GPIO_ACTIVE_HIGH>;
 		status = "okay";
 	};
 };
@@ -624,6 +645,23 @@
 		bt_irq_gpio: bt-irq-gpio {
 			rockchip,pins =
 				<0 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	wireless-wlan {
+		sdio_reset_wifi: sdio-reset-wifi {
+			rockchip,pins =
+				<4 RK_PC6 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		wifi_host_wake_irq: wifi-host-wake-irq {
+			rockchip,pins =
+				<2 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		wifi_poweren_gpio: wifi-poweren-gpio {
+			rockchip,pins =
+				<2 RK_PB5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };
