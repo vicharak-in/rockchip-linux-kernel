@@ -47,12 +47,9 @@
 				#size-cells = <0>;
 
 				edp_out: port@1 {
-					#address-cells = <1>;
-					#size-cells = <0>;
 					reg = <1>;
 
-					edp_out_panel: endpoint@0 {
-						reg = <0>;
+					edp_out_panel: endpoint {
 						remote-endpoint = <&panel_in_edp>;
 					};
 				};
@@ -138,11 +135,7 @@
 			status = "okay";
 
 			port {
-				#address-cells = <1>;
-				#size-cells = <0>;
-
-				isp1_mipi_in: endpoint@0 {
-					reg = <0>;
+				isp1_mipi_in: endpoint {
 					remote-endpoint = <&dphy_tx1rx1_out>;
 				};
 			};
@@ -169,11 +162,8 @@
 
 				port@0 {
 					reg = <0>;
-					#address-cells = <1>;
-					#size-cells = <0>;
 
-					mipi_in_ucam1: endpoint@1 {
-						reg = <1>;
+					mipi_in_ucam1: endpoint {
 						remote-endpoint = <&ucam_out1>;
 						data-lanes = <1 2 3 4>;
 					};
@@ -181,11 +171,8 @@
 
 				port@1 {
 					reg = <1>;
-					#address-cells = <1>;
-					#size-cells = <0>;
 
-					dphy_tx1rx1_out: endpoint@0 {
-						reg = <0>;
+					dphy_tx1rx1_out: endpoint {
 						remote-endpoint = <&isp1_mipi_in>;
 					};
 				};
@@ -197,11 +184,13 @@
 		target = <&pinctrl>;
 
 		__overlay__ {
-			i2c4_xfer: i2c4-xfer {
-				rockchip,pins =
-					<1 RK_PB3 RK_FUNC_1 &pcfg_pull_up>,
-					<1 RK_PB4 RK_FUNC_1 &pcfg_pull_up>,
-					<1 RK_PB5 RK_FUNC_GPIO &pcfg_output_high>;
+			i2c4 {
+				i2c4_xfer: i2c4-xfer {
+					rockchip,pins =
+						<1 RK_PB3 RK_FUNC_1 &pcfg_pull_up>,
+						<1 RK_PB4 RK_FUNC_1 &pcfg_pull_up>,
+						<1 RK_PB5 RK_FUNC_GPIO &pcfg_output_high>;
+				};
 			};
 		};
 	};

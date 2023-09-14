@@ -17,10 +17,16 @@
 	};
 
 	fragment@0 {
-		target = <&clk_cam_24m>;
+		target-path = "/";
 
 		__overlay__ {
-			status = "okay";
+			clk_cam_24m: clk-cam-24m {
+				compatible = "fixed-clock";
+				clock-frequency = <24000000>;
+				clock-output-names = "xvclk";
+				#clock-cells = <0>;
+				status = "okay";
+			};
 		};
 	};
 
@@ -31,11 +37,7 @@
 			status = "okay";
 
 			port {
-				#address-cells = <1>;
-				#size-cells = <0>;
-
-				isp0_mipi_in: endpoint@0 {
-					reg = <0>;
+				isp0_mipi_in: endpoint {
 					remote-endpoint = <&dphy_rx0_out>;
 				};
 			};
@@ -78,11 +80,8 @@
 
 				port@0 {
 					reg = <0>;
-					#address-cells = <1>;
-					#size-cells = <0>;
 
-					mipi_in_ucam0: endpoint@1 {
-						reg = <1>;
+					mipi_in_ucam0: endpoint {
 						remote-endpoint = <&ucam_out0>;
 						data-lanes = <1 2>;
 					};
@@ -90,11 +89,8 @@
 
 				port@1 {
 					reg = <1>;
-					#address-cells = <1>;
-					#size-cells = <0>;
 
-					dphy_rx0_out: endpoint@0 {
-						reg = <0>;
+					dphy_rx0_out: endpoint {
 						remote-endpoint = <&isp0_mipi_in>;
 					};
 				};
@@ -134,6 +130,21 @@
 						remote-endpoint = <&mipi_in_ucam0>;
 						data-lanes = <1 2>;
 					};
+				};
+			};
+		};
+	};
+
+	fragment@8 {
+		target = <&pinctrl>;
+
+		__overlay__ {
+			i2c4 {
+				i2c4_xfer: i2c4-xfer {
+					rockchip,pins =
+						<1 RK_PB3 RK_FUNC_1 &pcfg_pull_up>,
+						<1 RK_PB4 RK_FUNC_1 &pcfg_pull_up>,
+						<1 RK_PB5 RK_FUNC_GPIO &pcfg_output_high>;
 				};
 			};
 		};
