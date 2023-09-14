@@ -32,6 +32,18 @@
 					};
 				};
 			};
+
+			camera_pwdn_gpio: camera-pwdn-gpio {
+				status = "okay";
+				compatible = "regulator-fixed";
+				regulator-name = "camera_pwdn_gpio";
+				regulator-always-on;
+				regulator-boot-on;
+				enable-active-high;
+				gpio = <&gpio1 RK_PB5 GPIO_ACTIVE_HIGH>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&cam_pwdn_gpio>;
+			};
 		};
 	};
 
@@ -184,12 +196,10 @@
 		target = <&pinctrl>;
 
 		__overlay__ {
-			i2c4 {
-				i2c4_xfer: i2c4-xfer {
+			camera {
+				cam_pwdn_gpio: cam-pwdn-gpio {
 					rockchip,pins =
-						<1 RK_PB3 RK_FUNC_1 &pcfg_pull_up>,
-						<1 RK_PB4 RK_FUNC_1 &pcfg_pull_up>,
-						<1 RK_PB5 RK_FUNC_GPIO &pcfg_output_high>;
+						<1 RK_PB5 RK_FUNC_GPIO &pcfg_pull_up>;
 				};
 			};
 		};
