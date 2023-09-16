@@ -1694,7 +1694,7 @@ void phydm_dfs_rpt_distinguish(void *dm_void)
 			PHYDM_DBG(dm, DBG_DFS, "Anti-FRD Rdr Drop\n");
 		if (!(dfs->pw_flag_en) || !(dfs->loct_flag_en) || !(dfs->pri_flag_en))
 			PHYDM_DBG(dm, DBG_DFS, "Byps flag scenario\n");
-		if (dc_cnt > dfs->dc_cnt_th)
+	    if (dc_cnt > dfs->dc_cnt_th)
 			PHYDM_DBG(dm, DBG_DFS, "Radar is near DC\n");
 		if (!(dfs->pw_flag))
 			PHYDM_DBG(dm, DBG_DFS, "- PW/PRI-J Failure\n");

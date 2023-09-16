@@ -150,7 +150,7 @@ void phydm_stop_pmac_tx_jgr3(void *dm_void, struct phydm_pmac_info *tx_info)
 				/* Clear TX Stop */
 				odm_set_bb_reg(dm, R_0x2a00, BIT(0), 0x0);
 				phydm_stop_cck_cont_tx_jgr3(dm);
-			} else
+			} else 
 				phydm_stop_ofdm_cont_tx_jgr3(dm);
 		} else {
 			if (pmac_tx->is_cck_rate) {
@@ -162,7 +162,7 @@ void phydm_stop_pmac_tx_jgr3(void *dm_void, struct phydm_pmac_info *tx_info)
 				odm_set_bb_reg(dm, R_0x2a08, BIT(31), 0x1);
 				phydm_stop_cck_cont_tx_jgr3(dm);
 			}
-		}
+		} 
 	}else {
 		if (tx_info->mode == CONT_TX) {
 		if (pmac_tx->is_cck_rate)
@@ -347,7 +347,7 @@ void phydm_set_pmac_txon_jgr3(void *dm_void, struct phydm_pmac_info *tx_info)
 				if (!odm_get_bb_reg(dm, R_0x1d10, BIT(16)))
 					odm_set_bb_reg(dm, R_0x1d10, BIT(16), 0x1);
 		#endif
-
+ 
 		if (pmac_tx->is_cck_rate){
 			odm_set_bb_reg(dm, R_0x1e70, 0xf, 0x8); /*TX CCK ON */
 			odm_set_bb_reg(dm, R_0x1a84, BIT(31), 0x0);
@@ -493,8 +493,10 @@ void phydm_pmac_tx_dbg(void *dm_void, char input[][16], u32 *_used,
 			 "[pmac_tx] basic : {1} {rate_idx}(only 1M & 6M) {count}\n");
 	} else {
 		for (i = 1; i < 7; i++) {
-			PHYDM_SSCANF(input[i + 1], DCMD_DECIMAL,
-					 &var[i]);
+			if (input[i + 1]) {
+				PHYDM_SSCANF(input[i + 1], DCMD_DECIMAL,
+					     &var[i]);
+			}
 		}
 
 		tx_info.en_pmac_tx = true;

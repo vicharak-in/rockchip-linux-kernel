@@ -243,7 +243,7 @@ phydm_check_rates(void *dm_void, u8 rate_idx)
 	u32 check_rate_bitmap0 = 0x08080808; /* @check CCK11M, OFDM54M, MCS7, MCS15*/
 	u32 check_rate_bitmap1 = 0x80200808; /* @check MCS23, MCS31, VHT1SS M9, VHT2SS M9*/
 	u32 check_rate_bitmap2 = 0x00080200; /* @check VHT3SS M9, VHT4SS M9*/
-	u32 bitmap_result = 0;
+	u32 bitmap_result;
 
 #if (RTL8822B_SUPPORT)
 	if (dm->support_ic_type & ODM_RTL8822B) {
@@ -359,7 +359,7 @@ u8 phydm_search_min_power_index(void *dm_void)
 
 				if (gain_index == 0xff) {
 					min_gain_index = 0x20;
-					PHYDM_DBG(dm, DBG_DYN_TXPWR,
+					PHYDM_DBG(dm, DBG_DYN_TXPWR, 
 						  "Error Gain idx!! Rewite to: ((%d))\n",
 						  min_gain_index);
 					break;
@@ -653,8 +653,9 @@ void phydm_dtp_debug(void *dm_void, char input[][16], u32 *_used, char *output,
 		#endif
 	} else {
 		for (i = 0; i < 7; i++) {
-			PHYDM_SSCANF(input[i + 1], DCMD_DECIMAL,
-					 &var1[i]);
+			if (input[i + 1])
+				PHYDM_SSCANF(input[i + 1], DCMD_DECIMAL,
+					     &var1[i]);
 		}
 		switch (var1[0]) {
 		case 1:

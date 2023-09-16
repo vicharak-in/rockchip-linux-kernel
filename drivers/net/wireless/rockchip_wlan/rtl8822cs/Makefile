@@ -8,8 +8,6 @@ EXTRA_CFLAGS += -O1
 #EXTRA_CFLAGS += -Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes
 
 EXTRA_CFLAGS += -Wno-unused-variable
-EXTRA_CFLAGS += -Wno-address
-EXTRA_CFLAGS += -Wno-fortify-source
 #EXTRA_CFLAGS += -Wno-unused-value
 #EXTRA_CFLAGS += -Wno-unused-label
 #EXTRA_CFLAGS += -Wno-unused-parameter
@@ -22,17 +20,7 @@ ifeq ($(GCC_VER_49),1)
 EXTRA_CFLAGS += -Wno-date-time	# Fix compile error && warning on gcc 4.9 and later
 endif
 
-
-ifeq ($(CONFIG_ARCH_ROCKCHIP), y)
-DRV_PATH = $(shell pwd)/$(srctree)/$(src)
-
-EXTRA_CFLAGS += -I$(DRV_PATH)/include
-EXTRA_CFLAGS += -I$(DRV_PATH)/hal/phydm
-EXTRA_CFLAGS += -I$(DRV_PATH)/core/crypto
-EXTRA_CFLAGS += -I$(DRV_PATH)/platform
-else
-EXTRA_CFLAGS += -I$(src)/include
-endif
+EXTRA_CFLAGS += -I$(srctree)/$(src)/include
 
 EXTRA_LDFLAGS += --strip-debug
 
@@ -67,7 +55,7 @@ CONFIG_GSPI_HCI = n
 CONFIG_AP_MODE = y
 CONFIG_P2P = y
 CONFIG_MP_INCLUDED = y
-CONFIG_POWER_SAVING = y
+CONFIG_POWER_SAVING = n
 CONFIG_IPS_MODE = default
 CONFIG_LPS_MODE = default
 CONFIG_USB_AUTOSUSPEND = n
@@ -292,10 +280,10 @@ _HAL_INTFS_FILES :=	hal/hal_intf.o \
 			hal/led/hal_$(HCI_NAME)_led.o
 
 
-EXTRA_CFLAGS += -I$(src)/platform
+EXTRA_CFLAGS += -I$(srctree)/$(src)/platform
 _PLATFORM_FILES := platform/platform_ops.o
 
-EXTRA_CFLAGS += -I$(src)/hal/btc
+EXTRA_CFLAGS += -I$(srctree)/$(src)/hal/btc
 
 ########### HAL_RTL8188E #################################
 ifeq ($(CONFIG_RTL8188E), y)
@@ -1449,7 +1437,7 @@ EXTRA_CFLAGS += -DCONFIG_RADIO_WORK
 
 ifeq ($(CONFIG_SDIO_HCI), y)
 EXTRA_CFLAGS += -DCONFIG_PLATFORM_OPS
-_PLATFORM_FILES += platform/platform_arm_act_sdio.o
+_PLATFORM_FILES += platform/platform_rockchips_sdio.o
 endif
 
 ARCH := arm
@@ -1747,7 +1735,9 @@ ifeq ($(CONFIG_PLATFORM_ARM_RK3188), y)
 EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN -DCONFIG_PLATFORM_ANDROID -DCONFIG_PLATFORM_ROCKCHIPS
 # default setting for Android 4.1, 4.2, 4.3, 4.4
 EXTRA_CFLAGS += -DCONFIG_IOCTL_CFG80211 -DRTW_USE_CFG80211_STA_EVENT
-#EXTRA_CFLAGS += -DCONFIG_CONCURRENT_MODE
+EXTRA_CFLAGS += -DCONFIG_CONCURRENT_MODE
+# default setting for Power control
+EXTRA_CFLAGS += -DRTW_ENABLE_WIFI_CONTROL_FUNC
 ifeq ($(CONFIG_SDIO_HCI), y)
 EXTRA_CFLAGS += -DRTW_SUPPORT_PLATFORM_SHUTDOWN
 endif
@@ -1755,7 +1745,7 @@ endif
 ARCH := arm
 CROSS_COMPILE := /home/android_sdk/Rockchip/Rk3188/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-
 KSRC := /home/android_sdk/Rockchip/Rk3188/kernel
-MODULE_NAME := RTL8822CS
+MODULE_NAME := wlan
 endif
 
 ifeq ($(CONFIG_PLATFORM_ARM_RK3066), y)
@@ -2374,7 +2364,6 @@ MODULE_NAME := $(USER_MODULE_NAME)
 endif
 
 ifneq ($(KERNELRELEASE),)
-export CONFIG_RTL8822CS = y
 
 ########### this part for *.mk ############################
 include $(src)/hal/phydm/phydm.mk

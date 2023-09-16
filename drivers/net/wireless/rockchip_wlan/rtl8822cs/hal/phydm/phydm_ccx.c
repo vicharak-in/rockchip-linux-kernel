@@ -2463,7 +2463,7 @@ void phydm_fahm_dbg(void *dm_void, char input[][16], u32 *_used, char *output,
 				PDM_SNPF(out_len, used, output + used,
 					 out_len - used,
 					 "===>The following fahm report does not count CCK pkt\n");
-
+		
 			for (i = 0; i < FAHM_RPT_NUM; i++) {
 				result_tmp = ccx->fahm_result[i];
 				PDM_SNPF(out_len, used, output + used,
@@ -2707,7 +2707,7 @@ void phydm_ifs_clm_set_th_reg(void *dm_void)
 	struct dm_struct *dm = (struct dm_struct *)dm_void;
 	struct ccx_info *ccx = &dm->dm_ccx_info;
 	u8 i = 0;
-
+	
 	PHYDM_DBG(dm, DBG_ENV_MNTR, "[%s]===>\n", __func__);
 
 	/*Set IFS period TH*/
@@ -2799,7 +2799,7 @@ void phydm_ifs_clm_set(void *dm_void, enum ifs_clm_application ifs_clm_app,
 		  ctrl_unit);
 
 	/*Set Unit*/
-	if (ctrl_unit != ccx->ifs_clm_ctrl_unit) {
+	if (ctrl_unit != ccx->ifs_clm_ctrl_unit) {	
 		odm_set_bb_reg(dm, R_0x1ee4, 0xc0000000, ctrl_unit);
 		PHYDM_DBG(dm, DBG_ENV_MNTR,
 			  "Update IFS_CLM unit ((%d)) -> ((%d))\n",
@@ -2997,8 +2997,9 @@ void phydm_ifs_clm_dbg(void *dm_void, char input[][16], u32 *_used,
 		return;
 
 	for (i = 0; i < 5; i++) {
-		PHYDM_SSCANF(input[i + 1], DCMD_DECIMAL,
-				 &var1[i]);
+		if (input[i + 1])
+			PHYDM_SSCANF(input[i + 1], DCMD_DECIMAL,
+				     &var1[i]);
 	}
 
 	if ((strcmp(input[1], help) == 0)) {
@@ -3255,7 +3256,7 @@ u8 phydm_enhance_mntr_result(void *dm_void, struct enhance_mntr_rpt *rpt)
 	PHYDM_DBG(dm, DBG_ENV_MNTR,
 		  "[IFS_CLM]rpt_stamp = %d, Tx_ratio = %d, EDCCA_exclude_CCA_ratio = %d\n",
 		  ccx->ifs_clm_rpt_stamp, ccx->ifs_clm_tx_ratio,
-		  ccx->ifs_clm_edcca_excl_cca_ratio);
+		  ccx->ifs_clm_edcca_excl_cca_ratio);	
 	PHYDM_DBG(dm, DBG_ENV_MNTR,
 		  "CCK : FA_ratio = %d, CCA_exclude_FA_ratio = %d\n",
 		  ccx->ifs_clm_cck_fa_ratio, ccx->ifs_clm_cck_cca_excl_fa_ratio);

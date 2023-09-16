@@ -1774,7 +1774,7 @@ sint validate_recv_ctrl_frame(_adapter *padapter, union recv_frame *precv_frame)
 			/* _exit_critical_bh(&psta->sleep_q.lock, &irqL); */
 
 			/* Error handler : TIM is setted, but data queue and management queue is empty. */
-			if (dataq_null
+			if (dataq_null 
 				#ifdef CONFIG_RTW_MGMT_QUEUE
 				&& mgmtq_null
 				#endif
@@ -3898,11 +3898,11 @@ int validate_mp_recv_frame(_adapter *adapter, union recv_frame *precv_frame)
 			for (i = 0; i < precv_frame->u.hdr.len; i = i + 8)
 				RTW_INFO("%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X:\n", *(ptr + i),
 					*(ptr + i + 1), *(ptr + i + 2) , *(ptr + i + 3) , *(ptr + i + 4), *(ptr + i + 5), *(ptr + i + 6), *(ptr + i + 7));
-			RTW_INFO("#############################\n");
-			_rtw_memset(pmppriv->mplink_buf, '\0' , sizeof(pmppriv->mplink_buf));
-			_rtw_memcpy(pmppriv->mplink_buf, ptr, precv_frame->u.hdr.len);
-			pmppriv->mplink_rx_len = precv_frame->u.hdr.len;
-			pmppriv->mplink_brx =_TRUE;
+				RTW_INFO("#############################\n");
+				_rtw_memset(pmppriv->mplink_buf, '\0' , sizeof(pmppriv->mplink_buf));
+				_rtw_memcpy(pmppriv->mplink_buf, ptr, precv_frame->u.hdr.len);
+				pmppriv->mplink_rx_len = precv_frame->u.hdr.len;
+				pmppriv->mplink_brx =_TRUE;
 		}
 	}
 	if (pmppriv->bloopback) {
@@ -4154,7 +4154,7 @@ int recv_frame_monitor(_adapter *padapter, union recv_frame *rframe)
 	if (!RTW_CANNOT_RUN(padapter)) {
 		/* indicate this recv_frame */
 		ret = rtw_recv_monitor(padapter, rframe);
-	} else
+	} else 
 		ret = _FAIL;
 
 exit:
@@ -4323,7 +4323,7 @@ int recv_func(_adapter *padapter, union recv_frame *rframe)
 	u8 type;
 #endif
 
-	if (check_fwstate(mlmepriv, WIFI_MONITOR_STATE)
+	if (check_fwstate(mlmepriv, WIFI_MONITOR_STATE) 
 #ifdef RTW_SIMPLE_CONFIG
 		|| (check_fwstate(mlmepriv, WIFI_AP_STATE) && padapter->rtw_simple_config == _TRUE && IS_MCAST(get_ra(ptr)))
 #endif
@@ -4927,7 +4927,7 @@ thread_return rtw_recv_thread(thread_context context)
 	sched_set_fifo_low(current);
 #else
 	struct sched_param param = { .sched_priority = 1 };
-
+				
 	sched_setscheduler(current, SCHED_FIFO, &param);
 #endif
 #endif /* PLATFORM_LINUX */

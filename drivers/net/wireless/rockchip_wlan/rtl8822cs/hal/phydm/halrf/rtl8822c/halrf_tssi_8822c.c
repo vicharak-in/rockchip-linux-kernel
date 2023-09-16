@@ -405,7 +405,7 @@ void _halrf_calculate_set_thermal_codeword_8822c(
 			       "======>%s write addr:0x%x value=0x%08x\n",
 			       __func__, 0x18f4, thermal_offset_tmp);
 		}
-	} else
+	} else 
 		odm_set_bb_reg(dm, R_0x1c20, 0x000fc000, 0x0);
 
 
@@ -530,7 +530,7 @@ void _halrf_set_efuse_kfree_offset_8822c(
 	offset = (_halrf_get_efuse_tssi_offset_8822c(dm, 3) +
 	 	_halrf_get_kfree_tssi_offset_8822c(dm)) & 0xff;
 	odm_set_bb_reg(dm, R_0x18e8, 0x01fe0000, (u32)offset);
-
+	
 	RF_DBG(dm, DBG_RF_TX_PWR_TRACK,
 		       "===>%s write addr:0x%x value=0x%08x\n",
 		       __func__, R_0x18e8, offset);
@@ -822,36 +822,36 @@ void halrf_calculate_tssi_codeword_8822c(
 	struct dm_struct *dm = (struct dm_struct *)dm_void;
 	struct _hal_rf_ *rf = &dm->rf_table;
 	struct _halrf_tssi_data *tssi = &rf->halrf_tssi_data;
-
+	
 	u8 i, rate;
 	u8 channel = *dm->channel, bandwidth = *dm->band_width;
 	u32 big_a, small_a, slope, db_temp;
 	s32 samll_b = 64;
 	/*u32 big_a_reg[2] = {0x18a8, 0x1eec};*/
 	/*u32 big_a_bit_mask[2] = {0x7ffc, 0x1fff};*/
-
+	
 	big_a = odm_get_bb_reg(dm, 0x18a8, 0x7ffc);
-
+	
 	if (big_a == 0) {
 		RF_DBG(dm, DBG_RF_TX_PWR_TRACK,
 		       "======>%s big_a = %d rf_path=%d return !!!\n",
 		       __func__, big_a, RF_PATH_A);
 		return;
 	}
-
+	
 	big_a = (big_a * 100) / 128;		/* 100 * big_a */
 	small_a = 434295 / big_a;		/* 1000 * small_a */
 	slope = 1000000 / small_a;			/* 1000 * slope */
-
+	
 	RF_DBG(dm, DBG_RF_TX_PWR_TRACK,
 	       "======>%s 0x18a8[14:2] = 0x%x(%d) 100*big_a(%d) = 0x18a8[14:2] / 128 path=%d\n",
 	       __func__, odm_get_bb_reg(dm, 0x18a8, 0x7ffc),
 	       odm_get_bb_reg(dm, 0x18a8, 0x7ffc), big_a, RF_PATH_A);
-
+	
 	RF_DBG(dm, DBG_RF_TX_PWR_TRACK,
 	       "1000 * small_a(%d) = 434295 / big_a(%d)  1000*slope(%d) = 1000000/small_a path=%d\n",
 	       small_a, big_a, slope, RF_PATH_A);
-
+	
 	for (i = 0; i < TSSI_CODE_NUM; i++) {
 		rate = _halrf_tssi_rate_to_driver_rate_8822c(dm, i);
 		db_temp = (u32)phydm_get_tx_power_dbm(dm, RF_PATH_A, rate, bandwidth, channel);
@@ -865,11 +865,11 @@ void halrf_calculate_tssi_codeword_8822c(
 			db_temp = 0x0;
 
 		tssi->tssi_codeword[i] = (u16)(db_temp);
-
+	
 		RF_DBG(dm, DBG_RF_TX_PWR_TRACK, "phydm_get_tx_power_dbm = %d, rate=0x%x(%d) bandwidth=%d channel=%d rf_path=%d\n",
 			phydm_get_tx_power_dbm(dm, RF_PATH_A, rate, bandwidth, channel),
 			rate, rate, bandwidth, channel, RF_PATH_A);
-
+	
 		RF_DBG(dm, DBG_RF_TX_PWR_TRACK, "tssi_codeword[%d] = 0x%x(%d)\n",
 			i, tssi->tssi_codeword[i], tssi->tssi_codeword[i]);
 	}
@@ -906,7 +906,7 @@ void halrf_tssi_dck_8822c(
 
 	u32 reg = 0, dck_check;
 	s32 reg_tmp = 0;
-	u32 bb_reg[8] = {R_0x1800, R_0x4100, R_0x820, R_0x1e2c, R_0x1d08,
+	u32 bb_reg[8] = {R_0x1800, R_0x4100, R_0x820, R_0x1e2c, R_0x1d08, 
 			R_0x1c3c, R_0x2dbc, R_0x1e70};
 	u32 bb_reg_backup[8] = {0};
 	u32 backup_num = 8;
@@ -925,7 +925,7 @@ void halrf_tssi_dck_8822c(
 
 	RF_DBG(dm, DBG_RF_TX_PWR_TRACK, "[TSSI] ======>%s channel=%d\n",
 		__func__, channel);
-
+	
 	/*odm_acquire_spin_lock(dm, RT_IQK_SPINLOCK);*/
 	rf->is_tssi_in_progress = 1;
 
@@ -970,13 +970,13 @@ void halrf_tssi_dck_8822c(
 
 				odm_set_bb_reg(dm, tssi_counter[i], 0xe0000000, 0x0);
 				ODM_delay_us(200);
-
+				
 				odm_set_rf_reg(dm, i, RF_0x7f, 0x00002, 0x1);
 				odm_set_rf_reg(dm, i, RF_0x65, 0x03000, 0x3);
 				odm_set_rf_reg(dm, i, RF_0x67, 0x0000c, 0x3);
 				odm_set_rf_reg(dm, i, RF_0x67, 0x000c0, 0x0);
 				odm_set_rf_reg(dm, i, RF_0x6e, 0x001e0, 0x0);
-
+				
 				odm_set_bb_reg(dm, tssi_enalbe[i], 0x08000000, 0x1);
 				odm_set_bb_reg(dm, tssi_enalbe[i], 0x40000000, 0x1);
 				odm_set_bb_reg(dm, R_0x1d08, 0x00000001, 0x1);
@@ -1000,11 +1000,11 @@ void halrf_tssi_dck_8822c(
 				//ODM_delay_us(100);
 				odm_set_bb_reg(dm, tssi_counter[i], 0x10000000, 0x1);
 				//ODM_delay_us(100);
-
+				
 				/*odm_set_bb_reg(dm, R_0x1c3c, 0x000fff00, 0x930);*/
 				phydm_set_bb_dbg_port(dm, DBGPORT_PRI_2, debug_port[i]);
 				odm_set_bb_reg(dm, tssi_counter[i], 0x10000000, 0x0);
-				odm_set_bb_reg(dm, tssi_counter[i], 0x10000000, 0x1);
+				odm_set_bb_reg(dm, tssi_counter[i], 0x10000000, 0x1);				
 				/*reg = odm_get_bb_reg(dm, R_0x2dbc, 0x000003ff);*/
 				reg = phydm_get_bb_dbg_port_val(dm) & 0x000003ff;
 				RF_DBG(dm, DBG_RF_TX_PWR_TRACK, "[TSSI] 0x2dbc[9:0]=0x%x\n", reg);
@@ -1013,10 +1013,10 @@ void halrf_tssi_dck_8822c(
 				reg_tmp = reg;
 				reg = 1024 - (((reg_tmp - 512) * 4) & 0x000003ff) + 0;
 				odm_set_bb_reg(dm, dc_offset[i], 0x0003ff00, (reg & 0x03ff));
-
+				
 				RF_DBG(dm, DBG_RF_TX_PWR_TRACK, "[TSSI] 0x%x[17:8]=0x%x reg=0x%x\n",
 					dc_offset[i], odm_get_bb_reg(dm, dc_offset[i], 0x0003ff00), reg);
-
+				
 				for (j = 0; j < 3; j++) {
 					/*odm_set_bb_reg(dm, R_0x1c3c, 0x000fff00, 0x930);*/
 					phydm_set_bb_dbg_port(dm, DBGPORT_PRI_2, debug_port[i]);
@@ -1124,7 +1124,7 @@ void halrf_tssi_dck_8822c(
 				odm_set_rf_reg(dm, i, RF_0x67, 0x00003, 0x3);
 				odm_set_rf_reg(dm, i, RF_0x67, 0x00030, 0x2);
 				odm_set_rf_reg(dm, i, RF_0x6f, 0x001e0, 0x0);
-
+		
 				odm_set_bb_reg(dm, tssi_enalbe[i], 0x08000000, 0x1);
 				odm_set_bb_reg(dm, tssi_enalbe[i], 0x40000000, 0x1);
 				odm_set_bb_reg(dm, R_0x1d08, 0x00000001, 0x1);
@@ -1162,7 +1162,7 @@ void halrf_tssi_dck_8822c(
 				reg_tmp = reg;
 				reg = 1024 - (((reg_tmp - 512) * 4) & 0x000003ff) + 5;
 				odm_set_bb_reg(dm, dc_offset[i], 0x0003ff00, (reg & 0x03ff));
-
+				
 				RF_DBG(dm, DBG_RF_TX_PWR_TRACK, "[TSSI] 0x%x[17:8]=0x%x reg=0x%x\n",
 					dc_offset[i], odm_get_bb_reg(dm, dc_offset[i], 0x0003ff00), reg);
 
@@ -1511,7 +1511,7 @@ void halrf_tssi_set_de_8822c(
 	struct dm_struct *dm = (struct dm_struct *)dm_void;
 	struct _hal_rf_ *rf = &dm->rf_table;
 	struct _halrf_tssi_data *tssi = &rf->halrf_tssi_data;
-
+	
 	u8 i;
 	u32 addr_d[2] = {0x18a8, 0x1eec};
 	u32 addr_d_bitmask[2] = {0xff000000, 0x3fc00000};
@@ -1645,7 +1645,7 @@ void halrf_tssi_set_de_for_tx_verify_8822c(
 	s32 tmp, tssi_de_tmp;
 
 #if 0
-	odm_set_bb_reg(dm, addr_cck_d[path], addr_cck_d_bitmask[path],
+	odm_set_bb_reg(dm, addr_cck_d[path], addr_cck_d_bitmask[path], 
 				(tssi_de & 0xff));
 	odm_set_bb_reg(dm, addr_d[path], addr_d_bitmask[path], (tssi_de & 0xff));
 
@@ -1802,14 +1802,14 @@ void halrf_do_tssi_8822c(
 			R_0x18a0, R_0x41a0};
 	u32 bb_reg_backup[7] = {0};
 	u32 backup_num = 7;
-
+	
 	RF_DBG(dm, DBG_RF_TX_PWR_TRACK, "[TSSI] ======>%s\n", __func__);
 
 	/*odm_acquire_spin_lock(dm, RT_IQK_SPINLOCK);*/
 	rf->is_tssi_in_progress = 1;
 
 	_backup_bb_registers_8822c(dm, bb_reg, bb_reg_backup, backup_num);
-
+	
 #if 0
 	if ((rf->rf_supportability & HAL_RF_TX_PWR_TRACK) && (dm->priv->pmib->dot11RFEntry.tssi_enable) == 1) {
 		RF_DBG(dm, DBG_RF_TX_PWR_TRACK, "[TSSI] ======>%s\n", __func__);
@@ -1827,8 +1827,8 @@ void halrf_do_tssi_8822c(
 		return;
 	}
 #endif
-
-
+	
+	
 	halrf_tssi_set_de_8822c(dm);
 	halrf_disable_tssi_8822c(dm);
 	_halrf_tssi_init_8822c(dm);
@@ -1867,7 +1867,7 @@ void halrf_do_tssi_8822c(
 			rf->is_tssi_in_progress = 0;
 			/*odm_release_spin_lock(dm, RT_IQK_SPINLOCK);*/
 			return;
-		}
+		}	
 	}
 
 	_reload_bb_registers_8822c(dm, bb_reg, bb_reg_backup, backup_num);
@@ -1923,7 +1923,7 @@ void halrf_do_thermal_8822c(
 
 	halrf_disable_tssi_8822c(dm);
 	_halrf_thermal_init_8822c(dm);
-
+	
 	/*halrf_tssi_dck_8822c(dm);*/
 
 	if (rate == MGN_1M || rate == MGN_2M || rate == MGN_5_5M || rate == MGN_11M) {
@@ -1957,7 +1957,7 @@ void halrf_do_thermal_8822c(
 		odm_set_bb_reg(dm, R_0x1e7c, 0x40000000, 0x0);
 		odm_set_bb_reg(dm, R_0x18a4, 0x10000000, 0x0);
 		odm_set_bb_reg(dm, R_0x1e7c, 0x40000000, 0x1);
-		odm_set_bb_reg(dm, R_0x18a4, 0x10000000, 0x1);
+		odm_set_bb_reg(dm, R_0x18a4, 0x10000000, 0x1);		
 	} else {
 		odm_set_bb_reg(dm, R_0x1e7c, 0x40000000, 0x0);
 		odm_set_bb_reg(dm, R_0x1c64, 0x20000000, 0x0);
@@ -2164,11 +2164,11 @@ void halrf_set_tssi_poewr_8822c(
 		_halrf_set_txagc_codeword_8822c(dm, txagc_codeword_tmp);
 
 #endif
-
+			  
 		if (power != 0x7f) {
 			indexa = odm_get_tx_power_index(dm, RF_PATH_A, rate, bw, channel);
 			indexb = odm_get_tx_power_index(dm, RF_PATH_B, rate, bw, channel);
-
+			
 			index_tmp_a = indexa + power * 4;
 
 			if (index_tmp_a > 127)
@@ -2251,7 +2251,7 @@ void halrf_get_efuse_thermal_pwrtype_8822c(
 	       "===>%s thermal pahtA=0x%x pahtB=0x%x power_track_type=0x%x\n",
 	       __func__, tssi->thermal[RF_PATH_A],  tssi->thermal[RF_PATH_B],
 	       rf->power_track_type);
-
+	
 }
 
 u32 halrf_query_tssi_value_8822c(
@@ -2370,7 +2370,7 @@ void halrf_tssi_cck_8822c(
 	/*read c u8bit*/
 	odm_set_bb_reg(dm, R_0x1c3c, 0x000fff00, 0x933);
 	regc = odm_get_bb_reg(dm, R_0x2dbc, 0x003fc000);
-
+	
 	/*read de s8bit*/
 	odm_set_bb_reg(dm, R_0x1c3c, 0x000fff00, 0x933);
 	regde = odm_get_bb_reg(dm, R_0x2dbc, 0x3fc00000);
@@ -2379,11 +2379,11 @@ void halrf_tssi_cck_8822c(
 		sregde = regde - 256;
 	else
 		sregde = regde;
-
+	
 	/*read f s7bit*/
 	odm_set_bb_reg(dm, R_0x1c3c, 0x000fff00, 0x934);
 	regf = odm_get_bb_reg(dm, R_0x2dbc, 0x0000007f);
-
+	
 	if (regf & 0x40)
 		sregf = regf - 128;
 	else
@@ -2399,7 +2399,7 @@ void halrf_tssi_cck_8822c(
 		tssi->cck_offset_patha = 63;
 	else if (tssi->cck_offset_patha <= -64)
 		tssi->cck_offset_patha = -64;
-
+	
 	odm_set_bb_reg(dm, R_0x18a0, 0x0000007f, (tssi->cck_offset_patha & 0x7f));
 
 	RF_DBG(dm, DBG_RF_TX_PWR_TRACK,
@@ -2472,7 +2472,7 @@ void halrf_tssi_cck_8822c(
 	/*read c u8bit*/
 	odm_set_bb_reg(dm, R_0x1c3c, 0x000fff00, 0xb33);
 	regc = odm_get_bb_reg(dm, R_0x2dbc, 0x003fc000);
-
+	
 	/*read de s8bit*/
 	odm_set_bb_reg(dm, R_0x1c3c, 0x000fff00, 0xb33);
 	regde = odm_get_bb_reg(dm, R_0x2dbc, 0x3fc00000);
@@ -2481,11 +2481,11 @@ void halrf_tssi_cck_8822c(
 		sregde = regde - 256;
 	else
 		sregde = regde;
-
+	
 	/*read f s7bit*/
 	odm_set_bb_reg(dm, R_0x1c3c, 0x000fff00, 0xb34);
 	regf = odm_get_bb_reg(dm, R_0x2dbc, 0x0000007f);
-
+	
 	if (regf & 0x40)
 		sregf = regf - 128;
 	else
@@ -2501,7 +2501,7 @@ void halrf_tssi_cck_8822c(
 		tssi->cck_offset_pathb = 63;
 	else if (tssi->cck_offset_pathb <= -64)
 		tssi->cck_offset_pathb = -64;
-
+	
 	odm_set_bb_reg(dm, R_0x41a0, 0x0000007f, (tssi->cck_offset_pathb & 0x7f));
 
 	RF_DBG(dm, DBG_RF_TX_PWR_TRACK,
@@ -2541,7 +2541,7 @@ void halrf_thermal_cck_8822c(
 		odm_set_rf_reg(dm, RF_PATH_A, R_0x42, BIT(19), 0x01);
 		odm_set_rf_reg(dm, RF_PATH_A, R_0x42, BIT(19), 0x00);
 		odm_set_rf_reg(dm, RF_PATH_A, R_0x42, BIT(19), 0x01);
-
+		
 		odm_set_rf_reg(dm, RF_PATH_B, R_0x42, BIT(19), 0x01);
 		odm_set_rf_reg(dm, RF_PATH_B, R_0x42, BIT(19), 0x00);
 		odm_set_rf_reg(dm, RF_PATH_B, R_0x42, BIT(19), 0x01);
@@ -2553,7 +2553,7 @@ void halrf_thermal_cck_8822c(
 		RF_DBG(dm, DBG_RF_TX_PWR_TRACK, "s0 current thmermal=0x%x(%d)\n",
 		       odm_get_rf_reg(dm, RF_PATH_A, R_0x42, 0xfc00),
 		       odm_get_rf_reg(dm, RF_PATH_A, R_0x42, 0xfc00));
-
+		
 		RF_DBG(dm, DBG_RF_TX_PWR_TRACK, "s1 current thmermal=0x%x(%d)\n",
 		       odm_get_rf_reg(dm, RF_PATH_B, R_0x42, 0xfc00),
 		       odm_get_rf_reg(dm, RF_PATH_B, R_0x42, 0xfc00));
@@ -2604,11 +2604,11 @@ void halrf_thermal_cck_8822c(
 	odm_set_bb_reg(dm, R_0x1e7c, 0x80000000, 0x1);
 	odm_set_bb_reg(dm, R_0x18a0, 0x0000007f, 0x00);
 	odm_set_bb_reg(dm, R_0x1d04, 0x07f00000, 0x00);
-
+	
 	/*read f s7bit*/
 	odm_set_bb_reg(dm, R_0x1c3c, 0x000fff00, 0x934);
 	regf = odm_get_bb_reg(dm, R_0x2dbc, 0x0000007f);
-
+	
 	if (regf & 0x40)
 		sregf = regf - 128;
 	else
@@ -2625,7 +2625,7 @@ void halrf_thermal_cck_8822c(
 		tssi->cck_offset_patha = 63;
 	else if (tssi->cck_offset_patha <= -64)
 		tssi->cck_offset_patha = -64;
-
+	
 	odm_set_bb_reg(dm, R_0x18a0, 0x0000007f, (tssi->cck_offset_patha & 0x7f));
 
 	RF_DBG(dm, DBG_RF_TX_PWR_TRACK,
@@ -2654,11 +2654,11 @@ void halrf_thermal_cck_8822c(
 	odm_set_bb_reg(dm, R_0x1e7c, 0x80000000, 0x1);
 	odm_set_bb_reg(dm, R_0x41a0, 0x0000007f, 0x00);
 	odm_set_bb_reg(dm, R_0x1d04, 0x07f00000, 0x00);
-
+	
 	/*read f s7bit*/
 	odm_set_bb_reg(dm, R_0x1c3c, 0x000fff00, 0xb34);
 	regf = odm_get_bb_reg(dm, R_0x2dbc, 0x0000007f);
-
+	
 	if (regf & 0x40)
 		sregf = regf - 128;
 	else
@@ -2675,7 +2675,7 @@ void halrf_thermal_cck_8822c(
 		tssi->cck_offset_pathb = 63;
 	else if (tssi->cck_offset_pathb <= -64)
 		tssi->cck_offset_pathb = -64;
-
+	
 	odm_set_bb_reg(dm, R_0x41a0, 0x0000007f, (tssi->cck_offset_pathb & 0x7f));
 
 	RF_DBG(dm, DBG_RF_TX_PWR_TRACK,

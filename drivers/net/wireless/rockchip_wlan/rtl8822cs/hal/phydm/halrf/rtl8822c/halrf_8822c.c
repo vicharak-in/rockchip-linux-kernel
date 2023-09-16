@@ -79,7 +79,7 @@ void odm_tx_pwr_track_set_pwr8822c(void *dm_void, enum pwrtrack_method method,
 
 	u32 bitmask_6_0 = BIT(6) | BIT(5) | BIT(4) | BIT(3) |
 				BIT(2) | BIT(1) | BIT(0);
-
+	
 	RF_DBG(dm, DBG_RF_TX_PWR_TRACK,
 	       "pRF->absolute_ofdm_swing_idx=%d   pRF->remnant_ofdm_swing_idx=%d   pRF->absolute_cck_swing_idx=%d   pRF->remnant_cck_swing_idx=%d   rf_path=%d\n",
 	       cali_info->absolute_ofdm_swing_idx[rf_path], cali_info->remnant_ofdm_swing_idx[rf_path], cali_info->absolute_cck_swing_idx[rf_path], cali_info->remnant_cck_swing_idx, rf_path);
@@ -138,7 +138,7 @@ void odm_tx_pwr_track_set_pwr8822c(void *dm_void, enum pwrtrack_method method,
 			break;
 		default:
 			break;
-		}
+		}	
 	}
 }
 
@@ -675,7 +675,7 @@ void halrf_dack_restore_8822c(void *dm_void)
 	c = 0x0;
 	while (c < 10000) {
 		RF_DBG(dm, DBG_RF_DACK, "[DACK]0x2808=0x%x",
-		      odm_get_bb_reg(dm, 0x2808, 0x7fff80));
+		      odm_get_bb_reg(dm, 0x2808, 0x7fff80));	
 		c++;
 		if (odm_get_bb_reg(dm, 0x2808, 0x7fff80) == 0xffff)
 			break;
@@ -683,7 +683,7 @@ void halrf_dack_restore_8822c(void *dm_void)
 	c = 0x0;
 	while (c < 10000) {
 		RF_DBG(dm, DBG_RF_DACK, "[DACK]0x2834=0x%x",
-		      odm_get_bb_reg(dm, 0x2834, 0x7fff80));
+		      odm_get_bb_reg(dm, 0x2834, 0x7fff80));	
 		c++;
 		if (odm_get_bb_reg(dm, 0x2834, 0x7fff80) == 0xffff)
 			break;
@@ -691,7 +691,7 @@ void halrf_dack_restore_8822c(void *dm_void)
 	c = 0x0;
 	while (c < 10000) {
 		RF_DBG(dm, DBG_RF_DACK, "[DACK]0x4508=0x%x",
-		      odm_get_bb_reg(dm, 0x4508, 0x7fff80));
+		      odm_get_bb_reg(dm, 0x4508, 0x7fff80));	
 		c++;
 		if (odm_get_bb_reg(dm, 0x4508, 0x7fff80) == 0xffff)
 			break;
@@ -699,7 +699,7 @@ void halrf_dack_restore_8822c(void *dm_void)
 	c = 0x0;
 	while (c < 10000) {
 		RF_DBG(dm, DBG_RF_DACK, "[DACK]0x4534=0x%x",
-		      odm_get_bb_reg(dm, 0x4534, 0x7fff80));
+		      odm_get_bb_reg(dm, 0x4534, 0x7fff80));	
 		c++;
 		if (odm_get_bb_reg(dm, 0x4534, 0x7fff80) == 0xffff)
 			break;
@@ -711,7 +711,7 @@ void halrf_dack_restore_8822c(void *dm_void)
 	while (c < 10000) {
 		c++;
 		RF_DBG(dm, DBG_RF_DACK, "[DACK]0x2808=0x%x",
-		      odm_get_bb_reg(dm, 0x2808, 0xff));
+		      odm_get_bb_reg(dm, 0x2808, 0xff));		
 		if (odm_get_bb_reg(dm, 0x2808, 0xf) == 0x6)
 			break;
 		odm_set_bb_reg(dm, 0x18b8, BIT(26) | BIT(25), 0x0);
@@ -1299,7 +1299,7 @@ void halrf_dack_dbg_8822c(void *dm_void)
 	odm_set_bb_reg(dm, 0x9b4, MASKDWORD, 0xdb66db00);
 
 	RF_DBG(dm, DBG_RF_DACK, "[DACK]MSBK result\n");
-	RF_DBG(dm, DBG_RF_DACK, "[DACK]PATH A\n");
+	RF_DBG(dm, DBG_RF_DACK, "[DACK]PATH A\n");	
 	//pathA
 	odm_set_bb_reg(dm, 0x1830, BIT(30), 0x0);
 	odm_set_bb_reg(dm, 0x1860, 0xfc000000, 0x3c);
@@ -1365,7 +1365,7 @@ void halrf_rxdck_8822c(void *dm_void)
 {
 	struct dm_struct *dm = (struct dm_struct *)dm_void;
 	u32 temp1, temp2;
-
+	
 	temp1 = odm_get_bb_reg(dm, 0x180c, MASKDWORD);
 	temp2 = odm_get_bb_reg(dm, 0x410c, MASKDWORD);
 	odm_set_bb_reg(dm, 0x180c, 0x3, 0x0);
@@ -1395,7 +1395,7 @@ void _phy_x2_calibrate_8822c(struct dm_struct *dm)
 	//Path A
 	odm_set_rf_reg(dm, RF_PATH_A, 0x18, RFREGOFFSETMASK, 0x13108);
 	ODM_delay_ms(1);
-	odm_set_rf_reg(dm, RF_PATH_A, 0xb8, RFREGOFFSETMASK, 0xC0440);
+	odm_set_rf_reg(dm, RF_PATH_A, 0xb8, RFREGOFFSETMASK, 0xC0440);	
 	odm_set_rf_reg(dm, RF_PATH_A, 0xba, RFREGOFFSETMASK, 0xE840D);
 	ODM_delay_ms(1);
 	odm_set_rf_reg(dm, RF_PATH_A, 0x18, RFREGOFFSETMASK, 0x13124);
@@ -1415,9 +1415,9 @@ void phy_x2_check_8822c(void *dm_void)
 	ODM_delay_ms(1);
 	X2K_BUSY = (u8) odm_get_rf_reg(dm, RF_PATH_A, 0xb8, BIT(15));
 	if (X2K_BUSY == 1) {
-		odm_set_rf_reg(dm, RF_PATH_A, 0xb8, RFREGOFFSETMASK, 0xC4440);
+		odm_set_rf_reg(dm, RF_PATH_A, 0xb8, RFREGOFFSETMASK, 0xC4440);	
 		odm_set_rf_reg(dm, RF_PATH_A, 0xba, RFREGOFFSETMASK, 0x6840D);
-		odm_set_rf_reg(dm, RF_PATH_A, 0xb8, RFREGOFFSETMASK, 0x80440);
+		odm_set_rf_reg(dm, RF_PATH_A, 0xb8, RFREGOFFSETMASK, 0x80440);		
 		ODM_delay_ms(1);
 	}
 	//Path B

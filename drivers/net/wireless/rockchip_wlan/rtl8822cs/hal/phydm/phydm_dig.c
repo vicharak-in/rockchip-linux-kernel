@@ -135,7 +135,7 @@ void phydm_dig_damping_chk(void *dm_void)
 
 	switch (igi_bitmap_4bit) {
 	case 0x5:
-	/*@ 4b'0101
+	/*@ 4b'0101 
 	* IGI:[3]down(0x24)->[2]up(0x26)->[1]down(0x24)->[0]up(0x26)->[new](Lock @ 0x26)
 	* FA: [3] >high1   ->[2] <low   ->[1] >high1   ->[0] <low   ->[new]   <low
 	*
@@ -446,7 +446,7 @@ void phydm_fa_cnt_statistics_jgr3(void *dm_void)
 		cck_enable = odm_get_bb_reg(dm, R_0x2a24, BIT(13));
 	else
 		cck_enable = odm_get_bb_reg(dm, R_0x1a14, 0x300);
-
+	
 	if (cck_enable == 0x0) { /* @if(*dm->band_type == ODM_BAND_2_4G) */
 		fa_t->cnt_all = fa_t->cnt_ofdm_fail + fa_t->cnt_cck_fail;
 		fa_t->cnt_cca_all = fa_t->cnt_cck_cca + fa_t->cnt_ofdm_cca;
@@ -969,8 +969,9 @@ void phydm_hwigi_dbg(void *dm_void, char input[][16], u32 *_used,
 			 "Reset all hwigi : {5}\n");
 	} else {
 		for (i = 0; i < 7; i++) {
-			PHYDM_SSCANF(input[i + 1], DCMD_DECIMAL,
-					 &var1[i]);
+			if (input[i + 1])
+				PHYDM_SSCANF(input[i + 1], DCMD_DECIMAL,
+					     &var1[i]);
 		}
 		switch (var1[0]) {
 		case 0:
