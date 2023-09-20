@@ -248,7 +248,7 @@
 		regulator-boot-on;
 		regulator-always-on;
 		enable-active-high;
-		gpio = <&pca9554 6 GPIO_ACTIVE_HIGH>;
+		gpio = <&pca9554 4 GPIO_ACTIVE_HIGH>;
 		vin-supply = <&vcc1_5v0>;
 	};
 
@@ -258,7 +258,7 @@
 		regulator-boot-on;
 		regulator-always-on;
 		enable-active-high;
-		gpio = <&pca9554 4 GPIO_ACTIVE_HIGH>;
+		gpio = <&pca9554 6 GPIO_ACTIVE_HIGH>;
 		vin-supply = <&vcc1_5v0>;
 	};
 
@@ -580,8 +580,6 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2c0m2_xfer>;
 	status = "okay";
-	#address-cells = <1>;
-	#size-cells = <0>;
 
 	vdd_cpu_big0_s0: vdd_cpu_big0_mem_s0: regulator@42 {
 		compatible = "rockchip,rk8602";
@@ -618,14 +616,25 @@
 			regulator-off-in-suspend;
 		};
 	};
+
+	hym8563: rtc@51 {
+		compatible = "haoyu,hym8563";
+		reg = <0x51>;
+		#clock-cells = <0>;
+		clock-output-names = "hym8563";
+		interrupt-parent = <&gpio0>;
+		interrupts = <RK_PB0 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&rtc_int>;
+		wakeup-source;
+		status = "okay";
+	};
 };
 
 &i2c1 {
 	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2c1m2_xfer>;
-	#address-cells = <1>;
-	#size-cells = <0>;
 
 	vdd_npu_s0: vdd_npu_mem_s0: regulator@42 {
 		compatible = "rockchip,rk8602";
@@ -644,19 +653,6 @@
 			regulator-off-in-suspend;
 		};
 	};
-
-	hym8563: rtc@51 {
-		compatible = "haoyu,hym8563";
-		reg = <0x51>;
-		#clock-cells = <0>;
-		clock-output-names = "hym8563";
-		interrupt-parent = <&gpio0>;
-		interrupts = <RK_PB0 IRQ_TYPE_LEVEL_LOW>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&rtc_int>;
-		wakeup-source;
-		status = "okay";
-	};
 };
 
 &i2c3 {
@@ -673,9 +669,9 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&i2s0_mclk>;
 		DVDD-supply = <&vcc_1v8_s0>;
-		AVDD-supply = <&vcc_1v8_s3>;
+		AVDD-supply = <&vcc_3v3_s0>;
 		PVDD-supply = <&vcc_1v8_s0>;
-		HPVDD-supply = <&vcc_1v8_s3>;
+		HPVDD-supply = <&vcc_3v3_s0>;
 		status = "okay";
 	};
 };
@@ -795,7 +791,6 @@
 
 &i2s0_8ch {
 	pinctrl-0 = <&i2s0_lrck
-				&i2s0_mclk
 				&i2s0_sclk
 				&i2s0_sdi0
 				&i2s0_sdo0>;
@@ -956,13 +951,6 @@
 		pcie3_reset: pcie3-reset {
 			rockchip,pins =
 				<4 RK_PB6 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-	};
-
-	usb2 {
-		vcc5v0_host_en: vcc5v0-host-en {
-			rockchip,pins =
-				<4 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
@@ -1132,7 +1120,7 @@
 	no-sd;
 	no-sdio;
 	non-removable;
-	vmmc-supply = <&vcc_3v3_s0>;
+	vmmc-supply = <&vcc_3v3_s3>;
 	vqmmc-supply = <&vcc_1v8_s3>;
 	status = "okay";
 };
@@ -1147,7 +1135,7 @@
 	no-sdio;
 	sd-uhs-sdr104;
 	vmmc-supply = <&vcc_3v3_s3>;
-	vqmmc-supply = <&vccio_sd_s0>;
+	vqmmc-supply = <&vcc_1v8_s0>;
 	status = "okay";
 };
 
@@ -1225,8 +1213,8 @@
 
 &usbdp_phy0 {
 	orientation-switch;
-	sbu1-dc-gpios = <&gpio4 RK_PA6 GPIO_ACTIVE_HIGH>;
-	sbu2-dc-gpios = <&gpio4 RK_PA7 GPIO_ACTIVE_HIGH>;
+	sbu1-dc-gpios = <&gpio4 RK_PB1 GPIO_ACTIVE_HIGH>;
+	sbu2-dc-gpios = <&gpio4 RK_PB3 GPIO_ACTIVE_HIGH>;
 	svid = <0xff01>;
 	status = "okay";
 
@@ -1256,8 +1244,8 @@
 
 &usbdp_phy1 {
 	orientation-switch;
-	sbu1-dc-gpios = <&gpio4 RK_PB1 GPIO_ACTIVE_HIGH>;
-	sbu2-dc-gpios = <&gpio4 RK_PB3 GPIO_ACTIVE_HIGH>;
+	sbu1-dc-gpios = <&gpio4 RK_PA6 GPIO_ACTIVE_HIGH>;
+	sbu2-dc-gpios = <&gpio4 RK_PA7 GPIO_ACTIVE_HIGH>;
 	svid = <0xff01>;
 	status = "okay";
 
