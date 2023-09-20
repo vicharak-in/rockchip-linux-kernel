@@ -23,4 +23,6 @@ CLANG_BUILD=true
 # Build modules along with kernel
 MODULES_BUILD=true
 # Build debian package
-DEB_BUILD=true
+DEB_BUILD=false
+# Pack kernel image using extlinux
+PACK_KERNEL_BUILD=true

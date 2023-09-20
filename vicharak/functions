@@ -27,7 +27,7 @@ function pack_image() {
 		DEVICE_KERNEL_IMAGE_FILE_SIZE=50
 	fi
 
-	mkfs.fat -n "boot" -C "${FILENAME}" $((KERNEL_IMAGE_SIZE * 1024))
+	mkfs.fat -n "boot" -C "${FILENAME}" $((DEVICE_KERNEL_IMAGE_FILE_SIZE * 1024))
 
 	local extlinux_dir
 	extlinux_dir=$(mktemp -d)
@@ -46,7 +46,7 @@ function pack_image() {
 
 	mmd -i "${FILENAME}" ::/extlinux
 	mcopy -i "${FILENAME}" -s "${extlinux_dir}/extlinux.conf" ::/extlinux/extlinux.conf
-	mcopy -i "${FILENAME}" -s "${KERNEL_IMAGE}" ::/Image-"${KERNEL_VERSION}"
+	mcopy -i "${FILENAME}" -s "${DEVICE_KERNEL_IMAGE_FILE}" ::/Image-"${KERNEL_VERSION}"
 	mcopy -i "${FILENAME}" -s "${KERNEL_DIR}"/logo.bmp ::
 	mcopy -i "${FILENAME}" -s "${KERNEL_DIR}"/logo_kernel.bmp ::
 
