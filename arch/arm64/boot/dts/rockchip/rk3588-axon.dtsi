@@ -457,7 +457,7 @@
 			logo,kernel = "logo_kernel.bmp";
 			logo,mode = "center";
 			charge_logo,mode = "center";
-			connect = <&vp2_out_dp0>;
+			connect = <&vp1_out_dp0>;
 		};
 
 		route_dp1: route-dp1 {
@@ -466,7 +466,7 @@
 			logo,kernel = "logo_kernel.bmp";
 			logo,mode = "center";
 			charge_logo,mode = "center";
-			connect = <&vp2_out_dp1>;
+			connect = <&vp1_out_dp1>;
 		};
 	};
 };
@@ -475,7 +475,7 @@
 	status = "okay";
 };
 
-&dp0_in_vp2 {
+&dp0_in_vp1 {
 	status = "okay";
 };
 
@@ -483,15 +483,15 @@
 	status = "okay";
 };
 
-&dp1_in_vp2 {
+&dp1_in_vp1 {
 	status = "okay";
 };
 
-&vp2_out_dp0 {
+&vp1_out_dp0 {
 	status = "okay";
 };
 
-&vp2_out_dp1 {
+&vp1_out_dp1 {
 	status = "okay";
 };
 
@@ -690,7 +690,20 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&usbc0_int>;
 		vbus-supply = <&vbus5v0_typec0>;
+		suspend-disable-irq;
 		status = "okay";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				usbc0_role_sw: endpoint@0 {
+					remote-endpoint = <&dwc3_0_role_switch>;
+				};
+			};
+		};
 
 		usb_con0: connector {
 			compatible = "usb-c-connector";
@@ -703,6 +716,17 @@
 				<PDO_FIXED(5000, 1000, PDO_FIXED_USB_COMM)>;
 			source-pdos =
 				<PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
+
+			altmodes {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				altmode@0 {
+					reg = <0>;
+					svid = <0xff01>;
+					vdo = <0xffffffff>;
+				};
+			};
 
 			ports {
 				#address-cells = <1>;
@@ -717,13 +741,6 @@
 
 				port@1 {
 					reg = <1>;
-					usbc0_role_sw: endpoint {
-						remote-endpoint = <&dwc3_0_role_switch>;
-					};
-				};
-
-				port@2 {
-					reg = <2>;
 					dp0_altmode_mux: endpoint {
 						remote-endpoint = <&usbdp0_phy0_dp0_altmode_mux>;
 					};
@@ -740,7 +757,20 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&usbc1_int>;
 		vbus-supply = <&vbus5v0_typec1>;
+		suspend-disable-irq;
 		status = "okay";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				usbc1_role_sw: endpoint@0 {
+					remote-endpoint = <&dwc3_1_role_switch>;
+				};
+			};
+		};
 
 		usb_con1: connector {
 			compatible = "usb-c-connector";
@@ -753,6 +783,17 @@
 				<PDO_FIXED(5000, 1000, PDO_FIXED_USB_COMM)>;
 			source-pdos =
 				<PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
+
+			altmodes {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				altmode@0 {
+					reg = <0>;
+					svid = <0xff01>;
+					vdo = <0xffffffff>;
+				};
+			};
 
 			ports {
 				#address-cells = <1>;
@@ -767,13 +808,6 @@
 
 				port@1 {
 					reg = <1>;
-					usbc1_role_sw: endpoint {
-						remote-endpoint = <&dwc3_1_role_switch>;
-					};
-				};
-
-				port@2 {
-					reg = <2>;
 					dp1_altmode_mux: endpoint {
 						remote-endpoint = <&usbdp1_phy1_dp1_altmode_mux>;
 					};
