@@ -1164,10 +1164,10 @@
 	cap-mmc-highspeed;
 	cap-sd-highspeed;
 	disable-wp;
-	max-frequency = <200000000>;
+	max-frequency = <150000000>;
 	no-mmc;
 	no-sdio;
-	sd-uhs-sdr104;
+	// sd-uhs-sdr104;
 	vmmc-supply = <&vcc_3v3_s3>;
 	vqmmc-supply = <&vcc_1v8_s0>;
 	status = "okay";
@@ -1246,11 +1246,12 @@
 };
 
 &usbdp_phy0 {
+	status = "okay";
 	orientation-switch;
+
+	svid = <0xff01>;
 	sbu1-dc-gpios = <&gpio4 RK_PA6 GPIO_ACTIVE_HIGH>;
 	sbu2-dc-gpios = <&gpio4 RK_PA7 GPIO_ACTIVE_HIGH>;
-	svid = <0xff01>;
-	status = "okay";
 
 	port {
 		#address-cells = <1>;
@@ -1277,11 +1278,12 @@
 };
 
 &usbdp_phy1 {
+	status = "okay";
 	orientation-switch;
+
+	svid = <0xff01>;
 	sbu1-dc-gpios = <&gpio4 RK_PB1 GPIO_ACTIVE_HIGH>;
 	sbu2-dc-gpios = <&gpio4 RK_PB3 GPIO_ACTIVE_HIGH>;
-	svid = <0xff01>;
-	status = "okay";
 
 	port {
 		#address-cells = <1>;
