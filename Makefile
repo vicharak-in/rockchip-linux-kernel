@@ -421,9 +421,20 @@ HOST_LFS_CFLAGS := $(shell getconf LFS_CFLAGS 2>/dev/null)
 HOST_LFS_LDFLAGS := $(shell getconf LFS_LDFLAGS 2>/dev/null)
 HOST_LFS_LIBS := $(shell getconf LFS_LIBS 2>/dev/null)
 
+CCACHE := $(shell if which ccache > /dev/null 2>&1; then echo true; else echo false; fi)
+
 ifneq ($(LLVM),)
+ifeq ($(CCACHE),true)
+HOSTCC	= ccache clang
+HOSTCXX	= ccache clang++
+else
 HOSTCC	= clang
 HOSTCXX	= clang++
+endif
+else
+ifeq ($(CCACHE),true)
+HOSTCC	= ccache gcc
+HOSTCXX	= ccache g++
 else
 HOSTCC	= gcc
 HOSTCXX	= g++
@@ -436,13 +447,22 @@ KBUILD_USERLDFLAGS := $(USERLDFLAGS)
 
 KBUILD_HOSTCFLAGS   := $(KBUILD_USERHOSTCFLAGS) $(HOST_LFS_CFLAGS) $(HOSTCFLAGS)
 KBUILD_HOSTCXXFLAGS := -Wall -O2 $(HOST_LFS_CFLAGS) $(HOSTCXXFLAGS)
+endif
 KBUILD_HOSTLDFLAGS  := $(HOST_LFS_LDFLAGS) $(HOSTLDFLAGS)
 KBUILD_HOSTLDLIBS   := $(HOST_LFS_LIBS) $(HOSTLDLIBS)
 
 # Make variables (CC, etc...)
+ifeq ($(CCACHE),true)
+CPP		= ccache $(CC) -E
+else
 CPP		= $(CC) -E
+endif
 ifneq ($(LLVM),)
+ifeq ($(CCACHE),true)
+CC		= ccache clang
+else
 CC		= clang
+endif
 LD		= ld.lld
 AR		= llvm-ar
 NM		= llvm-nm
@@ -451,7 +471,11 @@ OBJDUMP		= llvm-objdump
 READELF		= llvm-readelf
 STRIP		= llvm-strip
 else
+ifeq ($(CCACHE),true)
+CC		= ccache $(CROSS_COMPILE)gcc
+else
 CC		= $(CROSS_COMPILE)gcc
+endif
 LD		= $(CROSS_COMPILE)ld
 AR		= $(CROSS_COMPILE)ar
 NM		= $(CROSS_COMPILE)nm
