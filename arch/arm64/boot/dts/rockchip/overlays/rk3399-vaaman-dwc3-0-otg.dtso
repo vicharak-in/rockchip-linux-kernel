@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright (C) 2023 Vicharak Computers LLP
+
+/dts-v1/;
+/plugin/;
+
+&{/} {
+	metadata {
+		title = "Set OTG port to be controlled by hardware switch";
+		compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+		category = "misc";
+		exclusive = "usbdrd_dwc3_0-dr_mode";
+		description = "Set the OTG port to OTG (On-The-Go) mode,\nallowing it to function as both a USB host and a USB device,\ndepending on the connected peripherals.";
+	};
+};
+
+&usbdrd_dwc3_0 {
+	status = "okay";
+	dr_mode = "otg";
+};

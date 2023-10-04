@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright (C) 2023 Vicharak Computers LLP
+
+/dts-v1/;
+/plugin/;
+
+&{/} {
+	metadata {
+		title = "Enable I2C6 on 40-Pin GPIO";
+		compatible = "rockchip,rk3399";
+		category = "misc";
+		exclusive = "GPIO2_B1", "GPIO2_B2";
+		description = "Enable I2C6 on GPIO2_B1 (Pin 31) for SDA and GPIO2_B2 (Pin 29) for SCL";
+	};
+};
+
+&i2c6 {
+	status = "okay";
+};

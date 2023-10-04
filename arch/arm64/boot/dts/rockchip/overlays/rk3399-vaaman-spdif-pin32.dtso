@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright (C) 2023 Vicharak Computers LLP
+
+/dts-v1/;
+/plugin/;
+
+&{/} {
+	metadata {
+		title = "Enable SPDIF TX (Pin 32) on 40-Pin GPIO";
+		compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+		category = "misc";
+		exclusive = "GPIO3_C0";
+		description = "Enable SPDIF transmitter support at Pin 32 on Vicharak Vaaman,\nallowing for digital audio transmission.";
+	};
+
+	spdif_sound: spdif-sound {
+		status = "okay";
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "ROCKCHIP,SPDIF";
+		simple-audio-card,mclk-fs = <128>;
+
+		simple-audio-card,cpu {
+			sound-dai = <&spdif>;
+		};
+		simple-audio-card,codec {
+			sound-dai = <&spdif_out>;
+		};
+	};
+
+	spdif_out: spdif-out {
+		status = "okay";
+		compatible = "linux,spdif-dit";
+		#sound-dai-cells = <0>;
+	};
+};
+
+&spdif {
+	status = "okay";
+	pinctrl-0 = <&spdif_bus_1>;
+	i2c-scl-rising-time-ns = <450>;
+	i2c-scl-falling-time-ns = <15>;
+	#sound-dai-cells = <0>;
+};

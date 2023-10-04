@@ -1,0 +1,161 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright (C) 2023 Vicharak Computers LLP
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/clock/rk3399-cru.h>
+#include <dt-bindings/display/media-bus-format.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+
+&{/} {
+	metadata {
+		title = "Enable Vaaman FPGA Communication";
+		compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+		category = "misc";
+		exclusive = "rkisp1_1", "mipi_dphy_tx1rx1", "edp", "edp_in_vopl", "vopl";
+		description = "Enables FPGA RX and TX communication on Vicharak Vaaman,\nallowing configuration of the FPGA and enabling bi-directional communication between the processor and FPGA.";
+	};
+
+	edp-panel {
+		compatible = "simple-panel";
+		status = "okay";
+
+		port {
+			panel_in_edp: endpoint {
+				remote-endpoint = <&edp_out_panel>;
+			};
+		};
+	};
+
+	camera_pwdn_gpio: camera-pwdn-gpio {
+		status = "okay";
+		compatible = "regulator-fixed";
+		regulator-name = "camera_pwdn_gpio";
+		regulator-always-on;
+		regulator-boot-on;
+		enable-active-high;
+		gpio = <&gpio1 RK_PB5 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam_pwdn_gpio>;
+	};
+};
+
+&edp {
+	status = "okay";
+	force-hpd;
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		edp_out: port@1 {
+			reg = <1>;
+
+			edp_out_panel: endpoint {
+				remote-endpoint = <&panel_in_edp>;
+			};
+		};
+	};
+};
+
+&edp_in_vopl {
+	status = "okay";
+};
+
+&vopl {
+	assigned-clocks = <&cru DCLK_VOP1_DIV>;
+	assigned-clock-parents = <&cru PLL_CPLL>;
+	status = "okay";
+};
+
+&vopl_mmu {
+	status = "okay";
+};
+
+&spi1 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	w25q128: spi-flash@0 {
+		reg = <0>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "winbond,w25q128", "jedec,spi-nor";
+		spi-max-frequency = <100000000>;
+		status = "okay";
+	};
+};
+
+&i2c4 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	camera_fpga: camera-fpga@69 {
+		compatible = "rockchip,virtual-camera";
+		reg = <0x69>;
+		width = <1280>;
+		height = <1024>;
+		bus-format = <MEDIA_BUS_FMT_RGB888_1X24>;
+
+		port {
+			ucam_out1: endpoint {
+				remote-endpoint = <&mipi_in_ucam1>;
+				link-frequencies = /bits/ 64 <700000000>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+};
+
+&rkisp1_1 {
+	status = "okay";
+
+	port {
+		isp1_mipi_in: endpoint {
+			remote-endpoint = <&dphy_tx1rx1_out>;
+		};
+	};
+};
+
+&isp1_mmu {
+	status = "okay";
+};
+
+&mipi_dphy_tx1rx1 {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+
+			mipi_in_ucam1: endpoint {
+				remote-endpoint = <&ucam_out1>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+
+			dphy_tx1rx1_out: endpoint {
+				remote-endpoint = <&isp1_mipi_in>;
+			};
+		};
+	};
+};
+
+&pinctrl {
+	camera {
+		cam_pwdn_gpio: cam-pwdn-gpio {
+			rockchip,pins =
+				<1 RK_PB5 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+};

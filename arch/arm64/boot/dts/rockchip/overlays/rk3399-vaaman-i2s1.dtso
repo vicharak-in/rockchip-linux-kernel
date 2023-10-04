@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright (C) 2023 Vicharak Computers LLP
+
+/dts-v1/;
+/plugin/;
+
+&{/} {
+	metadata {
+		title = "Enable I2S Controller 1 on 40-Pin GPIO";
+		compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+		category = "misc";
+		exclusive = "i2s1", "GPIO4_A4", "GPIO4_A5", "GPIO4_A6", "GPIO4_A7";
+		description = "Enables I2S Controller 1 on Vicharak Vaaman for external audio";
+	};
+};
+
+&i2s1 {
+	status = "okay";
+	rockchip,playback-channels = <2>;
+	rockchip,capture-channels = <2>;
+};

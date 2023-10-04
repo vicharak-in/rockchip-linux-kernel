@@ -4,21 +4,17 @@
 /dts-v1/;
 /plugin/;
 
-/ {
+&{/} {
 	metadata {
-		title = "Set OTG port to be controlled by hardware switch on Vicharak Vaaman";
+		title = "Set OTG port to Host mode";
 		compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
 		category = "misc";
 		exclusive = "usbdrd_dwc3_0-dr_mode";
-		description = "Set OTG port to OTG mode.";
+		description = "Switch the OTG port to Host mode for connecting USB devices.";
 	};
+};
 
-	fragment@0 {
-		target = <&usbdrd_dwc3_0>;
-
-		__overlay__ {
-			status = "okay";
-			dr_mode = "host";
-		};
-	};
+&usbdrd_dwc3_0 {
+	status = "okay";
+	dr_mode = "host";
 };

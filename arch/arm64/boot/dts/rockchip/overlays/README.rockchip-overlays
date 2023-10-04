@@ -6,39 +6,61 @@ This directory contains the source code for Device Tree Blob Overlays (DTBOs)
 for the Vicharak Vaaman board. DTBOs makes it possible to dynamically modify
 the device tree of a running system without having to recompile the kernel.
 
-These DTBOs are used to enable the following features on the Vicharak Vaaman board:
+These DTBOs serve the purpose of enabling several key features on the Vicharak Vaaman board:
 
-1. Enable the CDN DP display in replacement of HDMI.
-2. Enable MIPI FPGA communication.
-3. Enable MIPI CSI camera (OV5467 and IMX219).
-4. Switch USB 3.0 OTG to Host mode.
-5. Switch back USB 3.0 OTG to OTG mode.
-6. Enable I2C-2 on the 40-pin header.
-7. Enable I2C-6 on the 40-pin header.
-8. Enable PWM-0 on the 40-pin header.
-9. Enable PWM-1 on the 40-pin header.
-10. Enable UART-0 on the 40-pin header.
-11. Enable UART-1 on the 40-pin header.
-12. Enable Waveshare 4.0 inch MIPI DSI display.
+1. Activation of the CDN DP display as a alternative option for HDMI.
+2. Support for the Waveshare 4-inch DSI display.
+3. Integration of MIPI CSI cameras (OV5467 and IMX219).
+4. Switching USB 3.0 OTG to Host mode.
+5. Switching USB 3.0 OTG back to OTG mode.
+6. Activation of I2C-2 on the 40-pin header.
+7. Activation of I2C-6 on the 40-pin header.
+8. Facilitation of FPGA communication.
+9. Activation of PWM-0 on the 40-pin header.
+10. Activation of PWM-1 on the 40-pin header.
+11. Jedec SPI flash chip support on 40-pin header.
+12. S/PDIF transmitter support on 40-pin header.
 
----
+## Compilation Procedure
 
-## How to use
+### Repository Cloning
+
+Begin by cloning the repository from Vicharak's GitHub repository using the following command:
+
+```bash
+git clone https://github.com/vicharak-in/vicharak-devicetree-overlays
+```
+
+### Building the DTBOs
+
+DTBO compilation is carried out within the `vicharak-devicetree-overlays` directory.
+Navigate to this directory and run the `make` command:
+
+```bash
+cd vicharak-devicetree-overlays
+make
+```
+
+## Usage Instructions
 
 ### Prerequisites
 
+To make use of these DTBOs, you will need the following:
+
 1. A Vicharak Vaaman board.
-2. Vaaman board should be flashed with the latest Vicharak firmware.
+2. The Vaaman board should have the latest Vicharak firmware flashed onto it.
 
-### Steps to use DTBOs
+### Steps for Applying DTBOs
 
-1. Boot into the Vicharak firmware.
-2. Copy the DTBOs to the `/boot/overlays` directory if not already present.
-3. Open **Vicharak Linux configuration utility** from the terminal by using the
-following command: \
-`sudo vicharak-config`
+1. Begin by booting into the Vicharak firmware.
+2. If the DTBOs are not already present, copy them to the `/boot/overlays` directory.
+3. Launch the **Vicharak Linux configuration** utility from the terminal using the following command:
+
+```bash
+sudo vicharak-config
+```
 
 4. Select **Overlays** from the menu.
-5. Select **YES** for the warning message.
-6. Now, select the DTBOs you want to enable and press **OK**.
-7. Reboot the system.
+5. Acknowledge any warning messages by selecting **YES** Option.
+6. Now, choose the specific DTBOs you wish to activate and press **OK**.
+7. Reboot the system to apply the changes.

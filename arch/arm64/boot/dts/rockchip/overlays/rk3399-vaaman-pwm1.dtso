@@ -4,20 +4,16 @@
 /dts-v1/;
 /plugin/;
 
-/ {
+&{/} {
 	metadata {
-		title = "Enable PWM0";
+		title = "Enable PWM1 on 40-Pin GPIO";
 		compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
 		category = "misc";
-		exclusive = "GPIO4_C2";
-		description = "Enable PWM0 on pin 11.";
+		exclusive = "GPIO4_C6";
+		description = "Enable PWM1 at Pin 13 on Vicharak Vaaman.";
 	};
+};
 
-	fragment@0 {
-		target = <&pwm0>;
-
-		__overlay__ {
-			status = "okay";
-		};
-	};
+&pwm1 {
+	status = "okay";
 };

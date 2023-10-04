@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright (C) 2023 Vicharak Computers LLP
+
+/dts-v1/;
+/plugin/;
+
+&{/} {
+	metadata {
+		title = "Enable SPI 2 Controller on 40-Pin GPIO";
+		compatible = "vicharak,rk3399-vaaman", "rockchip,rk3399";
+		category = "misc";
+		exclusive = "spi2", "GPIO2_B1", "GPIO2_B2", "GPIO2_B3", "GPIO2_B4";
+		description = "Enables SPI 2 Controller on Vicharak Vaaman\nNote: Max-frequency default at 1Mhz";
+	};
+};
+
+&spi2 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	flash: spi-flash@0 {
+		reg = <0>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "jedec,spi-nor";
+		spi-max-frequency = <10000000>;
+		status = "okay";
+	};
+};
