@@ -171,44 +171,13 @@ set -e
 log_file="/var/log/preinst.log"
 
 # Initialize log file
-echo "Post-Installation Log" >"\$log_file"
-
-# delete all the vicharak kernel script hooks
-if [ -f /etc/kernel/preinst.d/99-vicharak-preinst ]; then
-	rm -f /etc/kernel/preinst.d/99-vicharak-preinst
-fi
-if [ -f /etc/kernel/postinst.d/99-vicharak-postinst ]; then
-	rm -f /etc/kernel/postinst.d/99-vicharak-postinst
-fi
-if [ -f /etc/kernel/prerm.d/99-vicharak-prerm ]; then
-	rm -f /etc/kernel/prerm.d/99-vicharak-prerm
-fi
-if [ -f /etc/kernel/postrm.d/99-vicharak-postrm ]; then
-	rm -f /etc/kernel/postrm.d/99-vicharak-postrm
-fi
-echo "Removing old kernel script hooks" >>"\$log_file"
-
-# Delete all the log files
-if [ -f /var/log/preinst.log ]; then
-	rm -f /var/log/preinst.log
-fi
-if [ -f /var/log/postinst.log ]; then
-	rm -f /var/log/postinst.log
-fi
-if [ -f /var/log/prerm.log ]; then
-	rm -f /var/log/prerm.log
-fi
-if [ -f /var/log/postrm.log ]; then
-	rm -f /var/log/postrm.log
-fi
-
-echo "Removing old log files" >>"\$log_file"
+echo "Pre-Installation Log" >"\$log_file"
 
 # delete previous vicharak kernel image
 if find /boot -name 'Image*'; then
 	rm -f /boot/Image*
 fi
-if [ -f /boot/*.dtb ]; then
+if find /boot -name '*.dtb'; then
 	rm -f /boot/*.dtb
 fi
 if find /boot -name 'initrd*'; then
@@ -219,37 +188,6 @@ if find /boot -name '*.bak'; then
 fi
 if find /boot -name 'config*'; then
 	rm -f /boot/config*
-fi
-
-# Directory where overlays are stored in the system
-overlay_dir="/usr/lib/${packagename}/rockchip/overlays"
-
-# Destination directory for overlay files
-destination_dir="/boot/overlays"
-
-# Check if the directory exists
-if [ ! -d "\$destination_dir" ]; then
-	mkdir -p "\$destination_dir"
-fi
-
-# Create an array of already enabled overlays in /boot/overlays
-already_enabled_overlays=()
-already_enabled_overlays=(\$(ls "\$destination_dir" | grep '\.dtbo$'))
-
-# Iterate through overlay files in overlay_dir
-if [ -d "\$overlay_dir" ]; then
-	for overlay in "\$overlay_dir"/*; do
-		overlay_name=\$(basename "\$overlay")
-
-		# Check if the overlay is already enabled (without .disabled)
-		if [[ "\${already_enabled_overlays[*]}" =~ \${overlay_name%.disabled} ]]; then
-			echo "\$overlay_name is already enabled" | tee -a "\$log_file"
-			cp -f "\$overlay" "\$destination_dir/\${overlay_name%.disabled}"
-		else
-			echo "\$overlay_name is not enabled" | tee -a "\$log_file"
-			cp -f "\$overlay" "\$destination_dir/\${overlay_name}"
-		fi
-	done
 fi
 
 echo "Removed old kernel remains" 2>&1 | tee -a "\${log_file}"
@@ -280,52 +218,6 @@ echo "\tfdt /${RK_KERNEL_DTS}.dtb" >>/boot/extlinux/extlinux.conf
 
 # Copy the kernel device tree file
 cp -f "/usr/lib/${packagename}/rockchip/${RK_KERNEL_DTS}.dtb" /boot/${RK_KERNEL_DTS}.dtb
-
-# Destination directory for overlay files
-destination_dir="/boot/overlays"
-
-# Directory where overlays are stored in the system
-overlay_dir="/usr/lib/${packagename}/rockchip/overlays"
-
-# Copy all the kernel device tree overlays
-if [ ! -d \${destination_dir} ]; then
-	mkdir -p \${destination_dir}
-fi
-
-# check if \${destination_dir} is empty
-if [ -z "\$(ls \${destination_dir})" ]; then
-	for overlay in "\$overlay_dir"/*; do
-		overlay_name=\$(basename "\$overlay")
-		cp -f "\$overlay" "\${destination_dir}/\${overlay_name}"
-	done
-else
-	# Else get all the active overlays from \${destination_dir}
-
-	# Create an array of already enabled overlays in /boot/overlays
-	already_enabled_overlays=(\$(ls "\$destination_dir" | grep '\.dtbo$'))
-
-	# Iterate through overlay files in overlay_dir
-	if [ -d "\$overlay_dir" ]; then
-		for overlay in "\$overlay_dir"/*; do
-			overlay_name=\$(basename "\$overlay")
-
-			# Check if the overlay is already enabled (without .disabled)
-			if [[ "\${already_enabled_overlays[*]}" =~ \${overlay_name%.disabled} ]]; then
-				echo "\$overlay_name is already enabled" | tee -a "\$log_file"
-				cp -f "\$overlay" "\$destination_dir/\${overlay_name%.disabled}"
-			else
-				echo "\$overlay_name is not enabled" | tee -a "\$log_file"
-				cp -f "\$overlay" "\$destination_dir/\${overlay_name}"
-			fi
-		done
-	fi
-fi
-
-# Copy the initrd file
-if [ -e "ramdisk.img" ]; then
-	cp "ramdisk.img" "${tmpdir}/boot/initrd-${version}"
-	echo "\tinitrd /initrd-${version}" >>"${tmpdir}"/boot/extlinux/extlinux.conf
-fi
 
 # Extract the kernel configuration to /boot/config
 if [ -f /proc/config.gz ]; then
@@ -359,7 +251,7 @@ fi
 # Append the kernel cmdline to the extlinux.conf
 echo "\tappend \${cmdline}" >>/boot/extlinux/extlinux.conf
 
-echo "Added new kernel configuration" 2>&1 | tee -a \${logfile}
+echo "Added new kernel configuration" 2>&1 | tee -a \${log_file}
 
 exit 0
 EOF
