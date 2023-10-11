@@ -125,14 +125,14 @@
 			camera_fpga: camera-fpga@69 {
 				compatible = "rockchip,virtual-camera";
 				reg = <0x69>;
-				width = <640>;
-				height = <480>;
+				width = <1280>;
+				height = <1024>;
 				bus-format = <MEDIA_BUS_FMT_RGB888_1X24>;
 
 				port {
 					ucam_out1: endpoint {
 						remote-endpoint = <&mipi_in_ucam1>;
-						link-frequencies = /bits/ 64 <600000000>;
+						link-frequencies = /bits/ 64 <700000000>;
 						data-lanes = <1 2 3 4>;
 					};
 				};
