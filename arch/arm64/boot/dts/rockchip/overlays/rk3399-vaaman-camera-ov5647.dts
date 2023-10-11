@@ -57,14 +57,6 @@
 	};
 
 	fragment@2 {
-		target = <&rkisp1_1>;
-
-		__overlay__ {
-			status = "disabled";
-		};
-	};
-
-	fragment@3 {
 		target = <&isp0_mmu>;
 
 		__overlay__ {
@@ -72,15 +64,7 @@
 		};
 	};
 
-	fragment@4 {
-		target = <&isp1_mmu>;
-
-		__overlay__ {
-			status = "disabled";
-		};
-	};
-
-	fragment@5 {
+	fragment@3 {
 		target = <&mipi_dphy_rx0>;
 
 		__overlay__ {
@@ -110,15 +94,7 @@
 		};
 	};
 
-	fragment@6 {
-		target = <&mipi_dphy_tx1rx1>;
-
-		__overlay__ {
-			status = "disabled";
-		};
-	};
-
-	fragment@7 {
+	fragment@4 {
 		target = <&i2c4>;
 
 		__overlay__ {
@@ -147,7 +123,7 @@
 		};
 	};
 
-	fragment@8 {
+	fragment@5 {
 		target = <&pinctrl>;
 
 		__overlay__ {
