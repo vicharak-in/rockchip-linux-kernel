@@ -1,0 +1,4 @@
+[submodule "vicharak"]
+	path = vicharak
+	url = https://github.com/vicharak-in/kernel_build_scripts
+	branch = main
