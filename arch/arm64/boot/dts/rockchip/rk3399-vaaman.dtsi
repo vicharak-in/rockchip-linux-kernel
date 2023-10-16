@@ -141,7 +141,13 @@
 		regulator-name = "vcc3v3_lan";
 		regulator-always-on;
 		regulator-boot-on;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
 		vin-supply = <&vcc3v3_sys>;
+
+		regulator-state-mem {
+			regulator-off-in-suspend;
+		};
 	};
 
 	vcc3v3_sys: vcc3v3-sys-regulator {
