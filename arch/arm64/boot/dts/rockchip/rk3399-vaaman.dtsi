@@ -609,10 +609,9 @@
 &i2c4 {
 	i2c-scl-rising-time-ns = <160>;
 	i2c-scl-falling-time-ns = <30>;
-	clock-frequency = <400000>;
 	status = "okay";
 
-	fusb302@22 {
+	usbc0: fusb302@22 {
 		compatible = "fcs,fusb302";
 		reg = <0x22>;
 		interrupt-parent = <&gpio1>;
@@ -620,24 +619,31 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&chg_cc_int_l>;
 		vbus-supply = <&vbus_typec>;
+		status = "okay";
 
-		port {
-			usbc0_role_sw: endpoint {
-				remote-endpoint = <&dwc3_0_role_switch>;
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				usbc0_role_sw: endpoint@0 {
+					remote-endpoint = <&dwc3_0_role_switch>;
+				};
 			};
 		};
 
-		typec_con: connector {
+		usb_con: connector {
 			compatible = "usb-c-connector";
-			data-role = "host";
 			label = "USB-C";
-			op-sink-microwatt = <1000000>;
+			data-role = "dual";
 			power-role = "dual";
-			sink-pdos =
-				<PDO_FIXED(5000, 2500, PDO_FIXED_USB_COMM)>;
-			source-pdos =
-				<PDO_FIXED(5000, 1500, PDO_FIXED_USB_COMM)>;
 			try-power-role = "sink";
+			op-sink-microwatt = <1000000>;
+			sink-pdos =
+				<PDO_FIXED(5000, 1000, PDO_FIXED_USB_COMM)>;
+			source-pdos =
+				<PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
 
 			displayport = <&cdn_dp>;
 
@@ -884,6 +890,7 @@
 };
 
 &sdhci {
+	max-frequency = <150000000>;
 	bus-width = <8>;
 	keep-power-in-suspend;
 	mmc-hs400-1_8v;
@@ -1018,12 +1025,14 @@
 };
 
 &usbdrd_dwc3_0 {
-	dr_mode = "otg";
 	usb-role-switch;
 	status = "okay";
 
 	port {
-		dwc3_0_role_switch: endpoint {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		dwc3_0_role_switch: endpoint@0 {
+			reg = <0>;
 			remote-endpoint = <&usbc0_role_sw>;
 		};
 	};
