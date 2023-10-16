@@ -23,3 +23,28 @@
 		bootargs = "earlycon=uart8250,mmio32,0xff1a0000 console=ttyFIQ0 coherent_pool=1m";
 	};
 };
+
+&display_subsystem {
+	status = "okay";
+};
+
+&hdmi {
+	status = "okay";
+};
+
+&hdmi_in_vopb {
+	status = "okay";
+};
+
+&hdmi_in_vopl {
+	status = "disabled";
+};
+
+&route_hdmi {
+	connect = <&vopb_out_hdmi>;
+	status = "okay";
+};
+
+&hdmi_sound {
+	status = "okay";
+};
