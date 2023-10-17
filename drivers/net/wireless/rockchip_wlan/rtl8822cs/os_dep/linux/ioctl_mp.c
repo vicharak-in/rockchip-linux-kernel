@@ -795,14 +795,14 @@ int rtw_mp_txpower(struct net_device *dev,
 			pmppriv->txpower_dbm_offset = pout;
 			pmppriv->bSetTxPower = 1;
 			poutdbm = hal_mpt_tssi_turn_target_power(padapter, pout, rfpath);
-			
+
 			poutdbm_int = poutdbm/100;
 			poutdbm_dec = poutdbm%100;
 			if (poutdbm_int < 9 || poutdbm_int >= 22)
 				sprintf(extra, "Error power dBm :%d.%d ,Tune dBm range is 9-22\n", poutdbm_int, poutdbm_dec);
 			else
 				sprintf(extra, "Tune power dBm :%d.%d OK\n", poutdbm_int, poutdbm_dec);
-			
+
 		} else {
 			if (res > 0 || idx_a !=0)
 				sprintf(extra, "Set power level path_A:%d path_B:%d path_C:%d path_D:%d", idx_a , idx_b , idx_c , idx_d);

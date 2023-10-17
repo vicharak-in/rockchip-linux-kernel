@@ -474,7 +474,7 @@ _iqk_btc_wait_indirect_reg_ready_8822c(struct dm_struct *dm)
 	/* wait for ready bit before access 0x1700 */
 	while (1) {
 		if ((odm_read_1byte(dm, 0x1703) & BIT(5)) == 0) {
-			ODM_delay_ms(10);
+			delay_ms(10);
 			if (++delay_count >= 10)
 			break;
 		} else {

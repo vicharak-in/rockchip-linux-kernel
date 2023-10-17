@@ -22,5 +22,3 @@
  * Larry Finger <Larry.Finger@lwfinger.net>
  *
  *****************************************************************************/
-
-#include "phydm_types.h"
