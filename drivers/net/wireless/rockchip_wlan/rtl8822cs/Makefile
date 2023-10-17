@@ -20,12 +20,7 @@ ifeq ($(GCC_VER_49),1)
 EXTRA_CFLAGS += -Wno-date-time	# Fix compile error && warning on gcc 4.9 and later
 endif
 
-DRIVER_PATH=$(srctree)/drivers/net/wireless/rockchip_wlan/rtl8822cs
-
-EXTRA_CFLAGS += -I$(DRIVER_PATH)/include \
-				-I$(DRIVER_PATH)/hal/phydm \
-				-I$(DRIVER_PATH)/core/crypto \
-				-I$(DRIVER_PATH)/platform
+EXTRA_CFLAGS += -I$(srctree)/$(src)/include
 
 EXTRA_LDFLAGS += --strip-debug
 
@@ -60,7 +55,7 @@ CONFIG_GSPI_HCI = n
 CONFIG_AP_MODE = y
 CONFIG_P2P = y
 CONFIG_MP_INCLUDED = y
-CONFIG_POWER_SAVING = y
+CONFIG_POWER_SAVING = n
 CONFIG_IPS_MODE = default
 CONFIG_LPS_MODE = default
 CONFIG_USB_AUTOSUSPEND = n
@@ -285,10 +280,10 @@ _HAL_INTFS_FILES :=	hal/hal_intf.o \
 			hal/led/hal_$(HCI_NAME)_led.o
 
 
-EXTRA_CFLAGS += -I$(src)/platform
+EXTRA_CFLAGS += -I$(srctree)/$(src)/platform
 _PLATFORM_FILES := platform/platform_ops.o
 
-EXTRA_CFLAGS += -I$(src)/hal/btc
+EXTRA_CFLAGS += -I$(srctree)/$(src)/hal/btc
 
 ########### HAL_RTL8188E #################################
 ifeq ($(CONFIG_RTL8188E), y)
@@ -1442,7 +1437,7 @@ EXTRA_CFLAGS += -DCONFIG_RADIO_WORK
 
 ifeq ($(CONFIG_SDIO_HCI), y)
 EXTRA_CFLAGS += -DCONFIG_PLATFORM_OPS
-_PLATFORM_FILES += platform/platform_arm_act_sdio.o
+_PLATFORM_FILES += platform/platform_rockchips_sdio.o
 endif
 
 ARCH := arm
@@ -1740,7 +1735,13 @@ ifeq ($(CONFIG_PLATFORM_ARM_RK3188), y)
 EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN -DCONFIG_PLATFORM_ANDROID -DCONFIG_PLATFORM_ROCKCHIPS
 # default setting for Android 4.1, 4.2, 4.3, 4.4
 EXTRA_CFLAGS += -DCONFIG_IOCTL_CFG80211 -DRTW_USE_CFG80211_STA_EVENT
-EXTRA_CFLAGS += -DCONFIG_CONCURRENT_MODE
+# EXTRA_CFLAGS += -DCONFIG_CONCURRENT_MODE
+# default setting for Special function
+EXTRA_CFLAGS += -DCONFIG_RADIO_WORK
+EXTRA_CFLAGS += -DCONFIG_P2P_IPS
+EXTRA_CFLAGS += -DCONFIG_RESUME_IN_WORKQUEUE -DCONFIG_WAKELOCK
+# default setting for Power control
+EXTRA_CFLAGS += -DRTW_ENABLE_WIFI_CONTROL_FUNC
 ifeq ($(CONFIG_SDIO_HCI), y)
 EXTRA_CFLAGS += -DRTW_SUPPORT_PLATFORM_SHUTDOWN
 endif
@@ -1748,7 +1749,7 @@ endif
 ARCH := arm
 CROSS_COMPILE := /home/android_sdk/Rockchip/Rk3188/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin/arm-eabi-
 KSRC := /home/android_sdk/Rockchip/Rk3188/kernel
-MODULE_NAME := RTL8822CS
+MODULE_NAME := wlan
 endif
 
 ifeq ($(CONFIG_PLATFORM_ARM_RK3066), y)
@@ -2367,7 +2368,6 @@ MODULE_NAME := $(USER_MODULE_NAME)
 endif
 
 ifneq ($(KERNELRELEASE),)
-export CONFIG_RTL8822CS = m
 
 ########### this part for *.mk ############################
 include $(src)/hal/phydm/phydm.mk
@@ -2447,7 +2447,7 @@ ifeq ($(CONFIG_SDIO_HCI), y)
 rtk_core += core/rtw_sdio.o
 endif
 
-EXTRA_CFLAGS += -I$(src)/core/crypto
+EXTRA_CFLAGS += -I$(srctree)/$(src)/core/crypto
 rtk_core += \
 		core/crypto/aes-internal.o \
 		core/crypto/aes-internal-enc.o \

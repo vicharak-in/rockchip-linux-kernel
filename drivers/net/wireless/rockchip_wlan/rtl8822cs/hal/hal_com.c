@@ -1025,11 +1025,11 @@ int rtw_get_sta_tx_stat(_adapter *adapter, u8 mac_id, u8 *macaddr)
 	u8 cmd_ret;
 	int ret = _SUCCESS;
 
-	if (!adapter->hal_func.reqtxrpt) {
-		RTW_INFO("Not support.\n");
+	//if (!adapter->hal_func.reqtxrpt) {
+		RTW_INFO("%s Not support.\n", __func__);
 		ret = RTW_NOT_SUPPORT;
 		goto exit;
-	}
+	//}
 
 	if (pstapriv_primary->gotc2h != NULL) {
 		RTW_INFO("sta tx stat is processing.\n");

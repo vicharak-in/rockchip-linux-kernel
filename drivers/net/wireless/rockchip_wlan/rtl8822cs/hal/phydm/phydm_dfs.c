@@ -1073,21 +1073,21 @@ phydm_radar_detect_dm_check(
 		dfs->pulse_flag_hist[dfs->mask_idx] = 1;
 		dfs->pulse_type_hist[dfs->mask_idx] = 1;
 		}
-	
+
 	else if (tri_short_pulse){
 		PHYDM_DBG(dm, DBG_DFS, "\n");
 		PHYDM_DBG(dm, DBG_DFS, "tri_short_pulse = %d\n", tri_short_pulse);
 		dfs->pulse_flag_hist[dfs->mask_idx] = 1;
 		dfs->pulse_type_hist[dfs->mask_idx] = 0;
 		}
-	
+
 	else{
 		dfs->pulse_flag_hist[dfs->mask_idx] = 0;
 		dfs->pulse_type_hist[dfs->mask_idx] = 0;
 		}
 
-	
-	
+
+
 	if (tri_short_pulse) {
 		if (!(dm->support_ic_type & ODM_IC_JGR3_SERIES))
 			phydm_radar_detect_reset(dm);
@@ -1103,7 +1103,7 @@ phydm_radar_detect_dm_check(
 			}
 		}
 		if (region_domain == PHYDM_DFS_DOMAIN_ETSI) {
-			tri_long_pulse = 0; 
+			tri_long_pulse = 0;
 		}
 	}
 
@@ -1271,11 +1271,11 @@ void phydm_dfs_rpt_distinguish(void *dm_void)
 	struct dm_struct *dm = (struct dm_struct *)dm_void;
 	struct _DFS_STATISTICS *dfs = &dm->dfs;
 	struct ccx_info *ccx = &dm->dm_ccx_info;
-	
+
 	u8 region_domain = dm->dfs_region_domain;
 	u8 c_channel = *dm->channel;
 	u8 band_width = *dm->band_width;
-	
+
 	u32 reg_2e08, reg_2e24, reg_2e28, reg_2e2c, reg_2e30, reg_2e34;
 	u32 reg_2e0c, reg_2e10, reg_2e20;
 	u16 pw_rpt_set[12] = {0}, pri_rpt_set[12] = {0};
@@ -1323,7 +1323,7 @@ void phydm_dfs_rpt_distinguish(void *dm_void)
 	pri_rpt_set[9]=(unsigned int)((reg_2e34 & 0x0000ff00)>>8);
 	pri_rpt_set[10]=(unsigned int)((reg_2e34 & 0x00ff0000)>>16);
 	pri_rpt_set[11]=(unsigned int)((reg_2e34 & 0xff000000)>>24);
-	
+
 	/* Location : Wordlength : S(8,0) , unit: MHz */
 	reg_2e0c = odm_get_bb_reg(dm, 0x2e0c, 0xffffffff);
 	loct_rpt_set[0]=(signed char)(reg_2e0c & 0x000000ff);
@@ -1358,25 +1358,25 @@ void phydm_dfs_rpt_distinguish(void *dm_void)
 	short_cnt_th = odm_get_bb_reg(dm, 0xa50, 0x00f00000);
 	long_cnt_th = odm_get_bb_reg(dm, 0xa4c, 0xf0000000);
 
-	if (dfs->radar_type) 
+	if (dfs->radar_type)
 		loop_cnt = long_cnt_th + 2;
 	else
 		loop_cnt = short_cnt_th  + 2;
 
 	if (region_domain == PHYDM_DFS_DOMAIN_ETSI)
 		loop_cnt = short_cnt_th  + 2;
-	
+
 	if (loop_cnt > 12)
 		loop_cnt = 12;
 
 	cnt_th = loop_cnt / 2;
-	
+
 	/* Calculate the difference between each element (1st Not calculated) */
 	for(i = 0; i < loop_cnt; i++)
 		dfs->loct_rslt[i] = loct_rpt_set[i];
 	for(i = 1; i < loop_cnt; i++)
 		loct_diff = loct_diff + abs(dfs->loct_rslt[i] - dfs->loct_rslt[i-1]);
-	
+
 	for (i = 0; i < loop_cnt; i++) {
 		if ((-2 < loct_rpt_set[i]) && (loct_rpt_set[i] < 2))
 			dc_cnt++;
@@ -1384,7 +1384,7 @@ void phydm_dfs_rpt_distinguish(void *dm_void)
 
 	if (region_domain == PHYDM_DFS_DOMAIN_FCC){
 		rdr_num = 7;
-		
+
 		pw_lth[0]=2;
 		pw_lth[1]=2;
 		pw_lth[2]=2;
@@ -1392,7 +1392,7 @@ void phydm_dfs_rpt_distinguish(void *dm_void)
 		pw_lth[4]=22;
 		pw_lth[5]=120;
 		pw_lth[6]=2;
-		
+
 		pw_uth[0]=3;
 		pw_uth[1]=3;
 		pw_uth[2]=15;
@@ -1400,7 +1400,7 @@ void phydm_dfs_rpt_distinguish(void *dm_void)
 		pw_uth[4]=60;
 		pw_uth[5]=253;
 		pw_uth[6]=3;
-		
+
 		pri_lth[0]=50;
 		pri_lth[1]=18;
 		pri_lth[2]=5;
@@ -1408,7 +1408,7 @@ void phydm_dfs_rpt_distinguish(void *dm_void)
 		pri_lth[4]=7;
 		pri_lth[5]=38;
 		pri_lth[6]=11;
-		
+
 		pri_uth[0]=62;
 		pri_uth[1]=130;
 		pri_uth[2]=10;
@@ -1464,7 +1464,7 @@ void phydm_dfs_rpt_distinguish(void *dm_void)
 			pri_uth[4]=38;
 			pri_uth[5]=44;
 			pri_uth[6]=48;
-			pri_uth[7]=55;	
+			pri_uth[7]=55;
 			if (dc_cnt > dfs->dc_cnt_th){
 				pw_lth[0] = 0;
 				pw_lth[1] = 0;
@@ -1533,7 +1533,7 @@ void phydm_dfs_rpt_distinguish(void *dm_void)
 		pw_lth[3]=40;
 		pw_lth[4]=1;
 		pw_lth[5]=1;
-	
+
 		pw_uth[0]=15;
 		pw_uth[1]=45;
 		pw_uth[2]=45;
@@ -1562,7 +1562,7 @@ void phydm_dfs_rpt_distinguish(void *dm_void)
 			pw_lth[4] = 0;
 			pw_lth[5] = 0;
 			}
-		}	
+		}
 
 	for (i = 0; i < loop_cnt; i++) {
 		dfs->pw_rslt[i] = pw_rpt_set[i];
@@ -1590,8 +1590,8 @@ void phydm_dfs_rpt_distinguish(void *dm_void)
 			dfs->pw_flag = true;
 			rdr_tmp = i;
 			}
-		}	
-	
+		}
+
 	/* Add NHM to decide the validity of the three flags */
 	/* Use for chaotic open space */
 	if (dfs->nhm_dfs_en) {
@@ -1613,7 +1613,7 @@ void phydm_dfs_rpt_distinguish(void *dm_void)
 			dfs->b_flag = true;
 			cnt_th = loop_cnt;
 		}
-	}  
+	}
 
 	/* Relax */
 	if (!(dfs->idle_mode)) {
@@ -1624,9 +1624,9 @@ void phydm_dfs_rpt_distinguish(void *dm_void)
 				dfs->pri_var_offset = 5 + 10*pri_vd_min/20;
 			}
 		else
-			dfs->pri_var_offset = dfs->pri_var_tp_offset;	
+			dfs->pri_var_offset = dfs->pri_var_tp_offset;
 	}
-	
+
 	// Mode approximation for PRI
 	for (i = 0; i < (loop_cnt - 1); i++) {
 		pri_cnt_tmp = 0;
@@ -1671,7 +1671,7 @@ void phydm_dfs_rpt_distinguish(void *dm_void)
 	if (region_domain == PHYDM_DFS_DOMAIN_MKK){
 		if (c_channel >= 52 && c_channel <= 64){
 			if (!(dfs->idle_mode))
-				dfs->pri_flag= true;     // MKK, 52<=ch<=64 , TP mode	
+				dfs->pri_flag= true;     // MKK, 52<=ch<=64 , TP mode
 			}
 		}
 
@@ -1694,8 +1694,8 @@ void phydm_dfs_rpt_distinguish(void *dm_void)
 			PHYDM_DBG(dm, DBG_DFS, "Anti-FRD Rdr Drop\n");
 		if (!(dfs->pw_flag_en) || !(dfs->loct_flag_en) || !(dfs->pri_flag_en))
 			PHYDM_DBG(dm, DBG_DFS, "Byps flag scenario\n");
-	       if (dc_cnt > dfs->dc_cnt_th)
-		   	PHYDM_DBG(dm, DBG_DFS, "Radar is near DC\n");
+		if (dc_cnt > dfs->dc_cnt_th)
+			PHYDM_DBG(dm, DBG_DFS, "Radar is near DC\n");
 		if (!(dfs->pw_flag))
 			PHYDM_DBG(dm, DBG_DFS, "- PW/PRI-J Failure\n");
 		if (!(dfs->loct_flag))
@@ -1748,17 +1748,17 @@ void phydm_dfs_rpt_distinguish(void *dm_void)
 		if (dfs->nhm_dfs_flag) {
 			PHYDM_DBG(dm, DBG_DFS, "Nmode cnt = %d!\n",
 				  dfs->nhm_dfs_cnt);
-		} 
+		}
 		else if (dfs->b_flag) {
 			PHYDM_DBG(dm, DBG_DFS, "Bmode DTY = %d\n",
 				  (100-((ccx->nhm_rpt_sum * 100) >> 8)));
-		} 
+		}
 		else {
 			PHYDM_DBG(dm, DBG_DFS, "cnt_th = [%d] (Default : Half of loop cnt)\n",
 				  cnt_th);
 			PHYDM_DBG(dm, DBG_DFS, "Bmode DTY = %d\n",
 				  (100-((ccx->nhm_rpt_sum * 100) >> 8)));
-		} 
+		}
 
 		PHYDM_DBG(dm, DBG_DFS, "\n");
 		PHYDM_DBG(dm, DBG_DFS, "The current report:\n");

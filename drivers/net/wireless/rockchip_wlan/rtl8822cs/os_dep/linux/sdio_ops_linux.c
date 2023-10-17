@@ -867,7 +867,7 @@ s32 sd_write(struct intf_hdl *pintfhdl, u32 addr, u32 cnt, void *pdata)
 #ifdef RTW_SDIO_DUMP
 #define DUMP_LEN_LMT	0	/* buffer dump size limit */
 				/* unit: byte, 0 for no limit */
-#else 
+#else
 #define DUMP_LEN_LMT	32
 #endif
 #define GET_DUMP_LEN(len)	(DUMP_LEN_LMT ? rtw_min(len, DUMP_LEN_LMT) : len)
