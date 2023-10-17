@@ -216,14 +216,18 @@ if is_enabled CONFIG_ARCH_VICHARAK; then
 #!/bin/sh
 set -e
 
+# Log file for pre-installation messages
+log_file="/var/log/preinst.log"
+
+# Initialize log file
+echo "Pre-Installation Log" >"\$log_file"
+
+# delete previous vicharak kernel image
 if find /boot -name 'Image*'; then
 	rm -f /boot/Image*
 fi
-if [ -f /boot/rk-kernel.dtb ]; then
-	rm -f /boot/rk-kernel.dtb
-fi
-if [ -d /boot/overlays ]; then
-	rm -rf /boot/overlays
+if find /boot -name '*.dtb'; then
+	rm -f /boot/*.dtb
 fi
 if find /boot -name 'initrd*'; then
 	rm -f /boot/initrd*
@@ -235,39 +239,38 @@ if find /boot -name 'config*'; then
 	rm -f /boot/config*
 fi
 
-echo "Removing old kernel remains" 2>&1 | tee -a /var/log/preinst.log
+echo "Removed old kernel remains" 2>&1 | tee -a "\${log_file}"
 
 exit 0
 EOF
 	chmod 0755 "$tmpdir$debhookdir/preinst.d/99-vicharak-preinst"
 
 	cat > "$tmpdir$debhookdir/postinst.d/99-vicharak-postinst" <<EOF
-#!/bin/sh
+#!/bin/bash
 set -e
 
+# Log file for post-installation messages
+log_file="/var/log/postinst.log"
+
+# Initialize log file
+echo "Post-Installation Log" >"\$log_file"
+
+# Check if the extlinux directory exists
 if [ ! -d /boot/extlinux ]; then
 	mkdir -p /boot/extlinux
 fi
 
-echo "label ${RK_KERNEL_DTS} linux-$version" > /boot/extlinux/extlinux.conf
-echo "\tkernel /Image-$version" >> /boot/extlinux/extlinux.conf
-echo "\tfdt /${RK_KERNEL_DTS}.dtb" >> /boot/extlinux/extlinux.conf
+# Create an extlinux.conf file
+echo "label ${RK_KERNEL_DTS} linux-${version}" >/boot/extlinux/extlinux.conf
+echo "\tkernel /Image-${version}" >>/boot/extlinux/extlinux.conf
+echo "\tfdt /${RK_KERNEL_DTS}.dtb" >>/boot/extlinux/extlinux.conf
 
-cp -f "/usr/lib/$packagename/rockchip/${RK_KERNEL_DTS}.dtb" /boot
+# Copy the kernel device tree file
+cp -f "/usr/lib/${packagename}/rockchip/${RK_KERNEL_DTS}.dtb" /boot/${RK_KERNEL_DTS}.dtb
 
-if [ -d "/usr/lib/$packagename/rockchip/overlays" ]; then
-	cp -ar "/usr/lib/$packagename/rockchip/overlays" /boot/overlays
-fi
-
-if [ -e "ramdisk.img" ]; then
-	cp "ramdisk.img" "$tmpdir/boot/initrd-$version"
-	echo "\tinitrd /initrd-$version" >> "$tmpdir"/boot/extlinux/extlinux.conf
-fi
-
-cmdline=\$(cat /proc/cmdline)
-
-if [ ! -f /etc/kernel/cmdline ]; then
-	ln -sf /proc/cmdline /etc/kernel/cmdline
+# Extract the kernel configuration to /boot/config
+if [ -f /proc/config.gz ]; then
+	gzip -c /proc/config.gz >/boot/config-${version}
 fi
 
 __get_root_dev() {
@@ -278,44 +281,79 @@ __get_block_dev() {
 	echo "/dev/\$(udevadm info --query=path "--name=\$(__get_root_dev)" | awk -F'/' '{print \$(NF-1)}')"
 }
 
+cmdline=\$(cat /proc/cmdline)
+
+if [ ! -f /etc/kernel/cmdline ]; then
+	ln -sf /proc/cmdline /etc/kernel/cmdline
+fi
+
 # check if root found in cmdline
-if ! grep -q "root=" "\$cmdline"; then
+if [ ! \$(echo \${cmdline} | grep -q "root=") ]; then
 	dev=\$(__get_block_dev)
 
 	if [ -n "\$dev" ]; then
-		rootfs_part=\$(parted -s "\$dev" print | grep -i root | awk '{print \$1}')
-
-		cmdline=\$(echo \${cmdline} | sed -e 's/append/append root=\${dev}p\${rootfs_part}/g')
+		rootfs_part=\$(parted -s "\$dev" print | grep -i root | awk '{print $1}')
+		cmdline=\$(echo "\$cmdline" | sed -e 's/append/append root=\${dev}p\${rootfs_part}/g')
 	fi
 fi
 
-echo "\tappend \${cmdline}" >> /boot/extlinux/extlinux.conf
+# Append the kernel cmdline to the extlinux.conf
+echo "\tappend \${cmdline}" >>/boot/extlinux/extlinux.conf
 
-if [ -f /proc/config.gz ]; then
-	gzip -c /proc/config.gz > /boot/config-$version
-fi
+echo "Added new kernel configuration" 2>&1 | tee -a \${log_file}
 
 exit 0
 EOF
 	chmod 0755 "$tmpdir$debhookdir/postinst.d/99-vicharak-postinst"
 
-	cat > "$tmpdir$debhookdir/prerm.d/99-vicharak-prerm" <<EOF
+	cat > "$tmpdir$debhookdir/postrm.d/99-vicharak-postrm" <<EOF
 #!/bin/sh
 set -e
 
-if [ -f /boot/Image-$version ]; then
-	cp -f /boot/Image-$version /boot/Image-$version.bak
-	sed -i "s/Image-$version/Image-$version.bak/g" /boot/extlinux/extlinux.conf
+# Log file for post-removal messages
+log_file="/var/log/postrm.log"
+
+# Initialize log file
+echo "Post-Removal Log" >"\$log_file"
+
+# delete all the vicharak kernel script hooks
+if [ -f /etc/kernel/preinst.d/99-vicharak-preinst ]; then
+	rm -f /etc/kernel/preinst.d/99-vicharak-preinst
+fi
+if [ -f /etc/kernel/postinst.d/99-vicharak-postinst ]; then
+	rm -f /etc/kernel/postinst.d/99-vicharak-postinst
+fi
+if [ -f /etc/kernel/prerm.d/99-vicharak-prerm ]; then
+	rm -f /etc/kernel/prerm.d/99-vicharak-prerm
+fi
+if [ -f /etc/kernel/postrm.d/99-vicharak-postrm ]; then
+	rm -f /etc/kernel/postrm.d/99-vicharak-postrm
 fi
 
-if [ -f /boot/${RK_KERNEL_DTS}.dtb ]; then
-	cp -f /boot/${RK_KERNEL_DTS}.dtb /boot/${RK_KERNEL_DTS}.dtb.bak
-	sed -i "s/${RK_KERNEL_DTS}.dtb/${RK_KERNEL_DTS}.dtb.bak/g" /boot/extlinux/extlinux.conf
+# Delete all the log files
+if [ -f /var/log/preinst.log ]; then
+	rm -f /var/log/preinst.log
 fi
+if [ -f /var/log/postinst.log ]; then
+	rm -f /var/log/postinst.log
+fi
+if [ -f /var/log/prerm.log ]; then
+	rm -f /var/log/prerm.log
+fi
+if [ -f /var/log/postrm.log ]; then
+	rm -f /var/log/postrm.log
+fi
+
+# Delete the kernel remains
+if [ -d /boot/extlinux ]; then
+	rm -rf /boot/extlinux
+fi
+
+echo "Removed old kernel remains" 2>&1 | tee -a "\$log_file"
 
 exit 0
 EOF
-	chmod 0755 "$tmpdir$debhookdir/prerm.d/99-vicharak-prerm"
+	chmod 0755 "$tmpdir$debhookdir/postrm.d/99-vicharak-postrm"
 fi
 
 if [ "$ARCH" != "um" ]; then
