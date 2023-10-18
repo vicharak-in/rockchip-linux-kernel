@@ -27,7 +27,7 @@
 		rockchip,cpu = <&spdif_tx2>;
 		rockchip,codec = <&dp0 1>;
 		rockchip,jack-det;
-		status = "okay";
+		status = "disabled";
 	};
 
 	dp1_sound: dp1-sound {
@@ -37,7 +37,7 @@
 		rockchip,cpu = <&spdif_tx5>;
 		rockchip,codec = <&dp1 1>;
 		rockchip,jack-det;
-		status = "okay";
+		status = "disabled";
 	};
 
 	es8388_sound: es8388-sound {
@@ -85,7 +85,7 @@
 		rockchip,cpu = <&i2s5_8ch>;
 		rockchip,codec = <&hdmi0>;
 		rockchip,jack-det;
-		status = "okay";
+		status = "disabled";
 	};
 
 	hdmi1_sound: hdmi1-sound {
@@ -95,7 +95,7 @@
 		rockchip,cpu = <&i2s6_8ch>;
 		rockchip,codec = <&hdmi1>;
 		rockchip,jack-det;
-		status = "okay";
+		status = "disabled";
 	};
 
 	hdmiin_sound: hdmiin-sound {
@@ -108,6 +108,7 @@
 		rockchip,cpu = <&i2s7_8ch>;
 		rockchip,codec = <&hdmirx_ctrler 0>;
 		rockchip,jack-det;
+		status = "disabled";
 	};
 
 	keys {
