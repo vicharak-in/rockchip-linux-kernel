@@ -946,6 +946,31 @@ out:
 	return ret;
 }
 
+#ifdef CONFIG_BOARD_VICHARAK_VAAMAN
+static int expander_spi_mode(struct pca953x_chip *chip)
+{
+	int ret;
+
+	if (!chip)
+		return -ENODEV;
+
+	ret = pca953x_gpio_direction_output(&chip->gpio_chip, 1, 1);
+	if (ret)
+		return ret;
+
+	ret = pca953x_gpio_direction_output(&chip->gpio_chip, 2, 1);
+	if (ret)
+		return ret;
+
+	pca953x_gpio_set_value(&chip->gpio_chip, 1, 1);
+	pca953x_gpio_set_value(&chip->gpio_chip, 2, 1);
+
+	dev_info(&chip->client->dev, "spi mode set properly\n");
+
+	return 0;
+}
+#endif
+
 static int pca953x_probe(struct i2c_client *client,
 			 const struct i2c_device_id *i2c_id)
 {
@@ -1074,6 +1099,12 @@ static int pca953x_probe(struct i2c_client *client,
 	ret = devm_gpiochip_add_data(&client->dev, &chip->gpio_chip, chip);
 	if (ret)
 		goto err_exit;
+
+#ifdef CONFIG_BOARD_VICHARAK_VAAMAN
+	ret = expander_spi_mode(chip);
+	if (ret)
+		dev_warn(&client->dev, "spi mode set failed, %d\n", ret);
+#endif
 
 	if (pdata && pdata->setup) {
 		ret = pdata->setup(client, chip->gpio_chip.base,
