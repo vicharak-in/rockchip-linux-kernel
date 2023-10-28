@@ -159,6 +159,14 @@ if is_enabled CONFIG_OF_EARLY_FLATTREE; then
 	fi
 fi
 
+if is_enabled CONFIG_ARCH_VICHARAK; then
+	if [ "$ARCH" = "arm64" ] ; then
+		if [ -n "${RK_KERNEL_DTS}" ]; then
+			cp ${tmpdir}/usr/lib/${packagename}/rockchip/${RK_KERNEL_DTS}.dtb "$tmpdir/boot/"
+		fi
+	fi
+fi
+
 if is_enabled CONFIG_MODULES; then
 	INSTALL_MOD_PATH="$tmpdir" $MAKE -f $srctree/Makefile modules_install
 	rm -f "$tmpdir/lib/modules/$version/build"
