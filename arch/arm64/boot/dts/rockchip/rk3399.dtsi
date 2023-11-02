@@ -2400,6 +2400,7 @@
 		compatible = "arm,malit860",
 			     "arm,malit86x",
 			     "arm,malit8xx",
+				 "arm,mali-t860",
 			     "arm,mali-midgard";
 		reg = <0x0 0xff9a0000 0x0 0x10000>;
 		interrupts = <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH 0>,
