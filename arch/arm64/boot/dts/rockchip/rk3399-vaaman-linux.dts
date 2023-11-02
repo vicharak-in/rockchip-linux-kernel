@@ -28,6 +28,10 @@
 	status = "okay";
 };
 
+&dw_hdmi_audio {
+	status = "okay";
+};
+
 &hdmi {
 	status = "okay";
 };
@@ -38,6 +42,10 @@
 
 &hdmi_in_vopl {
 	status = "disabled";
+};
+
+&hdmi_sound {
+	status = "okay";
 };
 
 &route_hdmi {
