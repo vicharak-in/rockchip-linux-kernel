@@ -19,12 +19,6 @@
 		#clock-cells = <0>;
 	};
 
-	dw_hdmi_audio: dw-hdmi-audio {
-		status = "disabled";
-		compatible = "rockchip,dw-hdmi-audio";
-		#sound-dai-cells = <0>;
-	};
-
 	es8316-sound {
 		compatible = "rockchip,multicodecs-card";
 		rockchip,card-name = "rockchip-es8316";
@@ -45,17 +39,13 @@
 	};
 
 	hdmi_sound: hdmi-sound {
+		compatible = "rockchip,hdmi";
+		rockchip,mclk-fs = <128>;
+		rockchip,card-name = "rockchip-hdmi0";
+		rockchip,cpu = <&i2s2>;
+		rockchip,codec = <&hdmi>;
+		rockchip,jack-det;
 		status = "disabled";
-		compatible = "simple-audio-card";
-		simple-audio-card,format = "i2s";
-		simple-audio-card,mclk-fs = <256>;
-		simple-audio-card,name = "rockchip,hdmi";
-		simple-audio-card,cpu {
-			sound-dai = <&i2s2>;
-		};
-		simple-audio-card,codec {
-			sound-dai = <&dw_hdmi_audio>;
-		};
 	};
 
 	keys {
