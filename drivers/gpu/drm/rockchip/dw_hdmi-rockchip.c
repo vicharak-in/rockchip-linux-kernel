@@ -3387,6 +3387,7 @@ static const struct dw_hdmi_plat_data rk3399_hdmi_drv_data = {
 	.phy_data = &rk3399_chip_data,
 	.use_drm_infoframe = true,
 	.ycbcr_420_allowed = true,
+	.is_hdmi_qp = false,
 };
 
 static struct rockchip_hdmi_chip_data rk3528_chip_data = {
