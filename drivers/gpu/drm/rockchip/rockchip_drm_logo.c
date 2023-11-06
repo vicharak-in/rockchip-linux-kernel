@@ -455,10 +455,6 @@ of_parse_display_resource(struct drm_device *drm_dev, struct device_node *route)
 	if (!connect)
 		return NULL;
 
-	fb = get_framebuffer_by_node(drm_dev, route);
-	if (IS_ERR_OR_NULL(fb))
-		return NULL;
-
 	crtc = find_crtc_by_node(drm_dev, connect);
 
 	sub_dev = find_sub_dev_by_node(drm_dev, connect);
@@ -469,9 +465,12 @@ of_parse_display_resource(struct drm_device *drm_dev, struct device_node *route)
 	if (!crtc || !sub_dev) {
 		dev_warn(drm_dev->dev,
 			 "No available crtc or connector for display");
-		drm_framebuffer_put(fb);
 		return NULL;
 	}
+
+	fb = get_framebuffer_by_node(drm_dev, route);
+	if (IS_ERR_OR_NULL(fb))
+		return NULL;
 
 	set = kzalloc(sizeof(*set), GFP_KERNEL);
 	if (!set)
