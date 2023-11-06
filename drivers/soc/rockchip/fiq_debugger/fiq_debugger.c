@@ -1461,8 +1461,8 @@ static int fiq_debugger_probe(struct platform_device *pdev)
 	    (!pdata->uart_enable && pdata->uart_disable))
 		return -EINVAL;
 
-	fiq = platform_get_irq_byname(pdev, "fiq");
-	uart_irq = platform_get_irq_byname(pdev, "uart_irq");
+	fiq = platform_get_irq_byname_optional(pdev, "fiq");
+	uart_irq = platform_get_irq_byname_optional(pdev, "uart_irq");
 
 #ifndef CONFIG_ARCH_ROCKCHIP
 	/* uart_irq mode and fiq mode are mutually exclusive, but one of them
@@ -1485,7 +1485,7 @@ static int fiq_debugger_probe(struct platform_device *pdev)
 	state->fiq = fiq;
 	state->uart_irq = uart_irq;
 	state->signal_irq = platform_get_irq_byname(pdev, "signal");
-	state->wakeup_irq = platform_get_irq_byname(pdev, "wakeup");
+	state->wakeup_irq = platform_get_irq_byname_optional(pdev, "wakeup");
 
 	INIT_WORK(&state->work, fiq_debugger_work);
 	spin_lock_init(&state->work_lock);
