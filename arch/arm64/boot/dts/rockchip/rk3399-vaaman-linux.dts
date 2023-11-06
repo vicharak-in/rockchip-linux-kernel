@@ -28,6 +28,10 @@
 	status = "okay";
 };
 
+&fiq_debugger {
+	rockchip,irq-mode-enable = <0>;
+};
+
 &dw_hdmi_audio {
 	status = "okay";
 };
