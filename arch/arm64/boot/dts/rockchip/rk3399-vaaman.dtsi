@@ -1108,7 +1108,6 @@
 };
 
 &u2phy0_host {
-	phy-supply = <&vcc5v0_host>;
 	status = "okay";
 };
 
@@ -1121,7 +1120,6 @@
 };
 
 &u2phy1_host {
-	phy-supply = <&vcc5v0_host>;
 	status = "okay";
 };
 
