@@ -176,3 +176,28 @@
 	status = "okay";
 };
 
+&vp0 {
+	rockchip,plane-mask = <(1 << ROCKCHIP_VOP2_CLUSTER0 | 1 << ROCKCHIP_VOP2_ESMART0 |
+				1 << ROCKCHIP_VOP2_CLUSTER1)>;
+	rockchip,primary-plane = <ROCKCHIP_VOP2_CLUSTER0>;
+	cursor-win-id = <ROCKCHIP_VOP2_ESMART0>;
+};
+
+&vp1 {
+	rockchip,plane-mask = <(1 << ROCKCHIP_VOP2_CLUSTER2 | 1 << ROCKCHIP_VOP2_ESMART1 |
+				1 << ROCKCHIP_VOP2_ESMART2)>;
+	rockchip,primary-plane = <ROCKCHIP_VOP2_CLUSTER2>;
+	cursor-win-id = <ROCKCHIP_VOP2_ESMART1>;
+};
+
+&vp2 {
+	/delete-property/ rockchip,plane-mask;
+	/delete-property/ rockchip,primary-plane;
+	status = "disabled";
+};
+
+&vp3 {
+	/delete-property/ rockchip,plane-mask;
+	/delete-property/ rockchip,primary-plane;
+	status = "disabled";
+};
