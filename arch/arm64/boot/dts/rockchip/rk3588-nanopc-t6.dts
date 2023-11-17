@@ -406,6 +406,7 @@
 		     &i2s0_sclk
 		     &i2s0_sdi0
 		     &i2s0_sdo0>;
+	rockchip,trcm-sync-tx-only;
 };
 
 &i2s6_8ch {
