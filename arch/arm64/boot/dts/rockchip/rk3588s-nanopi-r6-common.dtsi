@@ -116,6 +116,10 @@
 	status = "okay";
 };
 
+&avsd {
+	status = "okay";
+};
+
 &combphy0_ps {
 	status = "okay";
 };
@@ -662,6 +666,10 @@
 
 &vdpu_mmu {
 	status = "okay";
+};
+
+&vepu {
+        status = "okay";
 };
 
 &vop {
