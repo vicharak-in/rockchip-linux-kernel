@@ -66,7 +66,7 @@
 	leds {
 		compatible = "gpio-leds";
 		pinctrl-names = "default";
-		pinctrl-0 = <&user_led_rk_1_gpio &user_led_rk_2_gpio>;
+		pinctrl-0 = <&user_led_rk_1_pin &user_led_rk_2_pin>;
 
 		user-led-rk-1 {
 			function = LED_FUNCTION_POWER;
@@ -198,9 +198,9 @@
 		clock-names = "ext_clock";
 		clocks = <&rk808 1>;
 		pinctrl-names = "default", "rts_gpio";
-		pinctrl-0 = <&uart0_rts>, <&bt_wake_gpio>,
-					<&bt_reg_on_gpio>, <&bt_host_wake_gpio>;
-		pinctrl-1 = <&uart0_gpios>;
+		pinctrl-0 = <&uart0_rts>, <&bt_wake_pin>,
+					<&bt_reg_on_pin>, <&bt_host_wake_pin>;
+		pinctrl-1 = <&uart0_pins>;
 		uart_rts_gpios = <&gpio2 RK_PC3 GPIO_ACTIVE_LOW>;
 		BT,reset_gpio    = <&gpio0 RK_PB1 GPIO_ACTIVE_HIGH>;
 		BT,wake_gpio     = <&gpio2 RK_PD3 GPIO_ACTIVE_HIGH>;
@@ -873,12 +873,12 @@
 	};
 
 	leds {
-		user_led_rk_1_gpio: user-led-rk-1-gpio {
+		user_led_rk_1_pin: user-led-rk-1-pin {
 			rockchip,pins =
 				<3 RK_PD4 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
-		user_led_rk_2_gpio: user-led-rk-2-gpio {
+		user_led_rk_2_pin: user-led-rk-2-pin {
 			rockchip,pins =
 				<3 RK_PD5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
@@ -941,22 +941,22 @@
 	};
 
 	wireless-bluetooth {
-		uart0_gpios: uart0-gpios {
+		uart0_pins: uart0-pins {
 			rockchip,pins =
 				<2 RK_PC3 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
-		bt_wake_gpio: bt-wake-gpio {
+		bt_wake_pin: bt-wake-pin {
 			rockchip,pins =
 				<2 RK_PD3 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
-		bt_host_wake_gpio: bt-host-wake-gpio {
+		bt_host_wake_pin: bt-host-wake-pin {
 			rockchip,pins =
 				<0 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
-		bt_reg_on_gpio: bt-reg-on-gpio {
+		bt_reg_on_pin: bt-reg-on-pin {
 			rockchip,pins =
 				<0 RK_PB1 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
