@@ -32,6 +32,10 @@
 	rockchip,irq-mode-enable = <0>;
 };
 
+&uart2 {
+	status = "disabled";
+};
+
 &hdmi {
 	status = "okay";
 };
