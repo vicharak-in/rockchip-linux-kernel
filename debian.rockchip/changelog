@@ -1,0 +1,167 @@
+linux-rockchip (6.1.0-1017.17) noble; urgency=medium
+
+  * arm64: dts: orangepi-5-pro: set USB OTG interface to host mode
+  * media: rockchip: hdmirx: add VIDIOC_G_PARM
+  * UBUNTU: enable the RT2800USB driver
+  * arm64: dts: orangepi-5-pro: fix the pwm driving frequency
+
+ -- Joshua Riek <jjriek@verizon.net>  Sun, 23 Jun 2024 13:33:06 -0400
+
+linux-rockchip (6.1.0-1016.16) noble; urgency=medium
+
+  * arm64: dts: rockchip: rock5: add hdmi enable-gpios
+  * UBUNTU: enable Rockchip cpuinfo
+  * arm64: dts: rockchip: add the radxa-cm5-rpi-cm4-io
+  * UBUNTU: enable Focaltech touchscreen
+  * input: touchscreen: focaltech touch: Removing invalid function calls
+  * arm64: dts: rockchip: rk3588: add system node
+  * arm64: cpuinfo: add cpu model
+
+ -- Joshua Riek <jjriek@verizon.net>  Wed, 05 Jun 2024 18:30:33 -0400
+
+linux-rockchip (6.1.0-1015.15) noble; urgency=medium
+
+  * UBUNTU: enable EM05 LTE module
+  * UBUNTU: enable radxa displays and common debug features
+  * drm: bridge: synopsys: recapture monitor mode after resume
+  * input: touchscreen: gt9xx: add cj080258 gt9271 config
+  * input: touchscreen: gt9xx: update cj080258 gt911 config
+  * input: touchscreen: gt9xx: add cj080258 gt911 config
+  * drm: panel: jadard-jd9365da-h3: add Radxa Display 10HD
+  * drm: panel: jadard-jd9365da-h3: set the reset pin high during prepare stage
+  * drm: panel: radxa 8hd display: Fix some wrong definitions
+  * drm: panel: Add Jadard JD9365DA-H3 DSI panel
+  * drm: panel: add radxa display 8hd panel
+  * net: lte: add lte_em05 driver
+  * UBUNTU: enable broadcom 43XX legacy wireless support
+
+ -- Joshua Riek <jjriek@verizon.net>  Sun, 02 Jun 2024 22:26:40 -0400
+
+linux-rockchip (6.1.0-1014.14) noble; urgency=medium
+
+  * arm64: dts: rockchip: Update Radxa overlays for the Rock 5 series
+  * arm64: dts: rockchip: Add the Radxa Rock 5D
+  * arm64: dts: rockchip: Add the Radxa Rock 5B Plus
+  * arm64: dts: rockchip: Add the Radxa Rock 5C
+  * ASoC: es8316: add record function
+
+ -- Joshua Riek <jjriek@verizon.net>  Mon, 27 May 2024 11:02:25 -0400
+
+linux-rockchip (6.1.0-1013.13) noble; urgency=medium
+
+  * UBUNTU: enable common VIRTIO drivers
+  * arm64: dts: rockchip: add Orange Pi 5 sata device tree
+  * UBUNTU: enable apparmor
+  * arm64: dts: rock-5-itx: update vp plane and fix es8316
+
+ -- Joshua Riek <jjriek@verizon.net>  Thu, 09 May 2024 11:08:12 -0400
+
+linux-rockchip (6.1.0-1012.12) noble; urgency=medium
+
+  * Revert "UBUNTU: enable apparmor by default"
+
+ -- Joshua Riek <jjriek@verizon.net>  Sat, 27 Apr 2024 16:31:49 -0400
+
+linux-rockchip (6.1.0-1011.11) noble; urgency=medium
+
+  * Updated drivers/rknpu to 0.9.6
+  * UBUNTU: enable PTP hardware timestamping
+
+ -- Joshua Riek <jjriek@verizon.net>  Thu, 25 Apr 2024 23:27:31 -0400
+
+linux-rockchip (6.1.0-1010.10) noble; urgency=medium
+
+  * UPSTREAM: arm64: dts: rockchip: Fix eMMC Data Strobe PD
+  * UBUNTU: enable kernel samepage merging
+
+ -- Joshua Riek <jjriek@verizon.net>  Wed, 24 Apr 2024 19:56:10 -0400
+
+linux-rockchip (6.1.0-1009.9) noble; urgency=medium
+
+  * rk3588s-lubancat-4: make fan quieter
+  * UBUNTU: enable UIO driver
+  * arm64: dts: rockchip: delete chosen node for the Orange Pi 5 Pro
+
+ -- Joshua Riek <jjriek@verizon.net>  Mon, 22 Apr 2024 19:59:58 -0400
+
+linux-rockchip (6.1.0-1008.8) noble; urgency=medium
+
+  * net: wireless: rkwifi: fix missing typedefs header
+
+ -- Joshua Riek <jjriek@verizon.net>  Sun, 21 Apr 2024 13:53:37 -0400
+
+linux-rockchip (6.1.0-1007.7) noble; urgency=medium
+
+  * arm64: dts: rockchip: add overlay to enable hdmirx
+  * arm64: dts: opi5+: disable hdmirx
+  * Avoid EPROBE_DEFER loop with Rockchip DSI driver
+  * arm64: dts: rockchip: Add MCU and fan control to Khadas Edge 2
+  * mfd: backport khadas mcu driver changes from armbian rockchip-rk3588-edge kernel
+  * arm64: dts: rockchip: merge khadas-edge dtsi into dts
+  * arm64: dts: rockchip: khadas-edge2: move camera and dsi properties to overlays
+  * arm64: dts: rockchip: cleanup khadas edge 2 devicetree
+  * UBUNTU: enable AQtion and MotorComm drivers
+  * arm64: dts: rockchip: add support for the Orange Pi 5 Pro
+  * net: wireless: rockchip_wlan: bcmdhd: Update to 101.10.591.x
+  * net: ethernet: motorcomm: Add yt6801 driver
+  * UBUNTU: enable filesystem-level encryption (fscrypt)
+  * UBUNTU: enable MT7921x WiFi drivers
+
+ -- Joshua Riek <jjriek@verizon.net>  Sun, 21 Apr 2024 12:08:34 -0400
+
+linux-rockchip (6.1.0-1006.6) noble; urgency=medium
+
+  * UBUNTU: bump dkms versions
+
+ -- Joshua Riek <jjriek@verizon.net>  Sat, 06 Apr 2024 21:42:25 -0400
+
+linux-rockchip (6.1.0-1005.5) noble; urgency=medium
+
+  * arm64: dts: rockchip: Fix bananapim7 Makefile typo
+  * add the firefly itx-3588j device tree
+  * UBUNTU: enable common sensor devices
+  * arm64: dts: Add board bananapim7
+  * arm64: rockchip: dts: Add support for the NanoPC-T6 LTS
+  * UBUNTU: remove flash-kernel recommends
+  * UBUNTU: enable apparmor by default
+  * Revert "Fix CEC on rk356X on tv restart (#149)"
+  * UBUNTU: enable khadas mcu and set cpufreq default gov to performance
+
+ -- Joshua Riek <jjriek@verizon.net>  Sat, 06 Apr 2024 14:05:54 -0400
+
+linux-rockchip (6.1.0-1004.4) noble; urgency=medium
+
+  * arm64: dts: rockchip: rename ArmSoM Sige7 / W3 model names
+  * arm64: dts: rockchip: add dummy dts for indiedroid nova and blade 3
+  * UBUNTU: enable NBD as module 
+
+ -- Joshua Riek <jjriek@verizon.net>  Fri, 22 Mar 2024 21:52:11 -0400
+
+linux-rockchip (6.1.0-1003.3) noble; urgency=medium
+
+  * rockchip_defconfig: sync with ubuntu defconfig
+  * UBUNTU: enable NVMe over TCP
+  * version_compat_defs: Add vm_flags_set()/vm_flags_clear()
+  * driver: rknpu: Update rknpu driver, version: 0.9.5
+  * driver: rknpu: Update rknpu driver, version: 0.9.4
+
+ -- Joshua Riek <jjriek@verizon.net>  Sun, 17 Mar 2024 11:27:34 -0400
+
+linux-rockchip (6.1.0-1002.2) noble; urgency=medium
+
+  * arm64: dts: turing-rk1: enable USB3 host and USB2 (EHCI & OHCI)
+  * UBUNTU: enable R8169 for 2.5 GbE
+  * Revert "drivers: net: ethernet: add r8125 driver"
+  * Revert "ethernet: realtek: r8125: stop rss spamming kernel logs"
+  * Revert "ethernet: realtek: r8125: enable multiple tx queue and rss support for performance"
+  * net: wireless: realtek: backport rtw89 from linux 6.6
+  * Revert "net: wireless: realtek: update rtw89 driver to support compressed firmware"
+  * UBUNTU: enable kernel version signature 
+
+ -- Joshua Riek <jjriek@verizon.net>  Wed, 13 Mar 2024 17:54:22 -0400
+
+linux-rockchip (6.1.0-1001.1) noble; urgency=medium
+
+  * Initial release
+
+ -- Joshua Riek <jjriek@verizon.net>  Sat, 10 Mar 2024 09:24:17 -0500
