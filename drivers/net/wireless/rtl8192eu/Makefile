@@ -11,6 +11,11 @@ GCC_VER_49 := $(shell echo `$(CC) -dumpversion | cut -f1-2 -d.` \>= 4.9 | bc )
 ifeq ($(GCC_VER_49),1)
 endif
 
+EXTRA_CFLAGS += -I$(srctree)/drivers/net/wireless/rtl8192eu/include
+EXTRA_CFLAGS += -I$(srctree)/drivers/net/wireless/rtl8192eu/hal/phydm/halrf
+EXTRA_CFLAGS += -I$(srctree)/drivers/net/wireless/rtl8192eu/hal/phydm/
+EXTRA_CFLAGS += -I$(srctree)/drivers/net/wireless/rtl8192eu/platform
+
 EXTRA_CFLAGS += -I$(src)/include
 
 EXTRA_LDFLAGS += --strip-debug

@@ -19,6 +19,10 @@ EXTRA_CFLAGS += -Wno-vla -g
 #ifeq ($(GCC_VER_49),1)
 #EXTRA_CFLAGS += -Wno-date-time	# Fix compile error && warning on gcc 4.9 and later
 #endif
+EXTRA_CFLAGS += -I$(srctree)/drivers/net/wireless/rtl8812au/include
+EXTRA_CFLAGS += -I$(srctree)/drivers/net/wireless/rtl8812au/hal/phydm/halrf
+EXTRA_CFLAGS += -I$(srctree)/drivers/net/wireless/rtl8812au/hal/phydm/
+EXTRA_CFLAGS += -I$(srctree)/drivers/net/wireless/rtl8812au/platform
 
 EXTRA_CFLAGS += -I$(src)/include
 EXTRA_LDFLAGS += --strip-all -O3

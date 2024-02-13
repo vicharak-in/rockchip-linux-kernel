@@ -22,6 +22,12 @@ endif
 EXTRA_CFLAGS += -I$(src)/include
 EXTRA_CFLAGS += -I$(src)/hal/phydm
 
+EXTRA_CFLAGS += -I$(srctree)/drivers/net/wireless/rtl8723ds/include
+EXTRA_CFLAGS += -I$(srctree)/drivers/net/wireless/rtl8723ds/hal
+EXTRA_CFLAGS += -I$(srctree)/drivers/net/wireless/rtl8723ds/platform
+EXTRA_CFLAGS += -I$(srctree)/drivers/net/wireless/rtl8723ds/hal/phydm
+EXTRA_CFLAGS += -I$(srctree)/drivers/net/wireless/rtl8723ds/hal/btc
+
 EXTRA_LDFLAGS += --strip-debug
 
 CONFIG_AUTOCFG_CP = n
