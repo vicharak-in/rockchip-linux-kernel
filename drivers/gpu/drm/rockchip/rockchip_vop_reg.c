@@ -735,7 +735,7 @@ static const struct vop_win_data rk3399_vop_lit_win_data[] = {
 	{ .phy = NULL },
 	{ .base = 0x00, .phy = &rk3368_win23_data, .csc = &rk3399_win2_csc,
 	  .format_modifiers = format_modifiers,
-	  .type = DRM_PLANE_TYPE_CURSOR,
+	  .type = DRM_PLANE_TYPE_OVERLAY,
 	  .feature = WIN_FEATURE_AFBDC,
 	  .area = rk3368_area_data,
 	  .area_size = ARRAY_SIZE(rk3368_area_data), },
@@ -755,6 +755,7 @@ static const struct vop_data rk3399_vop_lit = {
 	.ctrl = &rk3288_ctrl_data,
 	.win = rk3399_vop_lit_win_data,
 	.win_size = ARRAY_SIZE(rk3399_vop_lit_win_data),
+	.lut_disable = true,
 };
 
 static const struct vop_win_data rk322x_vop_win_data[] = {
