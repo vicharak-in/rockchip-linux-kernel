@@ -1516,12 +1516,10 @@ static int vop_crtc_legacy_gamma_set(struct drm_crtc *crtc, u16 *red, u16 *green
 	if (!vop->lut)
 		return -EINVAL;
 
-	if (!vop->data->lut_disable) {
-		for (i = 0; i < len; i++)
-			rockchip_vop_crtc_fb_gamma_set(crtc, red[i], green[i], blue[i], i);
+	for (i = 0; i < len; i++)
+		rockchip_vop_crtc_fb_gamma_set(crtc, red[i], green[i], blue[i], i);
 
-		vop_crtc_load_lut(crtc);
-	}
+	vop_crtc_load_lut(crtc);
 
 	return 0;
 }
@@ -3318,7 +3316,7 @@ static void vop_crtc_atomic_enable(struct drm_crtc *crtc,
 	/*
 	 * restore the lut table.
 	 */
-	if (vop->lut_active && !vop->data->lut_disable)
+	if (vop->lut_active)
 		vop_crtc_load_lut(crtc);
 
 	if (vop->mcu_timing.mcu_pix_total)
@@ -4034,8 +4032,7 @@ static void vop_crtc_atomic_flush(struct drm_crtc *crtc,
 
 	vop_update_hdr(crtc, old_crtc_state);
 	if (old_crtc_state->color_mgmt_changed || old_crtc_state->active_changed) {
-		if ((crtc->state->gamma_lut || vop->gamma_lut)
-			&& !vop->data->lut_disable) {
+		if (crtc->state->gamma_lut || vop->gamma_lut) {
 			if (old_crtc_state->gamma_lut)
 				vop->gamma_lut = old_crtc_state->gamma_lut->data;
 			vop_crtc_atomic_gamma_set(crtc, old_crtc_state);

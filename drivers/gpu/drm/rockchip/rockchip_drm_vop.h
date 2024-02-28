@@ -1188,7 +1188,6 @@ struct vop_data {
 	u64 feature;
 	u64 soc_id;
 	u8 vop_id;
-	bool lut_disable;
 };
 
 struct vop2_ctrl {
