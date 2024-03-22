@@ -20,7 +20,7 @@
 #include "rk3588-linux.dtsi"
 
 / {
-	model = "ArmSom RK3588 sige7 Board";
+	model = "ArmSoM Sige7";
 	compatible = "rockchip,rk3588-armsom-sige7", "rockchip,rk3588";
 	/delete-node/ chosen;
 	

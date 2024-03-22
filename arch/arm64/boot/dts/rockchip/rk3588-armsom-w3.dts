@@ -23,7 +23,7 @@
 #include "rk3588-armsom-w3-camera.dtsi"
 
 / {
-	model = "armsom w3";
+	model = "ArmSoM W3";
 	compatible = "rockchip,rk3588-armsom-w3", "rockchip,rk3588";
 
 	/delete-node/ chosen;
