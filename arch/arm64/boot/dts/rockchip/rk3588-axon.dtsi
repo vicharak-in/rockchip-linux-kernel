@@ -43,7 +43,7 @@
 	es8388_sound: es8388-sound {
 		compatible = "rockchip,multicodecs-card";
 		hp-con-gpio = <&gpio1 RK_PD5 GPIO_ACTIVE_HIGH>;
-		hp-det-gpio = <&gpio1 RK_PC4 GPIO_ACTIVE_LOW>;
+		hp-det-gpio = <&gpio1 RK_PC4 GPIO_ACTIVE_HIGH>;
 		spk-con-gpio = <&gpio1 RK_PC6 GPIO_ACTIVE_HIGH>;
 		io-channel-names = "adc-detect";
 		io-channels = <&saradc 3>;
