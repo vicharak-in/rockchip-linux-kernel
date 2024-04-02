@@ -734,6 +734,7 @@
 		clock-names = "mclk";
 		assigned-clocks = <&mclkout_i2s0>;
 		assigned-clock-rates = <12288000>;
+		pinctrl-0 = <&i2s0_mclk>;
 		pinctrl-names = "default";
 		// AVDD-supply = <&vcc_3v3_s0>;
 		// DVDD-supply = <&vcc_1v8_s0>;
@@ -825,7 +826,6 @@
 
 &i2s0_8ch {
 	pinctrl-0 = <&i2s0_lrck
-				&i2s0_mclk
 				&i2s0_sclk
 				&i2s0_sdi0
 				&i2s0_sdo0>;
