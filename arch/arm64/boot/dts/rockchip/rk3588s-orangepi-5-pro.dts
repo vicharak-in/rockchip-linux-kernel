@@ -24,6 +24,7 @@
 / {
 	model = "Orange Pi 5 Pro";
 	compatible = "rockchip,rk3588s-orangepi-5-pro", "rockchip,rk3588";
+	/delete-node/ chosen;
 
 	backlight: backlight {
 		compatible = "pwm-backlight";
