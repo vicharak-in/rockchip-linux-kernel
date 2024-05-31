@@ -713,6 +713,50 @@
 			regulator-off-in-suspend;
 		};
 	};
+
+	mp5416: mp5416@69 {
+		compatible = "mps,mp5416";
+		reg = <0x69>;
+		status = "okay";
+
+		regulators {
+			buck1 {
+				regulator-name = "mps-buck1";
+				regulator-min-microvolt = <1200000>;
+				regulator-max-microvolt = <1200000>;
+				regulator-boot-on;
+				regulator-always-on;
+				status = "okay";
+			};
+
+			buck2 {
+				regulator-name = "mps-buck2";
+				regulator-min-microvolt = <2500000>;
+				regulator-max-microvolt = <2500000>;
+				regulator-boot-on;
+				regulator-always-on;
+				status = "okay";
+			};
+
+			buck3 {
+				regulator-name = "mps-buck3";
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <1800000>;
+				regulator-boot-on;
+				regulator-always-on;
+				status = "okay";
+			};
+
+			buck4 {
+				regulator-name = "mps-buck4";
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-boot-on;
+				regulator-always-on;
+				status = "okay";
+			};
+		};
+	};
 };
 
 &i2c1 {
