@@ -74,21 +74,6 @@
 	status = "okay";
 };
 
-&spi1 {
-	status = "okay";
-	#address-cells = <1>;
-	#size-cells = <0>;
-
-	w25q128: spi-flash@0 {
-		reg = <0>;
-		#address-cells = <1>;
-		#size-cells = <0>;
-		compatible = "winbond,w25q128", "jedec,spi-nor";
-		spi-max-frequency = <100000000>;
-		status = "okay";
-	};
-};
-
 &i2c4 {
 	status = "okay";
 	#address-cells = <1>;
