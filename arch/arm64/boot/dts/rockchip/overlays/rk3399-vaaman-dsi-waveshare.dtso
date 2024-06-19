@@ -20,6 +20,7 @@
 
 &dsi {
 	status = "okay";
+	rockchip,lane-rate = <600>;
 
 	ports {
 		#address-cells = <1>;
@@ -55,6 +56,8 @@
 	touch: goodix@14 {
 		reg = <0x14>;
 		compatible = "goodix,gt911";
+		touchscreen-inverted-x;
+		touchscreen-swapped-x-y;
 		status = "okay";
 	};
 };
