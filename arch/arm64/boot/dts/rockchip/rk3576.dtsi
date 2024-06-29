@@ -22,6 +22,10 @@
 	#address-cells = <2>;
 	#size-cells = <2>;
 
+	system {
+		cpu,model = "Rockchip RK3576";
+	};
+
 	aliases {
 		csi2dcphy0 = &csi2_dcphy0;
 		csi2dphy0 = &csi2_dphy0;
