@@ -24,7 +24,7 @@ extern unsigned long max_pfn;
  */
 extern unsigned long long max_possible_pfn;
 
-#ifdef CONFIG_ROCKCHIP_THUNDER_BOOT_DEFER_FREE_MEMBLOCK
+#ifdef CONFIG_ROCKCHIP_THUNDER_BOOT
 extern int defer_free_memblock(void *unused);
 #endif
 
