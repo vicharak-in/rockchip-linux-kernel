@@ -18,6 +18,11 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	orangepi-5-pro-cam1.dtbo \
 	orangepi-5-pro-cam2.dtbo \
 	orangepi-5-pro-disable-leds.dtbo \
+	orangepi-5-max-cam0.dtbo \
+	orangepi-5-max-cam1.dtbo \
+	orangepi-5-max-cam2.dtbo \
+	orangepi-5-max-disable-leds.dtbo \
+	orangepi-5-max-lcd.dtbo \
 	orangepi-5-ov5647-c1.dtbo \
 	orangepi-5-ov5647-c2.dtbo \
 	orangepi-5-ov5647-c3.dtbo \
