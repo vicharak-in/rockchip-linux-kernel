@@ -1,3 +1,16 @@
+linux-rockchip (6.1.0-1021.21) noble; urgency=medium
+
+  * arm64: dts: rockchip: Improve fan curve on Khadas Edge 2
+  * arm64: dts: rockchip: Add support for the ArmSoM AIM7
+  * Add support for HP T99W175 5G Modem
+  * Backport Linux 6.8 Realtek r8169 driver
+  * Fix compilation error
+  * Add DTS files for Firefly AIO-3588L
+  * arm64: dts: rockchip: add the Orange Pi CM5
+  * arm64: dts: rockchip: add the Orange Pi 5 Max
+
+ -- Joshua Riek <jjriek@verizon.net>  Sun, 28 Jul 2024 22:45:26 -0400
+
 linux-rockchip (6.1.0-1020.20) noble; urgency=medium
 
   * UBUNTU: Enable V1, V2, and V3 camera & lens drivers
