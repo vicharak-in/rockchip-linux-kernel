@@ -1,3 +1,10 @@
+linux-rockchip (6.1.0-1022.22) noble; urgency=medium
+
+  * UBUNTU: add support for BTF
+  * UBUNTU: Enable the RK806 power management chip via I2C
+
+ -- Joshua Riek <jjriek@verizon.net>  Sun, 11 Aug 2024 14:07:09 -0400
+
 linux-rockchip (6.1.0-1021.21) noble; urgency=medium
 
   * arm64: dts: rockchip: Improve fan curve on Khadas Edge 2
