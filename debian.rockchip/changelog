@@ -1,3 +1,10 @@
+linux-rockchip (6.1.0-1023.23) noble; urgency=medium
+
+  * UBUNTU: Replace grub from recommends with u-boot-menu
+  * UBUNTU: Include bpftool in tools package
+
+ -- Joshua Riek <jjriek@verizon.net>  Wed, 14 Aug 2024 18:46:40 -0400
+
 linux-rockchip (6.1.0-1022.22) noble; urgency=medium
 
   * UBUNTU: add support for BTF
