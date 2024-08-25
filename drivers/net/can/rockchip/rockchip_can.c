@@ -499,6 +499,7 @@ static irqreturn_t rockchip_can_interrupt(int irq, void *dev_id)
 	struct net_device *ndev = (struct net_device *)dev_id;
 	struct rockchip_can *rcan = netdev_priv(ndev);
 	struct net_device_stats *stats = &ndev->stats;
+	unsigned int dumy;
 	u8 err_int = ERR_WARN_INT | RX_BUF_OV | PASSIVE_ERR |
 		     TX_LOSTARB | BUS_ERR_INT;
 	u8 isr;
@@ -506,9 +507,11 @@ static irqreturn_t rockchip_can_interrupt(int irq, void *dev_id)
 	isr = readl(rcan->base + CAN_INT);
 	if (isr & TX_FINISH) {
 		/* transmission complete interrupt */
-		rockchip_can_write_cmdreg(rcan, 0);
-		stats->tx_bytes += can_get_echo_skb(ndev, 0, NULL);
+		stats->tx_bytes += readl(rcan->base + CAN_TX_FRM_INFO) &
+				   CAN_DLC_MASK;
 		stats->tx_packets++;
+		rockchip_can_write_cmdreg(rcan, 0);
+		dumy = can_get_echo_skb(ndev, 0, NULL);
 		netif_wake_queue(ndev);
 	}
 
