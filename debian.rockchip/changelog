@@ -1,3 +1,12 @@
+linux-rockchip (6.1.0-1024.24) noble; urgency=medium
+
+  * UBUNTU: Enable CAN and CANFD Rockchip drivers
+  * drivers: can: rockchip: Fix the CAN and CAN-FD driver for use in kernel 6.1
+  * Revert "PCI: rockchip: dw: remove .link_up() hook from struct dw_pcie_ops"
+  * UBUNTU: Enable LTC2941/LTC2943 battery gauge driver
+
+ -- Joshua Riek <jjriek@verizon.net>  Sun, 25 Aug 2024 04:36:30 -0400
+
 linux-rockchip (6.1.0-1023.23) noble; urgency=medium
 
   * UBUNTU: Replace grub from recommends with u-boot-menu
