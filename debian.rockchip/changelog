@@ -1,3 +1,9 @@
+linux-rockchip (6.1.0-1025.25) noble; urgency=medium
+
+  * Revert "Revert "PCI: rockchip: dw: remove .link_up() hook from struct dwpcie_ops""
+
+ -- Joshua Riek <jjriek@verizon.net>  Mon, 26 Aug 2024 17:50:48 -0400
+
 linux-rockchip (6.1.0-1024.24) noble; urgency=medium
 
   * UBUNTU: Enable CAN and CANFD Rockchip drivers
