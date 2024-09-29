@@ -1,3 +1,13 @@
+linux-rockchip (6.1.0-1026.26) noble; urgency=medium
+
+  * arch: arm64: rockchip: use panfrost driver for gpu of rk3576
+  * Enabled DLM properly and not just the GFS2 filesystem support for it
+  * Added missing config line to properly enable DRBD
+  * Added DLM and DRBD kernel modules
+  * arm64: dts: rockchip: add armsom-cm5-io
+
+ -- Joshua Riek <jjriek@verizon.net>  Sun, 29 Sep 2024 09:53:46 -0400
+
 linux-rockchip (6.1.0-1025.25) noble; urgency=medium
 
   * Revert "Revert "PCI: rockchip: dw: remove .link_up() hook from struct dwpcie_ops""
