@@ -9,7 +9,7 @@
 #include "rk3588-linux.dtsi"
 
 / {
-	model = "Vicharak RK3588 AXON VO.2 LINUX";
+	model = "Vicharak RK3588 AXON VO.3 LINUX";
 	compatible = "vicharak,rk3588-axon", "rockchip,rk3588";
 
 	/delete-node/ chosen;
