@@ -43,7 +43,7 @@
 	es8388_sound: es8388-sound {
 		compatible = "rockchip,multicodecs-card";
 		hp-con-gpio = <&gpio1 RK_PD5 GPIO_ACTIVE_HIGH>;
-		hp-det-gpio = <&gpio1 RK_PC4 GPIO_ACTIVE_LOW>;
+		hp-det-gpio = <&gpio1 RK_PC4 GPIO_ACTIVE_HIGH>;
 		spk-con-gpio = <&gpio1 RK_PC6 GPIO_ACTIVE_HIGH>;
 		io-channel-names = "adc-detect";
 		io-channels = <&saradc 3>;
@@ -246,7 +246,6 @@
 		compatible = "regulator-fixed";
 		regulator-name = "vbus5v0_typec0";
 		regulator-boot-on;
-		regulator-always-on;
 		enable-active-high;
 		gpio = <&pca9554 4 GPIO_ACTIVE_HIGH>;
 		vin-supply = <&vcc1_5v0>;
@@ -256,7 +255,6 @@
 		compatible = "regulator-fixed";
 		regulator-name = "vbus5v0_typec1";
 		regulator-boot-on;
-		regulator-always-on;
 		enable-active-high;
 		gpio = <&pca9554 6 GPIO_ACTIVE_HIGH>;
 		vin-supply = <&vcc1_5v0>;
@@ -337,7 +335,7 @@
 		vin-supply = <&vcc_3v3_s0>;
 	};
 
-	wireless_bluetooth: wireless-bluetooth {
+/*	wireless_bluetooth: wireless-bluetooth {
 		compatible = "bluetooth-platdata";
 		clocks = <&hym8563>;
 		clock-names = "ext_clock";
@@ -360,7 +358,7 @@
 		WIFI,host_wake_irq = <&gpio2 RK_PB4 GPIO_ACTIVE_HIGH>;
 		WIFI,poweren_gpio = <&gpio2 RK_PB5 GPIO_ACTIVE_HIGH>;
 		status = "okay";
-	};
+	};*/
 };
 
 &av1d_mmu {
@@ -645,31 +643,6 @@
 			regulator-off-in-suspend;
 		};
 	};
-};
-
-&i2c3 {
-	status = "okay";
-
-	es8388: es8388@11 {
-		#sound-dai-cells = <0>;
-		compatible = "everest,es8388", "everest,es8323";
-		reg = <0x11>;
-		clocks = <&mclkout_i2s0>;
-		clock-names = "mclk";
-		assigned-clocks = <&mclkout_i2s0>;
-		assigned-clock-rates = <12288000>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&i2s0_mclk>;
-		DVDD-supply = <&vcc_1v8_s0>;
-		AVDD-supply = <&vcc_3v3_s0>;
-		PVDD-supply = <&vcc_1v8_s0>;
-		HPVDD-supply = <&vcc_3v3_s0>;
-		status = "okay";
-	};
-};
-
-&i2c6 {
-	status = "okay";
 
 	usbc0: fusb302@22 {
 		compatible = "fcs,fusb302";
@@ -738,6 +711,32 @@
 		};
 	};
 
+};
+
+
+&i2c3 {
+	status = "okay";
+
+	es8388: es8388@11 {
+		#sound-dai-cells = <0>;
+		compatible = "everest,es8388", "everest,es8323";
+		reg = <0x11>;
+		clocks = <&mclkout_i2s0>;
+		clock-names = "mclk";
+		assigned-clocks = <&mclkout_i2s0>;
+		assigned-clock-rates = <12288000>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&i2s0_mclk>;
+		DVDD-supply = <&vcc_1v8_s0>;
+		AVDD-supply = <&vcc_3v3_s0>;
+		PVDD-supply = <&vcc_1v8_s0>;
+		HPVDD-supply = <&vcc_3v3_s0>;
+		status = "okay";
+	};
+};
+
+&i2c6 {
+	status = "okay";
 	usbc1: fusb302@23 {
 		compatible = "fcs,fusb302";
 		reg = <0x23>;
