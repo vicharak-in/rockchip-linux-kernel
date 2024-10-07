@@ -1,0 +1,44 @@
+on:
+    workflow_dispatch:
+    push:
+    pull_request:
+      types: [opened, reopened, edited, synchronize]
+      branches:
+        - jammy
+        - noble
+        - oracular
+name: Build kernel
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build 
+    steps:
+      - name: Install dependencies
+        shell: bash
+        run: |
+          sudo apt-get update && apt-get purge needrestart -y && sudo apt-get upgrade -y
+          sudo apt-get install -y build-essential gcc-aarch64-linux-gnu bison \
+          u-boot-tools binfmt-support flex libssl-dev bc rsync kmod cpio xz-utils fakeroot  \
+          udev dosfstools uuid-runtime device-tree-compiler python3 python-is-python3 \
+          bc debhelper swig libfdt-dev libpython3-dev dctrl-tools
+
+      - name: Checkout Kernel repo
+        uses: actions/checkout@v4
+  
+      - name: Build Kernel at ${{ github.sha }}
+        shell: bash
+        run: |
+          echo "artifacts_path=$(realpath ..)" >> $GITHUB_ENV
+          export $(dpkg-architecture -aarm64)
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          export CC=aarch64-linux-gnu-gcc
+          export LANG=C
+          fakeroot debian/rules clean binary-headers binary-rockchip do_mainline_build=true
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4.3.3
+        with:
+            name: linux-rockchip
+            path: ${{ env.artifacts_path }}/*.deb
+            if-no-files-found: error
