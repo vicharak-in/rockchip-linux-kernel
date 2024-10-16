@@ -188,17 +188,6 @@ static s32 xmit_xmitframes(PADAPTER adapter, struct xmit_priv *pxmitpriv)
 	rtw_hal_get_def_var(adapter, HAL_DEF_TX_PAGE_SIZE, &page_size);
 	desc_size = rtl8822c_get_tx_desc_size(adapter);
 
-#ifdef CONFIG_RTW_MGMT_QUEUE 
-	/* dump management frame directly */
-	do {
-		pxmitframe = rtw_dequeue_mgmt_xframe(pxmitpriv);
-		if (pxmitframe)
-			adapter->hal_func.mgnt_xmit(adapter, pxmitframe);
-	} while (pxmitframe != NULL);
-
-	hwentry--;
-#endif
-
 	if (adapter->registrypriv.wifi_spec == 1) {
 		for (idx = 0; idx < 4; idx++)
 			inx[idx] = pxmitpriv->wmm_para_seq[idx];
@@ -294,10 +283,10 @@ static s32 xmit_xmitframes(PADAPTER adapter, struct xmit_priv *pxmitpriv)
 					#ifdef DBG_XMIT_BUF
 						RTW_ERR("%s: xmit_buf is not enough!\n", __FUNCTION__);
 					#endif
-						err = RTW_XBUF_UNAVAIL;
 					#ifdef CONFIG_SDIO_TX_ENABLE_AVAL_INT
-						_rtw_up_sema(&GET_PRIMARY_ADAPTER(adapter)->xmitpriv.xmit_sema);
+						/* _rtw_up_sema(&GET_PRIMARY_ADAPTER(adapter)->xmitpriv.xmit_sema); */
 					#endif
+						err = RTW_XBUF_UNAVAIL;
 						break;
 					}
 
@@ -505,12 +494,12 @@ thread_return rtl8822cs_xmit_thread(thread_context context)
 	u8 thread_name[20] = {0};
 #ifdef RTW_XMIT_THREAD_HIGH_PRIORITY_AGG
 #ifdef PLATFORM_LINUX
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0))
-	sched_set_fifo_low(current);
-#else
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 1))
 	struct sched_param param = { .sched_priority = 1 };
-			
+
 	sched_setscheduler(current, SCHED_FIFO, &param);
+#else
+	sched_set_fifo_low(current);
 #endif
 #endif /* PLATFORM_LINUX */
 #endif /* RTW_XMIT_THREAD_HIGH_PRIORITY_AGG */
@@ -589,39 +578,6 @@ s32 rtl8822cs_mgnt_xmit(PADAPTER adapter, struct xmit_frame *pmgntframe)
 
 	return ret;
 }
-
-/*
- * Description:
- *	Enqueue management xmitframe
- *
- * Return:
- *	_TRUE	enqueue ok
- *	_FALSE	fail
- */
-#ifdef CONFIG_RTW_MGMT_QUEUE 
-s32 rtl8822cs_hal_mgmt_xmit_enqueue(PADAPTER adapter, struct xmit_frame *pxmitframe)
-{
-	struct xmit_priv *pxmitpriv;
-	s32 ret;
-
-	pxmitpriv = &adapter->xmitpriv;
-
-	ret = rtw_mgmt_xmitframe_enqueue(adapter, pxmitframe);
-	if (ret != _SUCCESS) {
-		rtw_free_xmitframe(pxmitpriv, pxmitframe);
-		pxmitpriv->tx_drop++;
-		return _FALSE;
-	}
-
-#ifdef CONFIG_SDIO_TX_TASKLET
-	tasklet_hi_schedule(&pxmitpriv->xmit_tasklet);
-#else
-	_rtw_up_sema(&pxmitpriv->SdioXmitSema);
-#endif
-
-	return _TRUE;
-}
-#endif
 
 /*
  * Description:

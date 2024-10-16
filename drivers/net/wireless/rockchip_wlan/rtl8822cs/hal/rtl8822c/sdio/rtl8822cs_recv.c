@@ -19,6 +19,22 @@
 #include "../../hal_halmac.h"	/* BIT_ACRC32_8822C and etc. */
 #include "../rtl8822c.h"	/* rtl8822c_rxdesc2attribute(), rtl8822c_c2h_handler_no_io() */
 
+
+static s32 initrecvbuf(struct recv_buf *precvbuf, PADAPTER adapter)
+{
+	_rtw_init_listhead(&precvbuf->list);
+	_rtw_spinlock_init(&precvbuf->recvbuf_lock);
+
+	precvbuf->adapter = adapter;
+
+	return _SUCCESS;
+}
+
+static void freerecvbuf(struct recv_buf *precvbuf)
+{
+	_rtw_spinlock_free(&precvbuf->recvbuf_lock);
+}
+
 static void start_rx_handle(PADAPTER p)
 {
 #ifdef CONFIG_RECV_THREAD_MODE
@@ -543,7 +559,7 @@ s32 rtl8822cs_recv_hdl(_adapter *adapter)
 	return ret;
 }
 
-static void recv_tasklet(unsigned long priv)
+static void recv_tasklet(void *priv)
 {
 	PADAPTER adapter;
 	s32 ret;
@@ -563,7 +579,6 @@ static void recv_tasklet(unsigned long priv)
  */
 s32 rtl8822cs_init_recv_priv(PADAPTER adapter)
 {
-	struct registry_priv *regsty = adapter_to_regsty(adapter);
 	s32 res;
 	u32 i, n;
 	struct recv_priv *precvpriv;
@@ -577,7 +592,7 @@ s32 rtl8822cs_init_recv_priv(PADAPTER adapter)
 	_rtw_init_queue(&precvpriv->free_recv_buf_queue);
 	_rtw_init_queue(&precvpriv->recv_buf_pending_queue);
 
-	n = regsty->recvbuf_nr * sizeof(struct recv_buf) + 4;
+	n = NR_RECVBUFF * sizeof(struct recv_buf) + 4;
 	precvpriv->pallocated_recv_buf = rtw_zmalloc(n);
 	if (precvpriv->pallocated_recv_buf == NULL) {
 		res = _FAIL;
@@ -588,20 +603,20 @@ s32 rtl8822cs_init_recv_priv(PADAPTER adapter)
 
 	/* init each recv buffer */
 	precvbuf = (struct recv_buf *)precvpriv->precv_buf;
-	for (i = 0; i < regsty->recvbuf_nr; i++) {
-		res = sdio_initrecvbuf(precvbuf, adapter);
+	for (i = 0; i < NR_RECVBUFF; i++) {
+		res = initrecvbuf(precvbuf, adapter);
 		if (res == _FAIL)
 			break;
 
-		res = rtw_os_recvbuf_resource_alloc(adapter, precvbuf, MAX_RECVBUF_SZ);
+		res = rtw_os_recvbuf_resource_alloc(adapter, precvbuf);
 		if (res == _FAIL) {
-			sdio_freerecvbuf(precvbuf);
+			freerecvbuf(precvbuf);
 			break;
 		}
 
 		res = os_recvbuf_resource_alloc(adapter, precvbuf);
 		if (res == _FAIL) {
-			sdio_freerecvbuf(precvbuf);
+			freerecvbuf(precvbuf);
 			break;
 		}
 
@@ -617,7 +632,7 @@ s32 rtl8822cs_init_recv_priv(PADAPTER adapter)
 	/* 2. init tasklet */
 #ifdef PLATFORM_LINUX
 	tasklet_init(&precvpriv->recv_tasklet,
-		     recv_tasklet,
+		     (void(*)(unsigned long))recv_tasklet,
 		     (unsigned long)adapter);
 #endif
 
@@ -632,14 +647,14 @@ initbuferror:
 			rtw_list_delete(&precvbuf->list);
 			os_recvbuf_resource_free(adapter, precvbuf);
 			rtw_os_recvbuf_resource_free(adapter, precvbuf);
-			sdio_freerecvbuf(precvbuf);
+			freerecvbuf(precvbuf);
 			precvbuf++;
 		}
 		precvpriv->precv_buf = NULL;
 	}
 
 	if (precvpriv->pallocated_recv_buf) {
-		n = regsty->recvbuf_nr * sizeof(struct recv_buf) + 4;
+		n = NR_RECVBUFF * sizeof(struct recv_buf) + 4;
 		rtw_mfree(precvpriv->pallocated_recv_buf, n);
 		precvpriv->pallocated_recv_buf = NULL;
 	}
@@ -655,7 +670,6 @@ exit:
  */
 void rtl8822cs_free_recv_priv(PADAPTER adapter)
 {
-	struct registry_priv *regsty = &adapter->registrypriv;
 	u32 i, n;
 	struct recv_priv *precvpriv;
 	struct recv_buf *precvbuf;
@@ -675,14 +689,14 @@ void rtl8822cs_free_recv_priv(PADAPTER adapter)
 			rtw_list_delete(&precvbuf->list);
 			os_recvbuf_resource_free(adapter, precvbuf);
 			rtw_os_recvbuf_resource_free(adapter, precvbuf);
-			sdio_freerecvbuf(precvbuf);
+			freerecvbuf(precvbuf);
 			precvbuf++;
 		}
 		precvpriv->precv_buf = NULL;
 	}
 
 	if (precvpriv->pallocated_recv_buf) {
-		n = regsty->recvbuf_nr * sizeof(struct recv_buf) + 4;
+		n = NR_RECVBUFF * sizeof(struct recv_buf) + 4;
 		rtw_mfree(precvpriv->pallocated_recv_buf, n);
 		precvpriv->pallocated_recv_buf = NULL;
 	}

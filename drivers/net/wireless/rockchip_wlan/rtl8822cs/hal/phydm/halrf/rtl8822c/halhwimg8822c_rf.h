@@ -23,7 +23,7 @@
  *
  *****************************************************************************/
 
-/*Image2HeaderVersion: R3 1.5.12*/
+/*Image2HeaderVersion: R3 1.5.10*/
 #if (RTL8822C_SUPPORT == 1)
 #ifndef __INC_MP_RF_HW_IMG_8822C_H
 #define __INC_MP_RF_HW_IMG_8822C_H
@@ -49,16 +49,6 @@
 #ifdef CONFIG_8822C_TYPE5_DRV_DIS
     #undef CONFIG_8822C_TYPE5
 #endif
-
-struct txpwr_lmt_t_8822c {
-	u8			reg;
-	u8			band:1;
-	u8			bw:3;
-	u8			rs:2;
-	u8			ntx:2;
-	u8			ch;
-	s8			val;
-};
 
 /******************************************************************************
  *                           radioa.TXT

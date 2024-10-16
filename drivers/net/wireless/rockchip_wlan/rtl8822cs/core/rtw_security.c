@@ -1587,7 +1587,7 @@ static sint aes_cipher(u8 *key, uint	hdrlen,
 
 
 #if NEW_CRYPTO
-u32 rtw_aes_encrypt(_adapter *padapter, u8 *pxmitframe)
+u32 rtw_aes_rtk_encrypt(_adapter *padapter, u8 *pxmitframe)
 {
 	/* Intermediate Buffers */
 	struct pkt_attrib *pattrib = &((struct xmit_frame *)pxmitframe)->attrib;
@@ -1646,11 +1646,11 @@ u32 rtw_aes_encrypt(_adapter *padapter, u8 *pxmitframe)
 			if ((curfragnum + 1) == pattrib->nr_frags) {    /* the last fragment */
 				plen = pattrib->last_txcmdsz - pattrib->hdrlen - pattrib->iv_len - pattrib->icv_len;
 
-				_rtw_ccmp_encrypt(padapter, prwskey, prwskeylen, pattrib->hdrlen, pframe, plen);
+				_rtw_ccmp_encrypt(prwskey, prwskeylen, pattrib->hdrlen, pframe, plen);
 			} else {
 				plen = pxmitpriv->frag_len - pattrib->hdrlen - pattrib->iv_len - pattrib->icv_len;
 
-				_rtw_ccmp_encrypt(padapter, prwskey, prwskeylen, pattrib->hdrlen, pframe, plen);
+				_rtw_ccmp_encrypt(prwskey, prwskeylen, pattrib->hdrlen, pframe, plen);
 				pframe += pxmitpriv->frag_len;
 				pframe = (u8 *)RND4((SIZE_PTR)(pframe));
 
@@ -1666,7 +1666,7 @@ u32 rtw_aes_encrypt(_adapter *padapter, u8 *pxmitframe)
 	return res;
 }
 #else
-u32	rtw_aes_encrypt(_adapter *padapter, u8 *pxmitframe)
+u32	rtw_aes_rtk_encrypt(_adapter *padapter, u8 *pxmitframe)
 {
 	/* exclude ICV */
 
@@ -2118,7 +2118,7 @@ u32 rtw_aes_decrypt(_adapter *padapter, u8 *precvframe)
 			} else
 				prwskey = &stainfo->dot118021x_UncstKey.skey[0];
 
-			res = _rtw_ccmp_decrypt(padapter, prwskey,
+			res = _rtw_ccmp_decrypt(prwskey,
 				prxattrib->encrypt == _CCMP_256_ ? 32 : 16,
 				prxattrib->hdrlen, pframe,
 				((union recv_frame *)precvframe)->u.hdr.len);
@@ -2629,11 +2629,11 @@ u32 rtw_gcmp_encrypt(_adapter *padapter, u8 *pxmitframe)
 				/* the last fragment */
 				plen = pattrib->last_txcmdsz - pattrib->hdrlen - pattrib->iv_len - pattrib->icv_len;
 
-				_rtw_gcmp_encrypt(padapter, prwskey, prwskeylen, pattrib->hdrlen, pframe, plen);
+				_rtw_gcmp_encrypt(prwskey, prwskeylen, pattrib->hdrlen, pframe, plen);
 			} else {
 				plen = pxmitpriv->frag_len - pattrib->hdrlen - pattrib->iv_len - pattrib->icv_len;
 
-				_rtw_gcmp_encrypt(padapter, prwskey, prwskeylen, pattrib->hdrlen, pframe, plen);
+				_rtw_gcmp_encrypt(prwskey, prwskeylen, pattrib->hdrlen, pframe, plen);
 				pframe += pxmitpriv->frag_len;
 				pframe = (u8 *)RND4((SIZE_PTR)(pframe));
 			}
@@ -2718,7 +2718,7 @@ u32 rtw_gcmp_decrypt(_adapter *padapter, u8 *precvframe)
 			} else
 				prwskey = &stainfo->dot118021x_UncstKey.skey[0];
 
-			res = _rtw_gcmp_decrypt(padapter, prwskey,
+			res = _rtw_gcmp_decrypt(prwskey,
 				prxattrib->encrypt == _GCMP_256_ ? 32 : 16,
 				prxattrib->hdrlen, pframe,
 				((union recv_frame *)precvframe)->u.hdr.len);
@@ -2831,7 +2831,7 @@ u32 rtw_bip_verify(enum security_type gmcs, u16 pkt_len,
 	ClearPwrMgt(BIP_AAD);
 	ClearMData(BIP_AAD);
 	/* conscruct AAD, copy address 1 to address 3 */
-	_rtw_memcpy(BIP_AAD + 2, GetAddr1Ptr((u8 *)pwlanhdr), 18);
+	_rtw_memcpy(BIP_AAD + 2, pwlanhdr->addr1, 18);
 
 	if (rtw_calculate_bip_mic(gmcs, whdr_pos,
 			pkt_len, key, BIP_AAD, ori_len, mic) == _FAIL)

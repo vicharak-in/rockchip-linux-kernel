@@ -204,8 +204,6 @@ extern const u16	phy_rate_table[84];
 #define PHY_HIST_SIZE		12
 #define PHY_HIST_TH_SIZE	(PHY_HIST_SIZE - 1)
 
-#define	S_TO_US			1000000
-
 /*@============================================================*/
 /*structure and define*/
 /*@============================================================*/
@@ -242,9 +240,6 @@ struct phydm_bb_ram_ctrl {
 	/* For type == 2'b11, 0x1e70[30:24] = tx_pwr_offset_reg1, 0x1e70[31] = enable */
 	boolean			tx_pwr_ofst_reg1_en;
 	u8			tx_pwr_ofst_reg1;
-	boolean			hwigi_watchdog_en;
-	u64			macid_is_linked;
-	u64			hwigi_macid_is_linked;
 };
 
 #endif
@@ -438,15 +433,11 @@ enum odm_cmninfo {
 	ODM_CMNINFO_X_CAP_SETTING,
 	ODM_CMNINFO_ADVANCE_OTA,
 	ODM_CMNINFO_HP_HWID,
-	ODM_CMNINFO_HUAWEI_HWID,
-	ODM_CMNINFO_ATHEROS_HWID,
-	ODM_CMNINFO_TSSI_ENABLE, /*also for cmn_info_update*/
+	ODM_CMNINFO_TSSI_ENABLE,
 	ODM_CMNINFO_DIS_DPD,
 	ODM_CMNINFO_POWER_VOLTAGE,
 	ODM_CMNINFO_ANTDIV_GPIO,
 	ODM_CMNINFO_EN_AUTO_BW_TH,
-	ODM_CMNINFO_PEAK_DETECT_MODE,
-	ODM_CMNINFO_EN_NBI_DETECT,
 	/*@-----------HOOK BEFORE REG INIT-----------*/
 
 	/*@Dynamic value:*/
@@ -486,7 +477,6 @@ enum odm_cmninfo {
 	ODM_CMNINFO_BF_ANTDIV_DECISION,
 	ODM_CMNINFO_MANUAL_SUPPORTABILITY,
 	ODM_CMNINFO_EN_DYM_BW_INDICATION,
-	ODM_ANTI_INTERFERENCE_EN,
 	/*@--------- POINTER REFERENCE-----------*/
 
 	/*@------------CALL BY VALUE-------------*/
@@ -517,7 +507,6 @@ enum odm_cmninfo {
 	ODM_CMNINFO_PHYDM_PATCH_ID,
 	ODM_CMNINFO_RRSR_VAL,
 	ODM_CMNINFO_LINKED_BF_SUPPORT,
-	ODM_CMNINFO_FLATNESS_TYPE,
 	/*@------------CALL BY VALUE-------------*/
 
 	/*@Dynamic ptr array hook itms.*/
@@ -572,11 +561,6 @@ enum phydm_info_query {
 	PHYDM_INFO_CLM_RATIO,
 	PHYDM_INFO_NHM_RATIO,
 	PHYDM_INFO_NHM_NOISE_PWR,
-	PHYDM_INFO_NHM_PWR,
-	PHYDM_INFO_NHM_ENV_RATIO,
-	PHYDM_INFO_TXEN_CCK,
-	PHYDM_INFO_TXEN_OFDM,
-
 };
 
 enum phydm_api {
@@ -652,6 +636,7 @@ enum phydm_dbg_comp {
 	DBG_PRI_CCA		= BIT(F16_PRI_CCA),
 	DBG_ADPTV_SOML		= BIT(F17_ADPTV_SOML),
 	DBG_LNA_SAT_CHK		= BIT(F18_LNA_SAT_CHK),
+	/*BIT(19)*/
 	/*Neet to re-arrange*/
 	DBG_PHY_STATUS		= BIT(20),
 	DBG_TMP			= BIT(21),
@@ -659,7 +644,7 @@ enum phydm_dbg_comp {
 	DBG_TXBF		= BIT(23),
 	DBG_COMMON_FLOW		= BIT(24),
 	DBG_COMP_MCC		= BIT(25),
-	DBG_FW_DM		= BIT(26),
+	/*BIT(26)*/
 	DBG_DM_SUMMARY		= BIT(27),
 	ODM_PHY_CONFIG		= BIT(28),
 	ODM_COMP_INIT		= BIT(29),
@@ -735,7 +720,6 @@ struct	phydm_iot_center {
 	u8			win_patch_id;		/*Customer ID*/
 	boolean			patch_id_100f0401;
 	boolean			patch_id_10120200;
-	boolean			patch_id_40010700;
 	boolean			patch_id_021f0800;
 	boolean			patch_id_011f0500;
 	u32			phydm_patch_id;		/*temp for CCX IOT */
@@ -768,7 +752,7 @@ struct _phydm_mcc_dm_ {
 };
 #endif
 
-#if (RTL8822C_SUPPORT || RTL8812F_SUPPORT || RTL8197G_SUPPORT || RTL8723F_SUPPORT)
+#if (RTL8822C_SUPPORT || RTL8812F_SUPPORT || RTL8197G_SUPPORT)
 struct phydm_physts {
 	u8			cck_gi_u_bnd;
 	u8			cck_gi_l_bnd;
@@ -800,19 +784,9 @@ struct dm_struct {
 	u32			last_num_qry_phy_status_all;
 	u32			rx_pwdb_ave;
 	boolean		is_init_hw_info_by_rfe;
-	boolean         is_R2R_CCA_MASKT_TIME_SHORT;
-#if (DM_ODM_SUPPORT_TYPE & ODM_WIN)
-	u32			rts_drop_cnt;
-	u32			low_rate_tx_fail_cnt;
-	u32			low_rate_tx_ok_cnt;
-#endif
 
 	//TSSI
 	u8			en_tssi_mode;
-	#if (RTL8723F_SUPPORT)
-	//ZWDFS for 80M
-	u8			en_zwdfs_bw80;
-	#endif
 
 	/*@------ ODM HANDLE, DRIVER NEEDS NOT TO HOOK------*/
 	boolean			is_cck_high_power;
@@ -882,16 +856,11 @@ struct dm_struct {
 	boolean			en_dis_dpd;
 	u16			dis_dpd_rate;
 	u8			en_auto_bw_th;
-	boolean			is_pause_dig;
-	boolean			en_nbi_detect;
 	#if (RTL8822C_SUPPORT || RTL8814B_SUPPORT || RTL8197G_SUPPORT)
 	u8			txagc_buff[RF_PATH_MEM_SIZE][PHY_NUM_RATE_IDX];
 	u32			bp_0x9b0;
-	#elif (RTL8723F_SUPPORT)
-	u8			txagc_buff[2][PHY_NUM_RATE_IDX];
-	u32			bp_0x9b0;
 	#endif
-	#if (RTL8822C_SUPPORT || RTL8723F_SUPPORT)
+	#if (RTL8822C_SUPPORT)
 	u8			ofdm_rxagc_l_bnd[16];
 	boolean			l_bnd_detect[16];
 	u16			agc_rf_gain_ori[16][64];/*[table][mp_gain_idx]*/
@@ -940,7 +909,6 @@ struct dm_struct {
 	u8			*bb_op_mode;
 	u32			*manual_supportability;
 	u8			*dis_dym_bw_indication;
-	u8			*anti_interference_en;
 /*@===========================================================*/
 /*@====[ CALL BY VALUE ]===========================================*/
 /*@===========================================================*/
@@ -1008,7 +976,6 @@ struct dm_struct {
 	u32			txagc_offset_value_b;
 	boolean			is_txagc_offset_positive_b;
 	u8			ap_total_num;
-	boolean			flatness_type;
 	/*@[traffic]*/
 	u8			traffic_load;
 	u8			pre_traffic_load;
@@ -1029,7 +996,6 @@ struct dm_struct {
 	boolean			MPDIG_2G;		/*off MPDIG*/
 	u8			times_2g;		/*@for MP DIG*/
 	u8			force_igi;		/*@for debug*/
-	boolean			is_dig_low_bond;
 
 	/*@[TDMA-DIG]*/
 	u8			tdma_dig_timer_ms;
@@ -1100,17 +1066,13 @@ struct dm_struct {
 	boolean			en_reg_mntr_mac;
 	boolean			en_reg_mntr_byte;
 	/*@--------------------------------------------------------------*/
-#if (RTL8814B_SUPPORT || RTL8812F_SUPPORT || RTL8198F_SUPPORT)
+#if (RTL8814B_SUPPORT || RTL8812F_SUPPORT)
+	/*@--- for spur detection ---------------------------------------*/
 	u8			dsde_sel;
 	u8			nbi_path_sel;
 	u8			csi_wgt;
-#endif
-#if (RTL8814B_SUPPORT || RTL8198F_SUPPORT)
-	u8			csi_wgt_th_db[5]; /*@wgt 4,3,2,1,0 */
-						  /*    ^ ^ ^ ^ ^  */
-#endif
 	/*@------------------------------------------*/
-
+#endif
 	/*@--- for noise detection ---------------------------------------*/
 	boolean			is_noisy_state;
 	boolean			noisy_decision; /*@b_noisy*/
@@ -1150,7 +1112,7 @@ struct dm_struct {
 
 	boolean			bsomlenabled;	/* @D-SoML control */
 	u8			no_ndp_cnts;
-	u16			ndp_cnt_pre;
+	u8			ndp_cnt_pre;
 	boolean			is_beamformed;
 	u8			linked_bf_support;
 	boolean			bhtstfdisabled;	/* @dynamic HTSTF gain control*/
@@ -1201,7 +1163,7 @@ struct dm_struct {
 	u32			radar_detect_reg_f74;
 	/*@---For zero-wait DFS---------------------------------------*/
 	boolean			seg1_dfs_flag;
-	/*@---For ETSI 302 ---------------------------------------*/
+	/*@-----------------------------------------------------------*/
 /*@-----------------------------------------------------------*/
 #endif
 
@@ -1213,7 +1175,6 @@ struct dm_struct {
 	u8			cca_cbw20_lev;
 	u8			cca_cbw40_lev;
 	u8			antdiv_gpio;
-	u8			peak_detect_mode;
 #endif
 
 /*@=== PHYDM Timer ========================================== (start)*/
@@ -1292,21 +1253,16 @@ struct dm_struct {
 	struct sw_antenna_switch	dm_swat_table;
 #endif
 	struct phydm_dig_struct		dm_dig_table;
-
-#ifdef PHYDM_SUPPORT_CCKPD
-	struct phydm_cckpd_struct	dm_cckpd_table;
-
-	#ifdef PHYDM_DCC_ENHANCE
-	struct phydm_dcc_struct		dm_dcc_info; /*dig cckpd coex*/
-	#endif
-#endif
-
 #ifdef PHYDM_LNA_SAT_CHK_SUPPORT
 	struct phydm_lna_sat_t		dm_lna_sat_info;
 #endif
 
 #ifdef CONFIG_MCC_DM
 	struct _phydm_mcc_dm_ mcc_dm;
+#endif
+
+#ifdef PHYDM_SUPPORT_CCKPD
+	struct phydm_cckpd_struct	dm_cckpd_table;
 #endif
 
 #ifdef PHYDM_PRIMARY_CCA
@@ -1373,7 +1329,7 @@ struct dm_struct {
 #endif
 /*@==========================================================*/
 
-#if (RTL8822C_SUPPORT || RTL8812F_SUPPORT || RTL8197G_SUPPORT || RTL8723F_SUPPORT)
+#if (RTL8822C_SUPPORT || RTL8812F_SUPPORT || RTL8197G_SUPPORT)
 	/*@-------------------phydm_phystatus report --------------------*/
 	struct phydm_physts dm_physts_table;
 #endif
@@ -1497,9 +1453,6 @@ phydm_watchdog(struct dm_struct *dm);
 void
 phydm_watchdog_mp(struct dm_struct *dm);
 
-void
-phydm_pause_func_init(void *dm_void);
-
 u8
 phydm_pause_func(void *dm_void, enum phydm_func_idx pause_func,
 		 enum phydm_pause_type pause_type,
@@ -1511,9 +1464,6 @@ phydm_pause_func_console(void *dm_void, char input[][16], u32 *_used,
 
 void phydm_pause_dm_by_asso_pkt(struct dm_struct *dm,
 				enum phydm_pause_type pause_type, u8 rssi);
-
-void phydm_fw_dm_ctrl_en(void *dm_void, enum phydm_func_idx fun_idx,
-			 boolean enable);
 
 void
 odm_cmn_info_init(struct dm_struct *dm, enum odm_cmninfo cmn_info, u64 value);
@@ -1550,15 +1500,6 @@ phydm_dyn_bw_indication(void *dm_void);
 
 void
 phydm_iot_patch_id_update(void *dm_void, u32 iot_idx, boolean en);
-
-
-#ifdef CONFIG_DYNAMIC_TXCOLLISION_TH
-void
-phydm_tx_collsion_th_init(void *dm_void);
-
-void
-phydm_tx_collsion_th_set(void *dm_void, u8 val_r2t, u8 val_t2r);
-#endif
 
 #if (DM_ODM_SUPPORT_TYPE == ODM_WIN)
 void

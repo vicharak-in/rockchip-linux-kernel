@@ -28,8 +28,8 @@
  * ************************************************************
  */
 
-#include "mp_precomp.h"
-#include "phydm_precomp.h"
+#include "../mp_precomp.h"
+#include "../phydm_precomp.h"
 
 void halrf_basic_profile(void *dm_void, u32 *_used, char *output, u32 *_out_len)
 {
@@ -151,8 +151,7 @@ void halrf_debug_trace(void *dm_void, char input[][16], u32 *_used,
 	u8 i;
 
 	for (i = 0; i < 5; i++)
-		if (input[i + 1])
-			PHYDM_SSCANF(input[i + 2], DCMD_DECIMAL, &rf_var[i]);
+		PHYDM_SSCANF(input[i + 2], DCMD_DECIMAL, &rf_var[i]);
 
 	if (rf_var[0] == 100) {
 		PDM_SNPF(out_len, used, output + used, out_len - used,
@@ -173,9 +172,6 @@ void halrf_debug_trace(void *dm_void, char input[][16], u32 *_used,
 		PDM_SNPF(out_len, used, output + used, out_len - used,
 			 "04. (( %s ))TXGAPK\n",
 			 ((rf->rf_dbg_comp & DBG_RF_TXGAPK) ? ("V") : (".")));
-		PDM_SNPF(out_len, used, output + used, out_len - used,
-			 "06. (( %s ))DPK_TRACK\n",
-			 ((rf->rf_dbg_comp & DBG_RF_DPK_TRACK) ? ("V") : (".")));
 		PDM_SNPF(out_len, used, output + used, out_len - used,
 			 "29. (( %s ))MP\n",
 			 ((rf->rf_dbg_comp & DBG_RF_MP) ? ("V") : (".")));
@@ -211,8 +207,7 @@ void halrf_dack_debug_cmd(void *dm_void, char input[][16])
 	u8 i;
 
 	for (i = 0; i < 7; i++)
-		if (input[i + 1])
-			PHYDM_SSCANF(input[i + 2], DCMD_DECIMAL, &dm_value[i]);
+		PHYDM_SSCANF(input[i + 2], DCMD_DECIMAL, &dm_value[i]);
 
 	if (dm_value[0] == 1)
 		halrf_dack_trigger(dm, true);
@@ -329,11 +324,9 @@ void halrf_cmd_parser(void *dm_void, char input[][16], u32 *_used, char *output,
 		PDM_SNPF(out_len, used, output + used, out_len - used,
 			 "IQK DEBUG!!!!!\n");
 		for (i = 0; i < 5; i++) {
-			if (input[i + 1]) {
-				PHYDM_SSCANF(input[i + 2], DCMD_HEX,
-					     &rf_var[i]);
-				input_idx++;
-			}
+			PHYDM_SSCANF(input[i + 2], DCMD_HEX,
+				     &rf_var[i]);
+			input_idx++;
 		}
 
 		if (input_idx >= 1) {
@@ -376,17 +369,15 @@ void halrf_init_debug_setting(void *dm_void)
 
 	rf->rf_dbg_comp =
 
-	DBG_RF_RFK		|
 #if DBG
-#if 1
-	/*DBG_RF_TX_PWR_TRACK	| */
+#if 0
+	/*DBG_RF_TX_PWR_TRACK	|*/
 	/*DBG_RF_IQK		| */
 	/*DBG_RF_LCK		| */
 	/*DBG_RF_DPK		| */
-	/*DBG_RF_TXGAPK		| */
 	/*DBG_RF_DACK		| */
-	/*DBG_RF_DPK_TRACK	| */ 
-	/*DBG_RF_MP		| */
+	/*DBG_RF_TXGAPK		| */
+	/*DBG_RF_MP			| */
 	/*DBG_RF_TMP		| */
 	/*DBG_RF_INIT		| */
 #endif

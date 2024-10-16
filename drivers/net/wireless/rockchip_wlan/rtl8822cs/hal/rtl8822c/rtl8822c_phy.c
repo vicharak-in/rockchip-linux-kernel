@@ -306,6 +306,9 @@ u8 rtl8822c_phy_init(PADAPTER adapter)
 	if (err)
 		return _FALSE;
 
+#ifdef CONFIG_RTW_IOT_CCK_PD_INIT
+	phydm_iot_patch_id_update(phydm, 0x021f0800, true);
+#endif
 	ret = config_phydm_parameter_init_8822c(phydm, ODM_PRE_SETTING);
 	if (FALSE == ret)
 		return _FALSE;
@@ -317,6 +320,9 @@ u8 rtl8822c_phy_init(PADAPTER adapter)
 	if (_FALSE == ok)
 		return _FALSE;
 
+#ifdef CONFIG_RTW_IOT_CCK_PD_INIT
+	phydm_iot_patch_id_update(phydm, 0x021f0800, true);
+#endif
 	ret = config_phydm_parameter_init_8822c(phydm, ODM_POST_SETTING);
 	if (FALSE == ret)
 		return _FALSE;
@@ -500,6 +506,7 @@ void rtl8822c_phy_haldm_watchdog(PADAPTER adapter)
 	BOOLEAN bFwCurrentInPSMode = _FALSE;
 	u8 bFwPSAwake = _TRUE;
 	struct pwrctrl_priv *pwrpriv = adapter_to_pwrctl(adapter);
+	u8 lps_changed = _FALSE;
 	u8 in_lps = _FALSE;
 	PADAPTER current_lps_iface = NULL, iface = NULL;
 	struct dvobj_priv *dvobj = adapter_to_dvobj(adapter);
@@ -530,22 +537,20 @@ void rtl8822c_phy_haldm_watchdog(PADAPTER adapter)
 	}
 
 #ifdef CONFIG_LPS
-	if (pwrpriv->bLeisurePs && bFwCurrentInPSMode && pwrpriv->pwr_mode != PS_MODE_ACTIVE) {
-		in_lps = _TRUE;
-
+	if (pwrpriv->bLeisurePs && bFwCurrentInPSMode && pwrpriv->pwr_mode != PS_MODE_ACTIVE
+#ifdef CONFIG_WMMPS_STA	
+		&& !rtw_is_wmmps_mode(adapter)
+#endif /* CONFIG_WMMPS_STA */
+	) {
 		for (i = 0; i < dvobj->iface_nums; i++) {
 			iface = dvobj->padapters[i];
-			if (pwrpriv->current_lps_hw_port_id == rtw_hal_get_port(iface)) {
+			if (pwrpriv->current_lps_hw_port_id == rtw_hal_get_port(iface))
 				current_lps_iface = iface;
-				rtw_lps_rfon_ctrl(current_lps_iface, rf_on);
-				break;
-			}
 		}
 
-		if (!current_lps_iface) {
-			RTW_WARN("Can't find a adapter with LPS to enable RFON function !\n");
-			goto skip_dm;
-		}
+		lps_changed = _TRUE;
+		in_lps = _TRUE;
+		LPS_Leave(current_lps_iface, LPS_CTRL_PHYDM);
 	}
 #endif
 
@@ -566,8 +571,8 @@ void rtl8822c_phy_haldm_watchdog(PADAPTER adapter)
 skip_dm:
 
 #ifdef CONFIG_LPS
-	if (current_lps_iface)
-		rtw_lps_rfon_ctrl(current_lps_iface, rf_off);
+	if (lps_changed)
+		LPS_Enter(current_lps_iface, LPS_CTRL_PHYDM);
 #endif
 	/*
 	 * Check GPIO to determine current RF on/off and Pbc status.
@@ -937,15 +942,14 @@ static void switch_chnl_and_set_bw_by_drv(PADAPTER adapter, u8 switch_band)
 		mac_switch_bandwidth(adapter, pri_ch_idx);
 
 		/* 3.2 set BB/RF registet */
-
 #ifdef CONFIG_NARROWBAND_SUPPORTING
 		if (adapter->registrypriv.rtw_nb_config == RTW_NB_CONFIG_WIDTH_10) {
 			rtw_write8(adapter, REG_CCK_CHECK_8822C,
-				(rtw_read8(adapter, REG_CCK_CHECK_8822C) | BIT_CHECK_CCK_EN_8822C));
+				(rtw_read8(adapter, REG_CCK_CHECK_8822C) | BIT(7)));
 			ret = config_phydm_switch_bandwidth_8822c(p_dm_odm, pri_ch_idx, CHANNEL_WIDTH_10);
 		} else if (adapter->registrypriv.rtw_nb_config == RTW_NB_CONFIG_WIDTH_5) {
 			rtw_write8(adapter, REG_CCK_CHECK_8822C,
-				(rtw_read8(adapter, REG_CCK_CHECK_8822C) | BIT_CHECK_CCK_EN_8822C));
+				(rtw_read8(adapter, REG_CCK_CHECK_8822C) | BIT(7)));
 			ret = config_phydm_switch_bandwidth_8822c(p_dm_odm, pri_ch_idx, CHANNEL_WIDTH_5);
 		} else
 #endif

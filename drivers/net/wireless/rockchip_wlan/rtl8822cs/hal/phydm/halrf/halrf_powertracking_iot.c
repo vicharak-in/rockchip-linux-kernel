@@ -26,15 +26,15 @@
 /*============================================================	*/
 /* include files												*/
 /*============================================================	*/
-#include "mp_precomp.h"
-#include "phydm_precomp.h"
+#include "../mp_precomp.h"
+#include "../phydm_precomp.h"
 
 /* ************************************************************
  * Global var
  * ************************************************************
  */
 
-const u32 ofdm_swing_table[OFDM_TABLE_SIZE] = {
+u32	ofdm_swing_table[OFDM_TABLE_SIZE] = {
 	0x7f8001fe,	/* 0, +6.0dB */
 	0x788001e2,	/* 1, +5.5dB */
 	0x71c001c7,	/* 2, +5.0dB*/
@@ -74,7 +74,7 @@ const u32 ofdm_swing_table[OFDM_TABLE_SIZE] = {
 	0x10000040,	/* 36, -12.0dB*/
 };
 
-const u8 cck_swing_table_ch1_ch13[CCK_TABLE_SIZE][8] = {
+u8	cck_swing_table_ch1_ch13[CCK_TABLE_SIZE][8] = {
 	{0x36, 0x35, 0x2e, 0x25, 0x1c, 0x12, 0x09, 0x04},	/* 0, +0dB */
 	{0x33, 0x32, 0x2b, 0x23, 0x1a, 0x11, 0x08, 0x04},	/* 1, -0.5dB */
 	{0x30, 0x2f, 0x29, 0x21, 0x19, 0x10, 0x08, 0x03},	/* 2, -1.0dB*/
@@ -110,7 +110,7 @@ const u8 cck_swing_table_ch1_ch13[CCK_TABLE_SIZE][8] = {
 	{0x09, 0x08, 0x07, 0x06, 0x04, 0x03, 0x01, 0x01}	/* 32, -16.0dB*/
 };
 
-const u8 cck_swing_table_ch14[CCK_TABLE_SIZE][8] = {
+u8	cck_swing_table_ch14[CCK_TABLE_SIZE][8] = {
 	{0x36, 0x35, 0x2e, 0x1b, 0x00, 0x00, 0x00, 0x00},	/* 0, +0dB */
 	{0x33, 0x32, 0x2b, 0x19, 0x00, 0x00, 0x00, 0x00},	/* 1, -0.5dB */
 	{0x30, 0x2f, 0x29, 0x18, 0x00, 0x00, 0x00, 0x00},	/* 2, -1.0dB */
@@ -146,7 +146,7 @@ const u8 cck_swing_table_ch14[CCK_TABLE_SIZE][8] = {
 	{0x09, 0x08, 0x07, 0x04, 0x00, 0x00, 0x00, 0x00}	/* 32, -16.0dB*/
 };
 
-const u32 ofdm_swing_table_new[OFDM_TABLE_SIZE] = {
+u32 ofdm_swing_table_new[OFDM_TABLE_SIZE] = {
 	0x0b40002d, /* 0,  -15.0dB	*/
 	0x0c000030, /* 1,  -14.5dB*/
 	0x0cc00033, /* 2,  -14.0dB*/
@@ -192,7 +192,7 @@ const u32 ofdm_swing_table_new[OFDM_TABLE_SIZE] = {
 	0x7f8001fe  /* 42, +6.0dB*/
 };
 
-const u8 cck_swing_table_ch1_ch14_88f[CCK_TABLE_SIZE_88F][16] = {
+u8 cck_swing_table_ch1_ch14_88f[CCK_TABLE_SIZE_88F][16] = {
 	{0x44, 0x42, 0x3C, 0x33, 0x28, 0x1C, 0x13, 0x0B, 0x05, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},    /*-16dB*/
 	{0x48, 0x46, 0x3F, 0x36, 0x2A, 0x1E, 0x14, 0x0B, 0x05, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},    /*-15.5dB*/
 	{0x4D, 0x4A, 0x43, 0x39, 0x2C, 0x20, 0x15, 0x0C, 0x06, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},    /*-15dB*/
@@ -216,7 +216,7 @@ const u8 cck_swing_table_ch1_ch14_88f[CCK_TABLE_SIZE_88F][16] = {
 	{0xD8, 0xD1, 0xBD, 0xA0, 0x7D, 0x5A, 0x3B, 0x22, 0x10, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}     /*-6dB*/
 };
 
-const u8 cck_swing_table_ch1_ch13_88f[CCK_TABLE_SIZE_88F][16] = {
+u8 cck_swing_table_ch1_ch13_88f[CCK_TABLE_SIZE_88F][16] = {
 	{0x44, 0x42, 0x3C, 0x33, 0x28, 0x1C, 0x13, 0x0B, 0x05, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},    /*-16dB*/
 	{0x48, 0x46, 0x3F, 0x36, 0x2A, 0x1E, 0x14, 0x0B, 0x05, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},    /*-15.5dB*/
 	{0x4D, 0x4A, 0x43, 0x39, 0x2C, 0x20, 0x15, 0x0C, 0x06, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},    /*-15dB*/
@@ -240,7 +240,7 @@ const u8 cck_swing_table_ch1_ch13_88f[CCK_TABLE_SIZE_88F][16] = {
 	{0xD8, 0xD1, 0xBD, 0xA0, 0x7D, 0x5A, 0x3B, 0x22, 0x10, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}     /*-6dB*/
 };
 
-const u8 cck_swing_table_ch14_88f[CCK_TABLE_SIZE_88F][16] = {
+u8 cck_swing_table_ch14_88f[CCK_TABLE_SIZE_88F][16] = {
 	{0x44,	 0x42, 0x3C, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},    /*-16dB*/
 	{0x48, 0x46, 0x3F, 0x2A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},    /*-15.5dB*/
 	{0x4D, 0x4A, 0x43, 0x2C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},    /*-15dB*/
@@ -264,7 +264,7 @@ const u8 cck_swing_table_ch14_88f[CCK_TABLE_SIZE_88F][16] = {
 	{0xD8, 0xD1, 0xBD, 0x7D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}     /*-6dB*/
 };
 
-const u8 cck_swing_table_ch1_ch13_new[CCK_TABLE_SIZE][8] = {
+u8 cck_swing_table_ch1_ch13_new[CCK_TABLE_SIZE][8] = {
 	{0x09, 0x08, 0x07, 0x06, 0x04, 0x03, 0x01, 0x01},	/*  0, -16.0dB*/
 	{0x09, 0x09, 0x08, 0x06, 0x05, 0x03, 0x01, 0x01},	/*   1, -15.5dB*/
 	{0x0a, 0x09, 0x08, 0x07, 0x05, 0x03, 0x02, 0x01},	/*  2, -15.0dB*/
@@ -300,7 +300,7 @@ const u8 cck_swing_table_ch1_ch13_new[CCK_TABLE_SIZE][8] = {
 	{0x36, 0x35, 0x2e, 0x25, 0x1c, 0x12, 0x09, 0x04}	/*  32, +0dB*/
 };
 
-const u8 cck_swing_table_ch14_new[CCK_TABLE_SIZE][8] = {
+u8 cck_swing_table_ch14_new[CCK_TABLE_SIZE][8] = {
 	{0x09, 0x08, 0x07, 0x04, 0x00, 0x00, 0x00, 0x00},	/*  0, -16.0dB*/
 	{0x09, 0x09, 0x08, 0x05, 0x00, 0x00, 0x00, 0x00},	/* 1, -15.5dB*/
 	{0x0a, 0x09, 0x08, 0x05, 0x00, 0x00, 0x00, 0x00},	/*  2, -15.0dB*/
@@ -336,7 +336,7 @@ const u8 cck_swing_table_ch14_new[CCK_TABLE_SIZE][8] = {
 	{0x36, 0x35, 0x2e, 0x1b, 0x00, 0x00, 0x00, 0x00}	/* 32, +0dB	*/
 };
 
-const u32 cck_swing_table_ch1_ch14_8723d[CCK_TABLE_SIZE_8723D] = {
+u32 cck_swing_table_ch1_ch14_8723d[CCK_TABLE_SIZE_8723D] = {
 	0x0CD,          /*0 ,    -20dB*/
 	0x0D9,
 	0x0E6,
@@ -381,7 +381,7 @@ const u32 cck_swing_table_ch1_ch14_8723d[CCK_TABLE_SIZE_8723D] = {
 };
 
 /* JJ ADD 20161014 */
-const u32 cck_swing_table_ch1_ch14_8710b[CCK_TABLE_SIZE_8710B] = {
+u32 cck_swing_table_ch1_ch14_8710b[CCK_TABLE_SIZE_8710B] = {
 	0x0CD,          /*0 ,    -20dB*/
 	0x0D9,
 	0x0E6,
@@ -426,7 +426,7 @@ const u32 cck_swing_table_ch1_ch14_8710b[CCK_TABLE_SIZE_8710B] = {
 };
 
 /* Winnita ADD 20171116 PathA 0xAB4[10:0],PathB 0xAB4[21:11]*/
-const u32 cck_swing_table_ch1_ch14_8192f[CCK_TABLE_SIZE_8192F] = {
+u32 cck_swing_table_ch1_ch14_8192f[CCK_TABLE_SIZE_8192F] = {
 	0x0CD,			 /*0 ,    -20dB*/
 	0x0D9,
 	0x0E6,
@@ -471,7 +471,7 @@ const u32 cck_swing_table_ch1_ch14_8192f[CCK_TABLE_SIZE_8192F] = {
 };
 
 /* Winnita ADD 201805 PathA 0xAB4[10:0]*/
-const u32 cck_swing_table_ch1_ch14_8721d[CCK_TABLE_SIZE_8721D] = {
+u32 cck_swing_table_ch1_ch14_8721d[CCK_TABLE_SIZE_8721D] = {
 	0x0CD,			 /*0 ,    -20dB*/
 	0x0D9,
 	0x0E6,
@@ -515,7 +515,7 @@ const u32 cck_swing_table_ch1_ch14_8721d[CCK_TABLE_SIZE_8721D] = {
 	0x7FF,
 };
 
-const u32 cck_swing_table_ch1_ch14_8710c[CCK_TABLE_SIZE_8710C] = {
+u32 cck_swing_table_ch1_ch14_8710c[CCK_TABLE_SIZE_8710C] = {
 	0x0CD,          /*0 ,    -20dB*/
 	0x0D9,
 	0x0E6,
@@ -559,7 +559,7 @@ const u32 cck_swing_table_ch1_ch14_8710c[CCK_TABLE_SIZE_8710C] = {
 	0x7FF,
 };
 
-const u32 cck_swing_table_03db_ch1_ch14_8710c[CCK_03DB_TABLE_SIZE_8710C] = {
+u32 cck_swing_table_03db_ch1_ch14_8710c[CCK_03DB_TABLE_SIZE_8710C] = {
 	0x143,		/*0 ,    -4dB*/
 	0x14C,		/*1 ,    -3.75dB*/
 	0x156,		/*2 ,    -3.5dB*/
@@ -643,7 +643,7 @@ const u32 cck_swing_table_03db_ch1_ch14_8710c[CCK_03DB_TABLE_SIZE_8710C] = {
 	0xCA3		/*80 ,    +16dB*/
 };
 
-const u32 ofdm_swing_table_03DB_8710c[OFDM_03DB_TABLE_SIZE_8710C] = {
+u32 ofdm_swing_table_03DB_8710c[OFDM_03DB_TABLE_SIZE_8710C] = {
 	0xE4,		/*0 ,    -7dB*/
 	0xEB,		/*1 ,    -6.75dB*/
 	0xF2,		/*2 ,    -6.5dB*/
@@ -729,7 +729,7 @@ const u32 ofdm_swing_table_03DB_8710c[OFDM_03DB_TABLE_SIZE_8710C] = {
 
 
 
-const u32 tx_scaling_table_jaguar[TXSCALE_TABLE_SIZE] = {
+u32 tx_scaling_table_jaguar[TXSCALE_TABLE_SIZE] = {
 	0x081, /* 0,  -12.0dB*/
 	0x088, /* 1,  -11.5dB*/
 	0x090, /* 2,  -11.0dB*/
@@ -792,7 +792,6 @@ get_swing_index(
 	u32 *swing_table;
 	u32 table_value;
 
-#if (RTL8710C_SUPPORT == 1)
 	if (dm->support_ic_type == ODM_RTL8710C) {
 		bb_swing = odm_get_bb_reg(dm, R_0xcc8, 0x000007ff);
 
@@ -801,10 +800,10 @@ get_swing_index(
 				break;
 		}
 	}
-#elif (RTL8195B_SUPPORT == 1)
+
 	if (dm->support_ic_type == ODM_RTL8195B) {
 		bb_swing = odm_get_bb_reg(dm, R_0xc1c, 0xFFE00000);
-		swing_table = (u32*)tx_scaling_table_jaguar;
+		swing_table = tx_scaling_table_jaguar;
 		swing_table_size = TXSCALE_TABLE_SIZE;
 
 		for (i = 0; i < swing_table_size; i++) {
@@ -815,7 +814,7 @@ get_swing_index(
 				break;
 		}
 	}
-#endif
+
 	return i;
 }
 
@@ -829,7 +828,6 @@ get_cck_swing_index(
 	u8 i = 0;
 	u32 bb_cck_swing;
 
-#if (RTL8188E_SUPPORT == 1 || RTL8723B_SUPPORT == 1 || RTL8192E_SUPPORT == 1)
 	if (dm->support_ic_type == ODM_RTL8188E || dm->support_ic_type == ODM_RTL8723B ||
 	    dm->support_ic_type == ODM_RTL8192E) {
 		bb_cck_swing = odm_read_1byte(dm, 0xa22);
@@ -838,18 +836,14 @@ get_cck_swing_index(
 			if (bb_cck_swing == cck_swing_table_ch1_ch13_new[i][0])
 				break;
 		}
-	}
-#elif (RTL8703B_SUPPORT == 1)
-	if (dm->support_ic_type == ODM_RTL8703B) {
+	} else if (dm->support_ic_type == ODM_RTL8703B) {
 		bb_cck_swing = odm_read_1byte(dm, 0xa22);
 
 		for (i = 0; i < CCK_TABLE_SIZE_88F; i++) {
 			if (bb_cck_swing == cck_swing_table_ch1_ch14_88f[i][0])
 				break;
 		}
-	}
-#elif (RTL8710C_SUPPORT == 1)
-	if (dm->support_ic_type == ODM_RTL8710C) {
+	} else if (dm->support_ic_type == ODM_RTL8710C) {
 		bb_cck_swing = odm_get_bb_reg(dm, R_0xab4, 0x7ff);
 
 		RF_DBG(dm, DBG_RF_TX_PWR_TRACK,
@@ -860,26 +854,8 @@ get_cck_swing_index(
 				break;
 		}
 	}
-#endif
 
 	return i;
-}
-
-s8
-get_txagc_default_index(
-	void *dm_void
-)
-{
-	struct dm_struct *dm = (struct dm_struct *)dm_void;
-	s8 tmp;
-
-	if (dm->support_ic_type == ODM_RTL8814B) {
-		tmp = (s8)(odm_get_bb_reg(dm, R_0x18a0, 0x7f) & 0xff);
-		if (tmp & BIT(6))
-			tmp = tmp | 0x80;
-		return tmp;
-	} else
-		return 0;
 }
 
 void

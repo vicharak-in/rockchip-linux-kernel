@@ -412,7 +412,7 @@ void sd_int_dpc(PADAPTER adapter)
 				break;
 
 			if (rx_len > MAX_RECVBUF_SZ) {
-				RTW_ERR("%s : rx drop for invalid len %d\n", __func__, rx_len);
+				RTW_ERR("%s : rx drop for invalid %d\n", __func__, rx_len);
 				break;
 			}
 

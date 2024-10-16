@@ -19,8 +19,6 @@
 #define RTW_RRM_NB_RPT_EN		BIT(1)
 #define RTW_MAX_NB_RPT_NUM	8
 
-#define RTW_WNM_FEATURE_BTM_REQ_EN		BIT(0)
-
 #define rtw_roam_busy_scan(a, nb)	\
 	(((a)->mlmepriv.LinkDetectInfo.bBusyTraffic == _TRUE) && \
 	(((a)->mlmepriv.ch_cnt) < ((nb)->nb_rpt_ch_list_num)))
@@ -62,10 +60,6 @@
 
 #define wnm_btm_term_duration_offset(p) ((p)+7)
 
-#define wnm_btm_rsp_status(p) (*((u8 *)((p)+3)))
-
-#define wnm_btm_rsp_term_delay(p) (*((u8 *)((p)+4)))
-
 #define RTW_WLAN_ACTION_WNM_NB_RPT_ELEM	0x34
 
 enum rtw_ieee80211_wnm_actioncode {
@@ -106,17 +100,6 @@ struct btm_req_hdr {
 	struct btm_term_duration term_duration;
 };
 
-struct btm_rsp_hdr {
-	u8 dialog_token;
-	u8 status;
-	/* the number of minutes that
-		the responding STA requests the BSS to delay termination */
-	u8 termination_delay;
-	u8 bssid[ETH_ALEN];
-	u8 *pcandidates;
-	u32 candidates_num;
-};
-
 struct btm_rpt_cache {
 	u8 dialog_token;
 	u8 req_mode;
@@ -127,7 +110,7 @@ struct btm_rpt_cache {
 	/* from BTM req */
 	u32 validity_time;
 	u32 disassoc_time;
-
+	
 	systime req_stime;
 };
 
@@ -164,45 +147,22 @@ struct roam_nb_info {
 	s8 disassoc_waiting;
 	_timer roam_scan_timer;
 	_timer disassoc_chk_timer;	
-
-	u32 features;
 };
 
 u8 rtw_wnm_btm_reassoc_req(_adapter *padapter);
-
 void rtw_wnm_roam_scan_hdl(void *ctx);
-
 void rtw_wnm_disassoc_chk_hdl(void *ctx);
-
 u8 rtw_wnm_try_btm_roam_imnt(_adapter *padapter);
-
 void rtw_wnm_process_btm_req(_adapter *padapter,  u8* pframe, u32 frame_len);
-
 void rtw_wnm_reset_btm_candidate(struct roam_nb_info *pnb);
-
 void rtw_wnm_reset_btm_state(_adapter *padapter);
-
-u32 rtw_wnm_btm_rsp_candidates_sz_get(
-	_adapter *padapter, u8* pframe, u32 frame_len);
-
-void rtw_wnm_process_btm_rsp(_adapter *padapter,
-	u8* pframe, u32 frame_len, struct btm_rsp_hdr *prsp);
-
-void rtw_wnm_issue_btm_req(_adapter *padapter,
-	u8 *pmac, struct btm_req_hdr *phdr, u8 *purl, u32 url_len,
-	u8 *pcandidates, u8 candidate_cnt);
-
 void rtw_wnm_reset_btm_cache(_adapter *padapter);
-
 void rtw_wnm_issue_action(_adapter *padapter, u8 action, u8 reason, u8 dialog);
-
 void rtw_wnm_update_reassoc_req_ie(_adapter *padapter);
 
 void rtw_roam_nb_info_init(_adapter *padapter);
-
-u8 rtw_roam_nb_scan_list_set(_adapter *padapter,
-	struct sitesurvey_parm *pparm);
-
+u8 rtw_roam_nb_scan_list_set(
+	_adapter *padapter, struct sitesurvey_parm *pparm);
 u32 rtw_wnm_btm_candidates_survey(_adapter *padapter, 
 	u8* pframe, u32 elem_len, u8 is_preference);
 #endif /* __RTW_WNM_H_ */

@@ -23,10 +23,12 @@
  *
  *****************************************************************************/
 
-#include "mp_precomp.h"
+#include "../../mp_precomp.h"
+#include "../../phydm_types.h"
+
 #if (DM_ODM_SUPPORT_TYPE == ODM_WIN)
 #if RT_PLATFORM == PLATFORM_MACOSX
-#include "phydm_precomp.h"
+#include "../../phydm_precomp.h"
 #else
 #include "../phydm_precomp.h"
 #endif
@@ -87,7 +89,7 @@ void odm_tx_pwr_track_set_pwr8822c(void *dm_void, enum pwrtrack_method method,
 	if (method == CLEAN_MODE) { /*use for mp driver clean power tracking status*/
 		RF_DBG(dm, DBG_RF_TX_PWR_TRACK, "===> %s method=%d clear power tracking rf_path=%d\n",
 		       __func__, method, rf_path);
-		tssi->tssi_trk_txagc_offset[rf_path] = 0;
+		tssi->power_track_offset[rf_path] = 0;
 
 		switch (rf_path) {
 		case RF_PATH_A:
@@ -139,6 +141,18 @@ void odm_tx_pwr_track_set_pwr8822c(void *dm_void, enum pwrtrack_method method,
 		default:
 			break;
 		}	
+	} else if (method == TSSI_MODE) {
+		if (*dm->mp_mode != 1) {
+			RF_DBG(dm, DBG_RF_TX_PWR_TRACK, "===> %s method=%d Enter TSSI Period Mode\n",
+				__func__, method);
+  
+			RF_DBG(dm, DBG_RF_TX_PWR_TRACK,
+				"dm->is_scan_in_process=%d   dm->is_linked=%d   rf->is_tssi_in_progress=%d\n",
+				*dm->is_scan_in_process, dm->is_linked, rf->is_tssi_in_progress);
+  
+			if (!*dm->is_scan_in_process && dm->is_linked && !rf->is_tssi_in_progress)
+				halrf_tssi_period_txagc_offset_8822c(dm);
+		}
 	}
 }
 
@@ -191,7 +205,7 @@ void _phy_aac_calibrate_8822c(struct dm_struct *dm)
 	u32 cnt = 0;
 
 	RF_DBG(dm, DBG_RF_LCK, "[AACK]AACK start!!!!!!!\n");
-	//odm_set_rf_reg(dm, RF_PATH_A, 0xbb, RFREGOFFSETMASK, 0x80010);
+	odm_set_rf_reg(dm, RF_PATH_A, 0xbb, RFREGOFFSETMASK, 0x80010);
 	odm_set_rf_reg(dm, RF_PATH_A, 0xb0, RFREGOFFSETMASK, 0x1F0FA);
 	ODM_delay_ms(1);
 	odm_set_rf_reg(dm, RF_PATH_A, RF_0xca, RFREGOFFSETMASK, 0x80000);
@@ -203,7 +217,7 @@ void _phy_aac_calibrate_8822c(struct dm_struct *dm)
 	}
 
 	odm_set_rf_reg(dm, RF_PATH_A, RF_0xb0, RFREGOFFSETMASK, 0x1F0F8);
-	//odm_set_rf_reg(dm, RF_PATH_B, 0xbb, RFREGOFFSETMASK, 0x80010);
+	odm_set_rf_reg(dm, RF_PATH_B, 0xbb, RFREGOFFSETMASK, 0x80010);
 
 	RF_DBG(dm, DBG_RF_IQK, "[AACK]AACK end!!!!!!!\n");
 #endif

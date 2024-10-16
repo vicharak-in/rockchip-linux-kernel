@@ -73,8 +73,7 @@ void ClearInterrupt8821AS(PADAPTER padapter);
 #endif /* CONFIG_RTL8821A */
 
 #if defined(CONFIG_WOWLAN) || defined(CONFIG_AP_WOWLAN)
-#if defined(CONFIG_RTL8821C) || defined(CONFIG_RTL8822B) || defined(CONFIG_RTL8822C) \
-    || defined(CONFIG_RTL8723F)
+#if defined(CONFIG_RTL8821C) || defined(CONFIG_RTL8822B) || defined(CONFIG_RTL8822C)
 u8 rtw_hal_enable_cpwm2(_adapter *adapter);
 #endif
 extern u8 RecvOnePkt(PADAPTER padapter);

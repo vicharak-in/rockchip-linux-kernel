@@ -57,7 +57,9 @@ void rtl8822c_init_hal_spec(PADAPTER adapter)
 			    | WL_FUNC_TDLS
 			    ;
 
+#if CONFIG_TX_AC_LIFETIME
 	hal_spec->tx_aclt_unit_factor = 8;
+#endif
 
 	hal_spec->rx_tsf_filter = 1;
 
@@ -105,6 +107,10 @@ u32 rtl8822c_power_on(PADAPTER adapter)
 
 	bMacPwrCtrlOn = _TRUE;
 	rtw_hal_set_hwreg(adapter, HW_VAR_APFM_ON_MAC, &bMacPwrCtrlOn);
+
+#ifdef CONFIG_RTW_DISABLE_HW_PDN
+	rtw_write8(adapter, REG_SYS_PW_CTRL + 1, (rtw_read8(adapter, REG_SYS_PW_CTRL + 1) & (~BIT(7))));
+#endif
 
 out:
 	return ret;

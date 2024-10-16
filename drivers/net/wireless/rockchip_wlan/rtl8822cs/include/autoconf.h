@@ -56,6 +56,7 @@
 	#define CONFIG_SET_SCAN_DENY_TIMER
 #endif /* CONFIG_IOCTL_CFG80211 */
 
+#define CONFIG_AP_MODE
 #ifdef CONFIG_AP_MODE
 	#define CONFIG_NATIVEAP_MLME
 	#ifndef CONFIG_NATIVEAP_MLME
@@ -64,6 +65,7 @@
 	/*#define CONFIG_FIND_BEST_CHANNEL*/
 #endif
 
+#define CONFIG_P2P
 #ifdef CONFIG_P2P
 	#define CONFIG_WFD	/* Wi-Fi display */
 	#define CONFIG_P2P_REMOVE_GROUP_INFO
@@ -94,6 +96,9 @@
 #endif /* CONFIG_TDLS */
 
 /*#define CONFIG_RTW_80211K*/
+
+#define CONFIG_LAYER2_ROAMING
+#define CONFIG_LAYER2_ROAMING_RESUME
 
 #define CONFIG_BEAMFORMING
 
@@ -256,6 +261,7 @@
 #define CONFIG_HW_ANTENNA_DIVERSITY
 #endif /* CONFIG_ANTENNA_DIVERSITY */
 
+/* #define CONFIG_RTW_MGMT_TX_EAPOL */
 
 /*
  * Debug Related Config
@@ -276,4 +282,4 @@
 
 /* #define CONFIG_DISABLE_ODM */
 /* #define CONFIG_NO_FW */
-
+ 

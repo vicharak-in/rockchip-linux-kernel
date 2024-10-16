@@ -17,7 +17,6 @@
 #ifdef __KERNEL__
 	#include <linux/if_arp.h>
 	#include <net/ip.h>
-	#include <net/ipx.h>
 	#include <linux/atalk.h>
 	#include <linux/udp.h>
 	#include <linux/if_pppox.h>
@@ -49,6 +48,10 @@
 			#include <net/checksum.h>
 		#endif
 	#endif
+#endif
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0) && defined(__KERNEL__))
+	#include <net/ipx.h>
 #endif
 
 #ifdef CONFIG_BR_EXT
@@ -889,6 +892,7 @@ int nat25_db_handle(_adapter *priv, struct sk_buff *skb, int method)
 		}
 	}
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 14, 0) && defined(__KERNEL__))
 	/*---------------------------------------------------*/
 	/*         Handle IPX and Apple Talk frame          */
 	/*---------------------------------------------------*/
@@ -1109,6 +1113,7 @@ int nat25_db_handle(_adapter *priv, struct sk_buff *skb, int method)
 
 		return -1;
 	}
+#endif
 
 	/*---------------------------------------------------*/
 	/*                Handle PPPoE frame                */

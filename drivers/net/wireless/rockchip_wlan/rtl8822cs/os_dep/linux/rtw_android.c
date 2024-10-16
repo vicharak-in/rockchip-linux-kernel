@@ -21,11 +21,26 @@
 
 #if defined(RTW_ENABLE_WIFI_CONTROL_FUNC)
 #include <linux/platform_device.h>
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35))
-	#include "wlan_plat.h"
+	#include <linux/wlan_plat.h>
 #else
 	#include <linux/wifi_tiwlan.h>
 #endif
+#endif
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
+struct wifi_platform_data {
+	int (*set_power)(int val);
+	int (*set_reset)(int val);
+	int (*set_carddetect)(int val);
+	void *(*mem_prealloc)(int section, unsigned long size);
+	int (*get_mac_addr)(unsigned char *buf);
+	void *(*get_country_code)(char *ccode);
+};
+#endif
+
 #endif /* defined(RTW_ENABLE_WIFI_CONTROL_FUNC) */
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
@@ -322,7 +337,7 @@ int rtw_android_cfg80211_pno_setup(struct net_device *net,
 #ifdef CONFIG_PNO_SET_DEBUG
 	rtw_dev_pno_debug(net);
 #endif
-
+exit_proc:
 	return res;
 }
 
@@ -343,12 +358,10 @@ int rtw_android_pno_enable(struct net_device *net, int pno_enable)
 				rtw_mfree((u8 *)pwrctl->pno_ssid_list, sizeof(pno_ssid_list_t));
 				pwrctl->pno_ssid_list = NULL;
 			}
-			#ifndef RTW_HALMAC
 			if (pwrctl->pscan_info != NULL) {
 				rtw_mfree((u8 *)pwrctl->pscan_info, sizeof(pno_scan_info_t));
 				pwrctl->pscan_info = NULL;
 			}
-			#endif
 		}
 		return 0;
 	} else
@@ -407,7 +420,7 @@ int rtw_android_set_country(struct net_device *net, char *command, int total_len
 	char *country_code = command + strlen(android_wifi_cmd_str[ANDROID_WIFI_CMD_COUNTRY]) + 1;
 	int ret = _FAIL;
 
-	ret = rtw_set_country(adapter, country_code, RTW_REGD_SET_BY_USER);
+	ret = rtw_set_country(adapter, country_code);
 
 	return (ret == _SUCCESS) ? 0 : -1;
 }
@@ -658,7 +671,7 @@ int rtw_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		ret = -EFAULT;
 		goto exit;
 	}
-
+	
 	command = rtw_zmalloc(priv_cmd.total_len+1);
 	if (!command) {
 		RTW_INFO("%s: failed to allocate memory\n", __FUNCTION__);
@@ -830,14 +843,11 @@ int rtw_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		break;
 
 #ifdef CONFIG_IOCTL_CFG80211
-	#ifdef CONFIG_AP_MODE
 	case ANDROID_WIFI_CMD_SET_AP_WPS_P2P_IE: {
 		int skip = strlen(android_wifi_cmd_str[ANDROID_WIFI_CMD_SET_AP_WPS_P2P_IE]) + 3;
 		bytes_written = rtw_cfg80211_set_mgnt_wpsp2pie(net, command + skip, priv_cmd.total_len - skip, *(command + skip - 2) - '0');
-		adapter_to_dvobj(padapter)->wpas_type = RTW_WPAS_ANDROID;
 		break;
 	}
-	#endif
 #endif /* CONFIG_IOCTL_CFG80211 */
 
 #ifdef CONFIG_WFD
@@ -940,7 +950,7 @@ int rtw_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		bytes_written = rtw_android_set_aek(net, command, priv_cmd.total_len);
 		break;
 #endif
-
+	
 	case ANDROID_WIFI_CMD_EXT_AUTH_STATUS: {
 		rtw_set_external_auth_status(padapter,
 			command + strlen("EXT_AUTH_STATUS "),
@@ -1153,7 +1163,6 @@ extern PADAPTER g_test_adapter;
 
 static void shutdown_card(void)
 {
-	struct pwrctrl_priv *pwrpriv = adapter_to_pwrctl(g_test_adapter);
 	u32 addr;
 	u8 tmp8, cnt = 0;
 
@@ -1170,7 +1179,7 @@ static void shutdown_card(void)
 #ifdef CONFIG_GPIO_WAKEUP
 	/*default wake up pin change to BT*/
 	RTW_INFO("%s:default wake up pin change to BT\n", __FUNCTION__);
-	rtw_hal_switch_gpio_wl_ctrl(g_test_adapter, pwrpriv->wowlan_gpio_index, _FALSE);
+	rtw_hal_switch_gpio_wl_ctrl(g_test_adapter, WAKEUP_GPIO_IDX, _FALSE);
 #endif /* CONFIG_GPIO_WAKEUP */
 #endif /* CONFIG_WOWLAN */
 

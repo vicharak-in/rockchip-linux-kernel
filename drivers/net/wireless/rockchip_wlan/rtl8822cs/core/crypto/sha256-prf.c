@@ -28,12 +28,14 @@
  * This function is used to derive new, cryptographically separate keys from a
  * given key.
  */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0))
 int sha256_prf(const u8 *key, size_t key_len, const char *label,
 		const u8 *data, size_t data_len, u8 *buf, size_t buf_len)
 {
 	return sha256_prf_bits(key, key_len, label, data, data_len, buf,
 			       buf_len * 8);
 }
+#endif
 
 
 /**
@@ -52,6 +54,7 @@ int sha256_prf(const u8 *key, size_t key_len, const char *label,
  * significant 1-7 bits of the last octet in the output are not part of the
  * requested output.
  */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0))
 int sha256_prf_bits(const u8 *key, size_t key_len, const char *label,
 		    const u8 *data, size_t data_len, u8 *buf,
 		    size_t buf_len_bits)
@@ -107,3 +110,4 @@ int sha256_prf_bits(const u8 *key, size_t key_len, const char *label,
 
 	return 0;
 }
+#endif
