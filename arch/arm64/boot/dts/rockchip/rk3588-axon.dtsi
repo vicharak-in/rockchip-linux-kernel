@@ -85,7 +85,7 @@
 		rockchip,cpu = <&i2s5_8ch>;
 		rockchip,codec = <&hdmi0>;
 		rockchip,jack-det;
-		status = "disabled";
+		status = "okay";
 	};
 
 	hdmi1_sound: hdmi1-sound {
@@ -95,7 +95,7 @@
 		rockchip,cpu = <&i2s6_8ch>;
 		rockchip,codec = <&hdmi1>;
 		rockchip,jack-det;
-		status = "disabled";
+		status = "okay";
 	};
 
 	hdmiin_sound: hdmiin-sound {
