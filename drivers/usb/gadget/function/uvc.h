@@ -87,6 +87,7 @@ struct uvc_video {
 	struct usb_ep *ep;
 
 	struct work_struct pump;
+	struct workqueue_struct *async_wq;
 
 	/* Frame parameters */
 	u8 bpp;
@@ -103,6 +104,8 @@ struct uvc_video {
 	struct uvc_request *ureq;
 	struct list_head req_free;
 	spinlock_t req_lock;
+
+	unsigned int req_int_count;
 
 	void (*encode) (struct usb_request *req, struct uvc_video *video,
 			struct uvc_buffer *buf);

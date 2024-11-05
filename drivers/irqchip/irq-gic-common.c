@@ -33,7 +33,13 @@ void gic_enable_of_quirks(const struct device_node *np,
 			  const struct gic_quirk *quirks, void *data)
 {
 	for (; quirks->desc; quirks++) {
-		if (!of_device_is_compatible(np, quirks->compatible))
+		if (!quirks->compatible && !quirks->property)
+			continue;
+		if (quirks->compatible &&
+		    !of_device_is_compatible(np, quirks->compatible))
+			continue;
+		if (quirks->property &&
+		    !of_property_read_bool(np, quirks->property))
 			continue;
 		if (quirks->init(data))
 			pr_info("GIC: enabling workaround for %s\n",
@@ -45,7 +51,7 @@ void gic_enable_quirks(u32 iidr, const struct gic_quirk *quirks,
 		void *data)
 {
 	for (; quirks->desc; quirks++) {
-		if (quirks->compatible)
+		if (quirks->compatible || quirks->property)
 			continue;
 		if (quirks->iidr != (quirks->mask & iidr))
 			continue;
@@ -122,7 +128,7 @@ void gic_dist_config(void __iomem *base, int gic_irqs,
 
 		amp_pri = 0;
 		for (j = 0; j < 4; j++) {
-			if (rockchip_amp_check_amp_irq(i + j)) {
+			if (rockchip_amp_need_init_amp_irq(i + j)) {
 				amp_pri |= rockchip_amp_get_irq_prio(i + j) <<
 					   (j * 8);
 			} else {

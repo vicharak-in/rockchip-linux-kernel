@@ -28,7 +28,8 @@
 #include <sound/dmaengine_pcm.h>
 
 #include "rockchip_i2s_tdm.h"
-#include "rockchip_dlp.h"
+#include "rockchip_dlp_pcm.h"
+#include "rockchip_utils.h"
 
 #define DRV_NAME "rockchip-i2s-tdm"
 
@@ -1678,6 +1679,25 @@ static int rockchip_i2s_tdm_params_channels(struct snd_pcm_substream *substream,
 	return ret;
 }
 
+static void rockchip_i2s_tdm_get_performance(struct snd_pcm_substream *substream,
+					     struct snd_pcm_hw_params *params,
+					     struct snd_soc_dai *dai,
+					     unsigned int csr)
+{
+	struct rk_i2s_tdm_dev *i2s_tdm = to_info(dai);
+	unsigned int tdl;
+	int fifo;
+
+	regmap_read(i2s_tdm->regmap, I2S_DMACR, &tdl);
+
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+		fifo = I2S_DMACR_TDL_V(tdl) * I2S_TXCR_CSR_V(csr);
+	else
+		fifo = I2S_DMACR_RDL_V(tdl) * I2S_RXCR_CSR_V(csr);
+
+	rockchip_utils_get_performance(substream, params, dai, fifo);
+}
+
 static int rockchip_i2s_tdm_hw_params(struct snd_pcm_substream *substream,
 				      struct snd_pcm_hw_params *params,
 				      struct snd_soc_dai *dai)
@@ -1740,6 +1760,8 @@ static int rockchip_i2s_tdm_hw_params(struct snd_pcm_substream *substream,
 	if (ret < 0)
 		goto err;
 
+	rockchip_i2s_tdm_get_performance(substream, params, dai, ret);
+
 	val |= ret;
 	if (!is_params_dirty(substream, dai, div_bclk, div_lrck, val))
 		return 0;
@@ -1753,6 +1775,13 @@ static int rockchip_i2s_tdm_hw_params(struct snd_pcm_substream *substream,
 
 err:
 	return ret;
+}
+static int rockchip_i2s_tdm_hw_free(struct snd_pcm_substream *substream,
+				    struct snd_soc_dai *dai)
+{
+	rockchip_utils_put_performance(substream, dai);
+
+	return 0;
 }
 
 static int rockchip_i2s_tdm_trigger(struct snd_pcm_substream *substream,
@@ -1817,8 +1846,8 @@ static int rockchip_i2s_tdm_clk_compensation_info(struct snd_kcontrol *kcontrol,
 static int rockchip_i2s_tdm_clk_compensation_get(struct snd_kcontrol *kcontrol,
 						 struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_dai *dai = snd_kcontrol_chip(kcontrol);
-	struct rk_i2s_tdm_dev *i2s_tdm = snd_soc_dai_get_drvdata(dai);
+	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
+	struct rk_i2s_tdm_dev *i2s_tdm = snd_soc_component_get_drvdata(component);
 
 	ucontrol->value.integer.value[0] = i2s_tdm->clk_ppm;
 
@@ -1828,8 +1857,8 @@ static int rockchip_i2s_tdm_clk_compensation_get(struct snd_kcontrol *kcontrol,
 static int rockchip_i2s_tdm_clk_compensation_put(struct snd_kcontrol *kcontrol,
 						 struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_dai *dai = snd_kcontrol_chip(kcontrol);
-	struct rk_i2s_tdm_dev *i2s_tdm = snd_soc_dai_get_drvdata(dai);
+	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
+	struct rk_i2s_tdm_dev *i2s_tdm = snd_soc_component_get_drvdata(component);
 	int ret = 0, ppm = 0;
 
 	if ((ucontrol->value.integer.value[0] < CLK_PPM_MIN) ||
@@ -2119,6 +2148,7 @@ static const struct snd_soc_dai_ops rockchip_i2s_tdm_dai_ops = {
 	.startup = rockchip_i2s_tdm_startup,
 	.shutdown = rockchip_i2s_tdm_shutdown,
 	.hw_params = rockchip_i2s_tdm_hw_params,
+	.hw_free = rockchip_i2s_tdm_hw_free,
 	.set_sysclk = rockchip_i2s_tdm_set_sysclk,
 	.set_fmt = rockchip_i2s_tdm_set_fmt,
 	.set_tdm_slot = rockchip_dai_tdm_slot,
@@ -2548,12 +2578,13 @@ static int rockchip_i2s_tdm_rx_path_prepare(struct rk_i2s_tdm_dev *i2s_tdm,
 	return rockchip_i2s_tdm_path_prepare(i2s_tdm, np, 1);
 }
 
-static int rockchip_i2s_tdm_get_fifo_count(struct device *dev, int stream)
+static int rockchip_i2s_tdm_get_fifo_count(struct device *dev,
+					   struct snd_pcm_substream *substream)
 {
 	struct rk_i2s_tdm_dev *i2s_tdm = dev_get_drvdata(dev);
 	int val = 0;
 
-	if (stream == SNDRV_PCM_STREAM_PLAYBACK)
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
 		regmap_read(i2s_tdm->regmap, I2S_TXFIFOLR, &val);
 	else
 		regmap_read(i2s_tdm->regmap, I2S_RXFIFOLR, &val);
@@ -2640,6 +2671,29 @@ static int rockchip_i2s_tdm_keep_clk_always_on(struct rk_i2s_tdm_dev *i2s_tdm)
 		 mclk_rate, bclk_rate, DEFAULT_FS);
 
 	return 0;
+}
+
+static int rockchip_i2s_tdm_register_platform(struct device *dev)
+{
+	int ret = 0;
+
+	if (device_property_read_bool(dev, "rockchip,no-dmaengine")) {
+		dev_info(dev, "Used for Multi-DAI\n");
+		return 0;
+	}
+
+	if (device_property_read_bool(dev, "rockchip,digital-loopback")) {
+		ret = devm_snd_dmaengine_dlp_register(dev, &dconfig);
+		if (ret)
+			dev_err(dev, "Could not register DLP\n");
+		return ret;
+	}
+
+	ret = devm_snd_dmaengine_pcm_register(dev, NULL, 0);
+	if (ret)
+		dev_err(dev, "Could not register PCM\n");
+
+	return ret;
 }
 
 static int rockchip_i2s_tdm_probe(struct platform_device *pdev)
@@ -2919,28 +2973,16 @@ static int rockchip_i2s_tdm_probe(struct platform_device *pdev)
 			goto err_pm_disable;
 	}
 
+	ret = rockchip_i2s_tdm_register_platform(&pdev->dev);
+	if (ret)
+		goto err_suspend;
+
 	ret = devm_snd_soc_register_component(&pdev->dev,
 					      &rockchip_i2s_tdm_component,
 					      soc_dai, 1);
-
 	if (ret) {
 		dev_err(&pdev->dev, "Could not register DAI\n");
 		goto err_suspend;
-	}
-
-	if (of_property_read_bool(node, "rockchip,no-dmaengine")) {
-		dev_info(&pdev->dev, "Used for Multi-DAI\n");
-		return 0;
-	}
-
-	if (of_property_read_bool(node, "rockchip,digital-loopback"))
-		ret = devm_snd_dmaengine_dlp_register(&pdev->dev, &dconfig);
-	else
-		ret = devm_snd_dmaengine_pcm_register(&pdev->dev, NULL, 0);
-
-	if (ret) {
-		dev_err(&pdev->dev, "Could not register PCM\n");
-		return ret;
 	}
 
 	return 0;

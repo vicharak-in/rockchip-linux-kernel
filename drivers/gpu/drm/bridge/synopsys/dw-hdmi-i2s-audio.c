@@ -34,6 +34,14 @@ static inline u8 hdmi_read(struct dw_hdmi_i2s_audio_data *audio, int offset)
 	return audio->read(hdmi, offset);
 }
 
+static inline void hdmi_update_bits(struct dw_hdmi_i2s_audio_data *audio,
+				    u8 data, u8 mask, unsigned int reg)
+{
+	struct dw_hdmi *hdmi = audio->hdmi;
+
+	audio->mod(hdmi, data, mask, reg);
+}
+
 static int dw_hdmi_i2s_hw_params(struct device *dev, void *data,
 				 struct hdmi_codec_daifmt *fmt,
 				 struct hdmi_codec_params *hparms)
@@ -52,7 +60,8 @@ static int dw_hdmi_i2s_hw_params(struct device *dev, void *data,
 	}
 
 	/* Reset the FIFOs before applying new params */
-	hdmi_write(audio, HDMI_AUD_CONF0_SW_RESET, HDMI_AUD_CONF0);
+	hdmi_update_bits(audio, HDMI_AUD_CONF0_SW_RESET,
+			 HDMI_AUD_CONF0_SW_RESET, HDMI_AUD_CONF0);
 	hdmi_write(audio, (u8)~HDMI_MC_SWRSTZ_I2SSWRST_REQ, HDMI_MC_SWRSTZ);
 
 	inputclkfs	= HDMI_AUD_INPUTCLKFS_64FS;
@@ -136,17 +145,7 @@ static int dw_hdmi_i2s_prepare(struct device *dev, void *data,
 			       struct hdmi_codec_daifmt *fmt,
 			       struct hdmi_codec_params *hparms)
 {
-	struct dw_hdmi_i2s_audio_data *audio = data;
-	struct dw_hdmi *hdmi = audio->hdmi;
-
-	dw_hdmi_audio_disable(hdmi);
-
-	hdmi_write(audio, HDMI_AUD_CONF0_SW_RESET, HDMI_AUD_CONF0);
-	hdmi_write(audio, (u8)~HDMI_MC_SWRSTZ_I2SSWRST_REQ, HDMI_MC_SWRSTZ);
-
-	dw_hdmi_audio_enable(hdmi);
-
-	return 0;
+	return dw_hdmi_i2s_hw_params(dev, data, fmt, hparms);
 }
 
 static int dw_hdmi_i2s_audio_startup(struct device *dev, void *data)

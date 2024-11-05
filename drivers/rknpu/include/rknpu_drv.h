@@ -17,11 +17,9 @@
 #include <linux/hrtimer.h>
 #include <linux/miscdevice.h>
 
-#ifndef FPGA_PLATFORM
-#if KERNEL_VERSION(5, 10, 0) <= LINUX_VERSION_CODE
 #include <soc/rockchip/rockchip_opp_select.h>
-#endif
-#endif
+#include <soc/rockchip/rockchip_system_monitor.h>
+#include <soc/rockchip/rockchip_ipa.h>
 
 #include "rknpu_job.h"
 #include "rknpu_fence.h"
@@ -30,10 +28,10 @@
 
 #define DRIVER_NAME "rknpu"
 #define DRIVER_DESC "RKNPU driver"
-#define DRIVER_DATE "20230825"
+#define DRIVER_DATE "20231121"
 #define DRIVER_MAJOR 0
 #define DRIVER_MINOR 9
-#define DRIVER_PATCHLEVEL 2
+#define DRIVER_PATCHLEVEL 3
 
 #define LOG_TAG "RKNPU"
 
@@ -76,11 +74,12 @@ struct rknpu_config {
 	__u64 nbuf_phyaddr;
 	__u64 nbuf_size;
 	__u64 max_submit_number;
+	__u32 core_mask;
 };
 
 struct rknpu_timer {
-	__u32 busy_time;
-	__u32 busy_time_record;
+	ktime_t busy_time;
+	ktime_t total_busy_time;
 };
 
 struct rknpu_subcore_data {
@@ -130,11 +129,7 @@ struct rknpu_device {
 	struct thermal_cooling_device *devfreq_cooling;
 	struct devfreq *devfreq;
 	unsigned long ondemand_freq;
-#ifndef FPGA_PLATFORM
-#if KERNEL_VERSION(5, 10, 0) <= LINUX_VERSION_CODE
 	struct rockchip_opp_info opp_info;
-#endif
-#endif
 	unsigned long current_freq;
 	unsigned long current_volt;
 	int bypass_irq_handler;

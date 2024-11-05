@@ -21,21 +21,159 @@
 #include <drm/drm_crtc.h>
 #include <drm/drm_mipi_dsi.h>
 #include <drm/drm_panel.h>
+#include <drm/drm_atomic_helper.h>
+#include <drm/drm_atomic_state_helper.h>
+#include <drm/drm_probe_helper.h>
 
 #include "rkx110_x120.h"
 #include "rkx120_dsi_tx.h"
 
-static inline struct rk_serdes_panel *to_serdes_panel(struct drm_panel *panel)
+static inline struct rk_serdes_panel *drm_panel_to_serdes_panel(struct drm_panel *panel)
 {
 	return container_of(panel, struct rk_serdes_panel, panel);
 }
 
-static int serdes_panel_prepare(struct drm_panel *panel)
+static inline struct rk_serdes_panel *drm_bridge_to_serdes_panel(struct drm_bridge *bridge)
 {
-	struct rk_serdes_panel *sd_panel = to_serdes_panel(panel);
-	struct rk_serdes_route *route = &sd_panel->route;
-	struct rk_serdes *serdes = sd_panel->parent;
+	return container_of(bridge, struct rk_serdes_panel, bridge);
+}
 
+static inline struct rk_serdes_panel *drm_connector_to_serdes_panel(struct drm_connector *connector)
+{
+	return container_of(connector, struct rk_serdes_panel, connector);
+}
+
+static int serdes_connector_get_modes(struct drm_connector *connector)
+{
+	struct rk_serdes_panel *sd_panel = drm_connector_to_serdes_panel(connector);
+
+	return drm_panel_get_modes(&sd_panel->panel, connector);
+}
+
+static const struct drm_connector_helper_funcs
+rk_serdes_connector_helper_funcs = {
+	.get_modes = serdes_connector_get_modes,
+};
+
+static enum drm_connector_status
+serdes_connector_detect(struct drm_connector *connector, bool force)
+{
+	struct rk_serdes_panel *sd_panel = drm_connector_to_serdes_panel(connector);
+
+	return drm_bridge_detect(&sd_panel->bridge);
+}
+
+static const struct drm_connector_funcs rk_serdes_connector_funcs = {
+	.detect = serdes_connector_detect,
+	.reset = drm_atomic_helper_connector_reset,
+	.fill_modes = drm_helper_probe_single_connector_modes,
+	.destroy = drm_connector_cleanup,
+	.atomic_duplicate_state = drm_atomic_helper_connector_duplicate_state,
+	.atomic_destroy_state = drm_atomic_helper_connector_destroy_state,
+};
+
+static int rk_serdes_bridge_attach(struct drm_bridge *bridge,
+				  enum drm_bridge_attach_flags flags)
+{
+	struct rk_serdes_panel *sd_panel = drm_bridge_to_serdes_panel(bridge);
+	struct drm_connector *connector = &sd_panel->connector;
+	int ret;
+
+	if (flags & DRM_BRIDGE_ATTACH_NO_CONNECTOR)
+		return 0;
+
+	if (!bridge->encoder) {
+		dev_err(sd_panel->dev, "Missing encoder\n");
+		return -ENODEV;
+	}
+
+	connector->polled |= DRM_CONNECTOR_POLL_HPD;
+	drm_connector_helper_add(connector,
+				 &rk_serdes_connector_helper_funcs);
+
+	ret = drm_connector_init(bridge->dev, connector,
+				 &rk_serdes_connector_funcs,
+				 sd_panel->connector_type);
+	if (ret) {
+		dev_err(sd_panel->dev, "Failed to initialize connector\n");
+		return ret;
+	}
+
+	drm_connector_attach_encoder(&sd_panel->connector, bridge->encoder);
+
+	return 0;
+}
+
+static void rk_serdes_bridge_detach(struct drm_bridge *bridge)
+{
+	struct rk_serdes_panel *sd_panel = drm_bridge_to_serdes_panel(bridge);
+	struct drm_connector *connector = &sd_panel->connector;
+
+	/*
+	 * Cleanup the connector if we know it was initialized.
+	 */
+	if (connector->dev)
+		drm_connector_cleanup(connector);
+}
+
+static void rk_serdes_bridge_pre_enable(struct drm_bridge *bridge)
+{
+	struct rk_serdes_panel *sd_panel = drm_bridge_to_serdes_panel(bridge);
+
+	drm_panel_prepare(&sd_panel->panel);
+}
+
+static void rk_serdes_bridge_enable(struct drm_bridge *bridge)
+{
+	struct rk_serdes_panel *sd_panel = drm_bridge_to_serdes_panel(bridge);
+
+	drm_panel_enable(&sd_panel->panel);
+}
+
+static void rk_serdes_bridge_disable(struct drm_bridge *bridge)
+{
+	struct rk_serdes_panel *sd_panel = drm_bridge_to_serdes_panel(bridge);
+
+	drm_panel_disable(&sd_panel->panel);
+}
+
+static void rk_serdes_bridge_post_disable(struct drm_bridge *bridge)
+{
+	struct rk_serdes_panel *sd_panel = drm_bridge_to_serdes_panel(bridge);
+
+	drm_panel_unprepare(&sd_panel->panel);
+}
+
+static int rk_serdes_bridge_get_modes(struct drm_bridge *bridge,
+				      struct drm_connector *connector)
+{
+	struct rk_serdes_panel *sd_panel = drm_bridge_to_serdes_panel(bridge);
+
+	return drm_panel_get_modes(&sd_panel->panel, connector);
+}
+
+static enum drm_connector_status rk_serdes_bridge_detect(struct drm_bridge *bridge)
+{
+	return connector_status_connected;
+}
+
+static const struct drm_bridge_funcs panel_bridge_bridge_funcs = {
+	.attach = rk_serdes_bridge_attach,
+	.detach = rk_serdes_bridge_detach,
+	.pre_enable = rk_serdes_bridge_pre_enable,
+	.enable = rk_serdes_bridge_enable,
+	.disable = rk_serdes_bridge_disable,
+	.post_disable = rk_serdes_bridge_post_disable,
+	.get_modes = rk_serdes_bridge_get_modes,
+	.detect = rk_serdes_bridge_detect,
+	.atomic_reset = drm_atomic_helper_bridge_reset,
+	.atomic_duplicate_state = drm_atomic_helper_bridge_duplicate_state,
+	.atomic_destroy_state = drm_atomic_helper_bridge_destroy_state,
+	.atomic_get_input_bus_fmts = drm_atomic_helper_bridge_propagate_bus_fmt,
+};
+
+static int serdes_panel_hw_prepare(struct rk_serdes_panel *sd_panel)
+{
 	if (sd_panel->supply) {
 		int err;
 
@@ -58,36 +196,84 @@ static int serdes_panel_prepare(struct drm_panel *panel)
 		mdelay(20);
 	}
 
+	return 0;
+}
+
+static int serdes_panel_dsi_prepare(struct rk_serdes_panel *sd_panel)
+{
+	struct rk_serdes *serdes = sd_panel->parent;
+
+	if (sd_panel->id == 0 && sd_panel->route.remote0_port0 == RK_SERDES_DSI_TX0 &&
+	    !!(sd_panel->on_cmds))
+		rkx120_dsi_tx_cmd_seq_xfer(serdes, &sd_panel->dsi_tx, DEVICE_REMOTE0,
+					   sd_panel->on_cmds);
+
+	if (sd_panel->id == 1 && sd_panel->route.remote1_port0 == RK_SERDES_DSI_TX0 &&
+	    !!(sd_panel->on_cmds))
+		rkx120_dsi_tx_cmd_seq_xfer(serdes, &sd_panel->dsi_tx, DEVICE_REMOTE1,
+					   sd_panel->on_cmds);
+
+	return 0;
+}
+
+static int serdes_panel_prepare(struct drm_panel *panel)
+{
+	struct rk_serdes_panel *sd_panel = drm_panel_to_serdes_panel(panel);
+	struct rk_serdes *serdes = sd_panel->parent;
+	int ret;
+
+	ret = serdes_panel_hw_prepare(sd_panel);
+	if (ret)
+		return ret;
+	if (sd_panel->secondary) {
+		ret = serdes_panel_hw_prepare(sd_panel->secondary);
+		if (ret)
+			return ret;
+	}
+
 	if (serdes->route_prepare)
 		serdes->route_prepare(serdes, &sd_panel->route);
 
-	if (route->remote0_port0 == RK_SERDES_DSI_TX0 && !!(sd_panel->on_cmds))
-		rkx120_dsi_tx_cmd_seq_xfer(serdes, DEVICE_REMOTE0,
-					   sd_panel->on_cmds);
-
-	if (route->remote1_port0 == RK_SERDES_DSI_TX0 && !!(sd_panel->on_cmds))
-		rkx120_dsi_tx_cmd_seq_xfer(serdes, DEVICE_REMOTE1,
-					   sd_panel->on_cmds);
+	serdes_panel_dsi_prepare(sd_panel);
+	if (sd_panel->secondary)
+		serdes_panel_dsi_prepare(sd_panel->secondary);
 
 	return 0;
 }
 
 static int serdes_panel_enable(struct drm_panel *panel)
 {
-	struct rk_serdes_panel *sd_panel = to_serdes_panel(panel);
+	struct rk_serdes_panel *sd_panel = drm_panel_to_serdes_panel(panel);
 	struct rk_serdes *serdes = sd_panel->parent;
+	int ret;
 
 	if (serdes->route_enable)
 		serdes->route_enable(serdes, &sd_panel->route);
+
+	if (sd_panel->secondary) {
+		ret = backlight_enable(sd_panel->secondary->panel.backlight);
+		if (ret < 0) {
+			dev_err(sd_panel->dev, "failed to enable backlight: %d\n", ret);
+			return ret;
+		}
+	}
 
 	return 0;
 }
 
 static int serdes_panel_disable(struct drm_panel *panel)
 {
-	struct rk_serdes_panel *sd_panel = to_serdes_panel(panel);
+	struct rk_serdes_panel *sd_panel = drm_panel_to_serdes_panel(panel);
 	struct rk_serdes *serdes = sd_panel->parent;
+	int ret;
 
+	if (sd_panel->secondary) {
+		ret = backlight_disable(sd_panel->secondary->panel.backlight);
+		if (ret < 0) {
+			dev_err(sd_panel->dev, "failed to disable backlight: %d\n", ret);
+			return ret;
+		}
+	}
 
 	if (serdes->route_disable)
 		serdes->route_disable(serdes, &sd_panel->route);
@@ -95,22 +281,8 @@ static int serdes_panel_disable(struct drm_panel *panel)
 	return 0;
 }
 
-static int serdes_panel_unprepare(struct drm_panel *panel)
+static int serdes_panel_hw_unprepare(struct rk_serdes_panel *sd_panel)
 {
-	struct rk_serdes_panel *sd_panel = to_serdes_panel(panel);
-	struct rk_serdes_route *route = &sd_panel->route;
-	struct rk_serdes *serdes = sd_panel->parent;
-
-	if (route->remote0_port0 == RK_SERDES_DSI_TX0 && !!(sd_panel->on_cmds))
-		rkx120_dsi_tx_cmd_seq_xfer(serdes, DEVICE_REMOTE0,
-					   sd_panel->off_cmds);
-
-	if (route->remote1_port0 == RK_SERDES_DSI_TX0 && !!(sd_panel->on_cmds))
-		rkx120_dsi_tx_cmd_seq_xfer(serdes, DEVICE_REMOTE1,
-					   sd_panel->off_cmds);
-	if (serdes->route_unprepare)
-		serdes->route_unprepare(serdes, &sd_panel->route);
-
 	if (sd_panel->reset_gpio) {
 		gpiod_set_value_cansleep(sd_panel->reset_gpio, 0);
 		mdelay(20);
@@ -123,6 +295,42 @@ static int serdes_panel_unprepare(struct drm_panel *panel)
 
 	if (sd_panel->supply)
 		regulator_disable(sd_panel->supply);
+
+	return 0;
+}
+
+static int serdes_panel_dsi_unprepare(struct rk_serdes_panel *sd_panel)
+{
+	struct rk_serdes *serdes = sd_panel->parent;
+
+	if (sd_panel->id == 0 && sd_panel->route.remote0_port0 == RK_SERDES_DSI_TX0 &&
+	    !!(sd_panel->off_cmds))
+		rkx120_dsi_tx_cmd_seq_xfer(serdes, &sd_panel->dsi_tx, DEVICE_REMOTE0,
+					   sd_panel->off_cmds);
+
+	if (sd_panel->id == 1 && sd_panel->route.remote1_port0 == RK_SERDES_DSI_TX0 &&
+	    !!(sd_panel->off_cmds))
+		rkx120_dsi_tx_cmd_seq_xfer(serdes, &sd_panel->dsi_tx, DEVICE_REMOTE1,
+					   sd_panel->off_cmds);
+
+	return 0;
+}
+
+static int serdes_panel_unprepare(struct drm_panel *panel)
+{
+	struct rk_serdes_panel *sd_panel = drm_panel_to_serdes_panel(panel);
+	struct rk_serdes *serdes = sd_panel->parent;
+
+	serdes_panel_dsi_unprepare(sd_panel);
+	if (sd_panel->secondary)
+		serdes_panel_dsi_unprepare(sd_panel->secondary);
+
+	if (serdes->route_unprepare)
+		serdes->route_unprepare(serdes, &sd_panel->route);
+
+	serdes_panel_hw_unprepare(sd_panel);
+	if (sd_panel->secondary)
+		serdes_panel_hw_unprepare(sd_panel->secondary);
 
 	return 0;
 }
@@ -184,7 +392,7 @@ static int serdes_panel_of_get_native_mode(struct rk_serdes_panel *sd_panel,
 static int serdes_panel_get_modes(struct drm_panel *panel,
 				struct drm_connector *connector)
 {
-	struct rk_serdes_panel *sd_panel = to_serdes_panel(panel);
+	struct rk_serdes_panel *sd_panel = drm_panel_to_serdes_panel(panel);
 	int num = 0;
 
 	num += serdes_panel_of_get_native_mode(sd_panel, connector);
@@ -201,6 +409,52 @@ static const struct drm_panel_funcs serdes_panel_funcs = {
 	.unprepare = serdes_panel_unprepare,
 	.get_modes = serdes_panel_get_modes,
 };
+
+static void rk_serdes_panel_get_connector_type(struct rk_serdes_panel *sd_panel)
+{
+	struct rk_serdes_route *route = &sd_panel->route;
+	u32 local_port;
+
+	if (route->local_port0)
+		local_port = route->local_port0;
+	else
+		local_port = route->local_port1;
+
+	if ((local_port == RK_SERDES_DSI_RX0) ||
+	    (local_port == RK_SERDES_DSI_RX1))
+		sd_panel->connector_type = DRM_MODE_CONNECTOR_DSI;
+	else if (local_port == RK_SERDES_RGB_RX)
+		sd_panel->connector_type = DRM_MODE_CONNECTOR_DPI;
+	else
+		sd_panel->connector_type = DRM_MODE_CONNECTOR_LVDS;
+}
+
+static int rk_serdes_panel_bridge_add(struct rk_serdes_panel *sd_panel)
+{
+	int ret;
+
+	rk_serdes_panel_get_connector_type(sd_panel);
+
+	sd_panel->bridge.funcs = &panel_bridge_bridge_funcs;
+	sd_panel->bridge.of_node = sd_panel->dev->of_node;
+	sd_panel->bridge.ops = DRM_BRIDGE_OP_MODES | DRM_BRIDGE_OP_DETECT;
+	sd_panel->bridge.type = sd_panel->connector_type;
+
+	drm_panel_init(&sd_panel->panel, sd_panel->dev, &serdes_panel_funcs, 0);
+
+	ret = drm_panel_of_backlight(&sd_panel->panel);
+	if (ret)
+		return ret;
+
+	drm_bridge_add(&sd_panel->bridge);
+
+	return 0;
+}
+
+static void rk_serdes_panel_bridge_remove(struct rk_serdes_panel *sd_panel)
+{
+	drm_bridge_remove(&sd_panel->bridge);
+}
 
 static int
 dsi_panel_parse_cmds(struct device *dev, const u8 *data,
@@ -336,11 +590,10 @@ static struct mipi_dsi_device *serdes_attach_dsi(struct rk_serdes_panel *sd_pane
 	return dsi;
 }
 
-static int rkx120_dsi_rx_parse(struct rk_serdes_panel *sd_panel)
+static int rkx110_dsi_rx_parse(struct rk_serdes_panel *sd_panel)
 {
 	struct device_node *np = sd_panel->dev->of_node;
-	struct rk_serdes *serdes = sd_panel->parent;
-	struct rkx110_dsi_rx *dsi_rx = &serdes->dsi_rx;
+	struct rkx110_dsi_rx *dsi_rx = &sd_panel->dsi_rx;
 	struct mipi_dsi_device *dsi;
 	struct device_node *dsi_node;
 	u32 val;
@@ -370,11 +623,12 @@ static int rkx120_dsi_rx_parse(struct rk_serdes_panel *sd_panel)
 static int rkx120_dsi_tx_parse(struct rk_serdes_panel *sd_panel)
 {
 	struct device_node *np = sd_panel->dev->of_node;
-	struct rk_serdes *serdes = sd_panel->parent;
-	struct rkx120_dsi_tx *dsi_tx = &serdes->dsi_tx;
+	struct rkx120_dsi_tx *dsi_tx = &sd_panel->dsi_tx;
 	const char *string;
 	int ret;
 	u32 val;
+
+	dsi_tx->combtxphy = &sd_panel->combtxphy;
 
 	if (of_property_read_u32(np, "dsi-tx,lanes", &val))
 		dsi_tx->lanes = 4;
@@ -418,12 +672,9 @@ static int rkx120_dsi_tx_parse(struct rk_serdes_panel *sd_panel)
 	return 0;
 }
 
-static int serdes_panel_parse_dt(struct rk_serdes_panel *sd_panel)
+static int serdes_panel_parse_route(struct rk_serdes_panel *sd_panel)
 {
 	struct rk_serdes_route *route = &sd_panel->route;
-	struct rk_serdes *serdes = sd_panel->parent;
-	u32 lanes;
-	int ret;
 
 	device_property_read_u32(sd_panel->dev, "local-port0", &route->local_port0);
 	device_property_read_u32(sd_panel->dev, "local-port1", &route->local_port1);
@@ -431,17 +682,19 @@ static int serdes_panel_parse_dt(struct rk_serdes_panel *sd_panel)
 	device_property_read_u32(sd_panel->dev, "remote0-port1", &route->remote0_port1);
 	device_property_read_u32(sd_panel->dev, "remote1-port0", &route->remote1_port0);
 	device_property_read_u32(sd_panel->dev, "remote1-port1", &route->remote1_port1);
-	device_property_read_u32(sd_panel->dev, "num-lanes", &lanes);
 
-	serdes->route_flag = 0;
-
-	if (!route->local_port0) {
-		dev_err(sd_panel->dev, "local_port0 should set\n");
+	if (!route->local_port0 && !route->local_port1) {
+		dev_err(sd_panel->dev, "local port should set\n");
 		return -EINVAL;
 	}
 
-	if (!route->remote0_port0) {
+	if (route->local_port0 && !route->remote0_port0) {
 		dev_err(sd_panel->dev, "remote0_port0 should set\n");
+		return -EINVAL;
+	}
+
+	if (route->local_port1 && !route->remote1_port0) {
+		dev_err(sd_panel->dev, "remote1_port0 should set\n");
 		return -EINVAL;
 	}
 
@@ -451,48 +704,28 @@ static int serdes_panel_parse_dt(struct rk_serdes_panel *sd_panel)
 	}
 
 	route->frame_mode = SERDES_FRAME_NORMAL_MODE;
+	route->route_flag = 0;
 
-	/* 2 video stream output */
-	if (route->remote1_port0 || route->remote0_port1) {
+	/* 2 video stream output in a route */
+	if (route->local_port0 && (route->remote1_port0 || route->remote0_port1)) {
 		if (route->remote1_port0)
-			serdes->route_flag |= ROUTE_MULTI_REMOTE | ROUTE_MULTI_CHANNEL |
+			route->route_flag |= ROUTE_MULTI_REMOTE | ROUTE_MULTI_CHANNEL|
 					     ROUTE_MULTI_LANE;
 
 		if (route->remote0_port1) {
 			if ((route->remote0_port0 == RK_SERDES_LVDS_TX0) &&
 			    (route->remote0_port1 == RK_SERDES_LVDS_TX1)) {
-				serdes->route_flag |= ROUTE_MULTI_CHANNEL;
+				route->route_flag |= ROUTE_MULTI_CHANNEL;
 			} else if ((route->remote0_port0 == RK_SERDES_LVDS_TX1) &&
 				    (route->remote0_port1 == RK_SERDES_LVDS_TX0)) {
-				serdes->route_flag |= ROUTE_MULTI_CHANNEL;
+				route->route_flag |= ROUTE_MULTI_CHANNEL;
 			} else {
 				dev_err(sd_panel->dev, "invalid multi output type\n");
 				return -EINVAL;
 			}
-
-			if (lanes == 2)
-				serdes->route_flag |= ROUTE_MULTI_LANE;
 		}
 
-		if (route->local_port1) {
-			if ((route->local_port0 == RK_SERDES_DSI_RX0) &&
-			    (route->local_port1 == RK_SERDES_DSI_RX1))
-				serdes->route_flag |= ROUTE_MULTI_DSI_INPUT;
-			else if ((route->local_port0 == RK_SERDES_DSI_RX1) &&
-				 (route->local_port1 == RK_SERDES_DSI_RX0))
-				serdes->route_flag |= ROUTE_MULTI_DSI_INPUT;
-			else if ((route->local_port0 == RK_SERDES_LVDS_RX0) &&
-				 (route->local_port1 == RK_SERDES_LVDS_RX1))
-				serdes->route_flag |= ROUTE_MULTI_LVDS_INPUT;
-			else if ((route->local_port0 == RK_SERDES_LVDS_RX1) &&
-				 (route->local_port1 == RK_SERDES_LVDS_RX0))
-				serdes->route_flag |= ROUTE_MULTI_LVDS_INPUT;
-			else {
-				dev_err(sd_panel->dev, "invalid multi input type\n");
-				return -EINVAL;
-			}
-			serdes->route_flag |= ROUTE_MULTI_SOURCE;
-		} else {
+		if (route->local_port0) {
 			if (device_property_read_bool(sd_panel->dev, "split-mode")) {
 				/* only dsi input support split mode */
 				if ((route->local_port0 != RK_SERDES_DSI_RX0) &&
@@ -510,41 +743,43 @@ static int serdes_panel_parse_dt(struct rk_serdes_panel *sd_panel)
 				else
 					route->frame_mode = SERDES_SP_LEFT_RIGHT_SPLIT;
 
-				serdes->route_flag |= ROUTE_MULTI_SPLIT;
+				route->route_flag |= ROUTE_MULTI_SPLIT;
 
 			} else  {
-				serdes->route_flag |= ROUTE_MULTI_MIRROR;
+				route->route_flag |= ROUTE_MULTI_MIRROR;
 			}
 		}
-	} else {
-		if (lanes == 2)
-			serdes->route_flag |= ROUTE_MULTI_LANE;
-	}
-
-	if (route->remote0_port0 & RK_SERDES_DSI_TX0 ||
-	    route->remote1_port0 & RK_SERDES_DSI_TX0) {
-		ret = rkx120_dsi_tx_parse(sd_panel);
-		if (ret) {
-			dev_err(sd_panel->dev, "failed to get cmds\n");
-			return ret;
-		}
-	}
-
-	if (route->local_port0 & RK_SERDES_DSI_RX0 ||
-	    route->local_port0 & RK_SERDES_DSI_TX1) {
-		ret = rkx120_dsi_rx_parse(sd_panel);
-		if (ret < 0)
-			return ret;
 	}
 
 	return 0;
 }
 
+static int serdes_panel_match_by_id(struct device *dev, const void *data)
+{
+	struct rk_serdes_panel *sd_panel = dev_get_drvdata(dev);
+	unsigned int *id = (unsigned int *)data;
+
+	return sd_panel->id == *id;
+}
+
+static struct rk_serdes_panel *serdes_panel_find_by_id(struct device_driver *drv,
+						       unsigned int id)
+{
+	struct device *dev;
+
+	dev = driver_find_device(drv, NULL, &id, serdes_panel_match_by_id);
+	if (!dev)
+		return NULL;
+
+	return dev_get_drvdata(dev);
+}
+
 static int serdes_panel_probe(struct platform_device *pdev)
 {
 	struct rk_serdes *serdes = dev_get_drvdata(pdev->dev.parent);
-	struct rk_serdes_panel *sd_panel;
+	struct rk_serdes_panel *sd_panel, *secondary;
 	int ret;
+	u32 reg;
 
 	sd_panel = devm_kzalloc(&pdev->dev, sizeof(*sd_panel), GFP_KERNEL);
 	if (!sd_panel)
@@ -553,7 +788,20 @@ static int serdes_panel_probe(struct platform_device *pdev)
 	sd_panel->dev = &pdev->dev;
 	sd_panel->parent = serdes;
 	sd_panel->route.stream_type = STREAM_DISPLAY;
-	serdes->vm = &sd_panel->route.vm;
+
+	ret = of_property_read_u32(sd_panel->dev->of_node, "reg", &reg);
+	if (ret)
+		sd_panel->id = 0;
+	sd_panel->id = reg;
+
+	sd_panel->multi_panel = device_property_read_bool(sd_panel->dev, "multi-panel");
+	if (sd_panel->multi_panel) {
+		secondary = serdes_panel_find_by_id(sd_panel->dev->driver, 1);
+		if (!secondary)
+			return -EPROBE_DEFER;
+		sd_panel->secondary = secondary;
+		dev_info(sd_panel->dev, "%s get secondary panel\n", __func__);
+	}
 
 	sd_panel->supply = devm_regulator_get_optional(sd_panel->dev, "power");
 	if (IS_ERR(sd_panel->supply)) {
@@ -588,22 +836,58 @@ static int serdes_panel_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	/* Register the panel. */
-	drm_panel_init(&sd_panel->panel, sd_panel->dev, &serdes_panel_funcs, 0);
+	ret = serdes_panel_parse_route(sd_panel);
+	if (ret < 0)
+		return ret;
 
-	ret = drm_panel_of_backlight(&sd_panel->panel);
+	if (sd_panel->route.remote0_port0 & RK_SERDES_DSI_TX0 ||
+		sd_panel->route.remote1_port0 & RK_SERDES_DSI_TX0) {
+		ret = rkx120_dsi_tx_parse(sd_panel);
+		if (ret) {
+			dev_err(sd_panel->dev, "failed to get cmds\n");
+			return ret;
+		}
+	}
+
+	ret = rk_serdes_panel_bridge_add(sd_panel);
 	if (ret)
 		return ret;
 
-	drm_panel_add(&sd_panel->panel);
+	if ((sd_panel->route.local_port0 & RK_SERDES_DSI_RX0 ||
+	    sd_panel->route.local_port0 & RK_SERDES_DSI_RX1) && sd_panel->id == 0) {
+		ret = rkx110_dsi_rx_parse(sd_panel);
+		if (ret < 0) {
+			rk_serdes_panel_bridge_remove(sd_panel);
+			return ret;
+		}
+	}
+
+	if ((sd_panel->route.local_port1 & RK_SERDES_DSI_RX0 ||
+		sd_panel->route.local_port1 & RK_SERDES_DSI_RX1) && sd_panel->id == 1) {
+		ret = rkx110_dsi_rx_parse(sd_panel);
+		if (ret < 0) {
+			rk_serdes_panel_bridge_remove(sd_panel);
+			return ret;
+		}
+	}
 
 	dev_set_drvdata(sd_panel->dev, sd_panel);
 
-	ret = serdes_panel_parse_dt(sd_panel);
-	if (ret < 0) {
-		drm_panel_remove(&sd_panel->panel);
-		return ret;
+	if (sd_panel->route.route_flag & ROUTE_MULTI_CHANNEL)
+		serdes->channel_nr = 2;
+
+	if (sd_panel->route.local_port0 && sd_panel->id == 0) {
+		serdes->route[0] = &sd_panel->route;
+		serdes->route_nr++;
 	}
+
+	if (sd_panel->route.local_port1 && sd_panel->id == 1) {
+		serdes->route[1] = &sd_panel->route;
+		serdes->route_nr++;
+	}
+
+	if (serdes->route_nr == 2)
+		serdes->channel_nr = 2;
 
 	return 0;
 }
@@ -612,7 +896,7 @@ static int serdes_panel_remove(struct platform_device *pdev)
 {
 	struct rk_serdes_panel *sd_panel = dev_get_drvdata(&pdev->dev);
 
-	drm_panel_remove(&sd_panel->panel);
+	rk_serdes_panel_bridge_remove(sd_panel);
 
 	drm_panel_disable(&sd_panel->panel);
 
@@ -630,7 +914,7 @@ static struct platform_driver serdes_panel_driver = {
 	.probe		= serdes_panel_probe,
 	.remove		= serdes_panel_remove,
 	.driver		= {
-		.name	= "serdes-panel",
+		.name	= "rockchip-serdes-panel",
 		.of_match_table = serdes_panel_of_table,
 	},
 };

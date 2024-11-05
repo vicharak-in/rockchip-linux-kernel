@@ -82,6 +82,7 @@ enum rkisp_isp_state {
 	ISP_START = BIT(9),
 	ISP_ERROR = BIT(10),
 	ISP_MIPI_ERROR = BIT(11),
+	ISP_CIF_RESET = BIT(12),
 };
 
 enum rkisp_isp_inp {
@@ -236,6 +237,10 @@ struct rkisp_device {
 	size_t resmem_size;
 	struct rkisp_thunderboot_resmem_head tb_head;
 	bool is_thunderboot;
+	/* first frame for rtt */
+	bool is_rtt_first;
+	/* suspend/resume with rtt */
+	bool is_rtt_suspend;
 	struct rkisp_tb_stream_info tb_stream_info;
 	unsigned int tb_addr_idx;
 
@@ -246,6 +251,8 @@ struct rkisp_device {
 	bool send_fbcgain;
 	struct rkisp_ispp_buf *cur_fbcgain;
 	struct rkisp_buffer *cur_spbuf;
+
+	struct completion pm_cmpl;
 
 	struct work_struct rdbk_work;
 	struct kfifo rdbk_kfifo;
@@ -270,6 +277,9 @@ struct rkisp_device {
 	bool is_first_double;
 	bool is_probe_end;
 	bool is_frame_double;
+	bool is_suspend;
+	bool suspend_sync;
+	bool is_suspend_one_frame;
 
 	struct rkisp_vicap_input vicap_in;
 
@@ -305,4 +315,8 @@ rkisp_unite_clear_bits(struct rkisp_device *dev, u32 reg, u32 mask,
 		rkisp_next_clear_bits(dev, reg, mask, is_direct);
 }
 
+static inline bool rkisp_link_sensor(u32 isp_inp)
+{
+	return isp_inp & (INP_CSI | INP_DVP | INP_LVDS);
+}
 #endif

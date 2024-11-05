@@ -62,6 +62,10 @@ static const struct mfd_cell serdes_max96789_devs[] = {
 		.name = "serdes-bridge",
 		.of_compatible = "maxim,max96789-bridge",
 	},
+	{
+		.name = "serdes-bridge-split",
+		.of_compatible = "maxim,max96789-bridge-split",
+	},
 };
 
 static const struct mfd_cell serdes_max96752_devs[] = {
@@ -72,6 +76,10 @@ static const struct mfd_cell serdes_max96752_devs[] = {
 	{
 		.name = "serdes-panel",
 		.of_compatible = "maxim,max96752-panel",
+	},
+	{
+		.name = "serdes-panel-split",
+		.of_compatible = "maxim,max96752-panel-split",
 	},
 };
 
@@ -127,8 +135,8 @@ int serdes_reg_read(struct serdes *serdes, unsigned int reg, unsigned int *val)
 	int ret;
 
 	ret = regmap_read(serdes->regmap, reg, val);
-	SERDES_DBG_I2C("%s %s Read Reg%04x %04x\n", __func__,
-		       serdes->chip_data->name, reg, *val);
+	SERDES_DBG_I2C("%s %s %s Read Reg%04x %04x ret=%d\n", __func__, dev_name(serdes->dev),
+		       serdes->chip_data->name, reg, *val, ret);
 	return ret;
 }
 EXPORT_SYMBOL_GPL(serdes_reg_read);
@@ -148,8 +156,9 @@ int serdes_bulk_read(struct serdes *serdes, unsigned int reg,
 
 	ret = regmap_bulk_read(serdes->regmap, reg, buf, count);
 	for (i = 0; i < count; i++) {
-		SERDES_DBG_I2C("%s %s %s Read Reg%04x %04x\n", __func__, dev_name(serdes->dev),
-			       serdes->chip_data->name, reg + i, buf[i]);
+		SERDES_DBG_I2C("%s %s %s Read Reg%04x %04x ret=%d\n",
+			       __func__, dev_name(serdes->dev),
+			       serdes->chip_data->name, reg + i, buf[i], ret);
 	}
 
 	return ret;
@@ -166,9 +175,10 @@ int serdes_bulk_write(struct serdes *serdes, unsigned int reg,
 
 	mutex_lock(&serdes->io_lock);
 	for (i = 0; i < count; i++) {
-		SERDES_DBG_I2C("%s %s %s Write Reg%04x %04x\n", __func__, dev_name(serdes->dev),
-			       serdes->chip_data->name, reg, buf[i]);
 		ret = regmap_write(serdes->regmap, reg, buf[i]);
+		SERDES_DBG_I2C("%s %s %s Write Reg%04x %04x ret=%d\n",
+			       __func__, dev_name(serdes->dev),
+			       serdes->chip_data->name, reg, buf[i], ret);
 		if (ret != 0) {
 			mutex_unlock(&serdes->io_lock);
 			return ret;
@@ -193,12 +203,11 @@ int serdes_multi_reg_write(struct serdes *serdes, const struct reg_sequence *reg
 
 	SERDES_DBG_I2C("%s %s %s num=%d\n", __func__, dev_name(serdes->dev),
 		       serdes->chip_data->name, num_regs);
-	for (i = 0; i < num_regs; i++) {
-		SERDES_DBG_I2C("serdes %s Write Reg%04x %04x\n",
-			       serdes->chip_data->name, regs[i].reg, regs[i].def);
-	}
-
 	ret = regmap_multi_reg_write(serdes->regmap, regs, num_regs);
+	for (i = 0; i < num_regs; i++) {
+		SERDES_DBG_I2C("serdes %s Write Reg%04x %04x ret=%d\n",
+			       serdes->chip_data->name, regs[i].reg, regs[i].def, ret);
+	}
 
 	return ret;
 }
@@ -216,9 +225,9 @@ int serdes_reg_write(struct serdes *serdes, unsigned int reg,
 {
 	int ret;
 
-	SERDES_DBG_I2C("%s %s %s Write Reg%04x %04x)\n", __func__, dev_name(serdes->dev),
-		       serdes->chip_data->name, reg, val);
 	ret = regmap_write(serdes->regmap, reg, val);
+	SERDES_DBG_I2C("%s %s %s Write Reg%04x %04x ret=%d\n", __func__, dev_name(serdes->dev),
+		       serdes->chip_data->name, reg, val, ret);
 	if (ret != 0)
 		return ret;
 
@@ -322,7 +331,14 @@ int serdes_set_pinctrl_default(struct serdes *serdes)
 		ret = pinctrl_select_state(serdes->pinctrl_node, serdes->pins_default);
 		if (ret)
 			dev_err(serdes->dev, "could not set default pins\n");
-		SERDES_DBG_MFD("%s: name=%s\n", __func__, dev_name(serdes->dev));
+		SERDES_DBG_MFD("%s: name=%s default\n", __func__, dev_name(serdes->dev));
+	}
+
+	if ((!IS_ERR(serdes->pinctrl_node)) && (!IS_ERR(serdes->pins_init))) {
+		ret = pinctrl_select_state(serdes->pinctrl_node, serdes->pins_init);
+		if (ret)
+			dev_err(serdes->dev, "could not set init pins\n");
+		SERDES_DBG_MFD("%s: name=%s init\n", __func__, dev_name(serdes->dev));
 	}
 
 	return ret;
@@ -376,7 +392,7 @@ int serdes_device_resume(struct serdes *serdes)
 }
 EXPORT_SYMBOL_GPL(serdes_device_resume);
 
-void serdes_device_shutdown(struct serdes *serdes)
+void serdes_device_poweroff(struct serdes *serdes)
 {
 	int ret = 0;
 
@@ -385,6 +401,29 @@ void serdes_device_shutdown(struct serdes *serdes)
 		if (ret)
 			dev_err(serdes->dev, "could not set sleep pins\n");
 	}
+
+	if (!IS_ERR(serdes->vpower)) {
+		ret = regulator_disable(serdes->vpower);
+		if (ret)
+			dev_err(serdes->dev, "fail to disable vpower regulator\n");
+	}
+
+}
+EXPORT_SYMBOL_GPL(serdes_device_poweroff);
+
+int serdes_device_shutdown(struct serdes *serdes)
+{
+	int ret = 0;
+
+	if (!IS_ERR(serdes->vpower)) {
+		ret = regulator_disable(serdes->vpower);
+		if (ret) {
+			dev_err(serdes->dev, "fail to disable vpower regulator\n");
+			return ret;
+		}
+	}
+
+	return ret;
 }
 EXPORT_SYMBOL_GPL(serdes_device_shutdown);
 

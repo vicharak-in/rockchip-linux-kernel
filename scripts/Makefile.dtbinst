@@ -26,7 +26,7 @@ __dtbs_install: $(dtbs) $(dtbos) $(readmes) $(subdirs)
 	@:
 
 quiet_cmd_dtb_install = INSTALL $@
-      cmd_dtb_install = install -D $< $@
+      cmd_dtb_install = install -D -m 0644 $< $@
 
 quiet_cmd_dtbo_install = INSTALL $@
       cmd_dtbo_install = install -D $< $@.disabled

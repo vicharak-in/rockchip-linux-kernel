@@ -681,6 +681,7 @@ static __maybe_unused __init int rockchip_dfi_init(struct platform_device *pdev,
 
 	/* try to find the optional reference to the pmu syscon */
 	node = of_parse_phandle(np, "rockchip,pmu", 0);
+
 	if (node) {
 		data->regmap_pmu = syscon_node_to_regmap(node);
 		of_node_put(node);

@@ -185,6 +185,28 @@ static void rkisp_params_vb2_buf_queue(struct vb2_buffer *vb)
 	spin_lock_irqsave(&params_vdev->config_lock, flags);
 	list_add_tail(&params_buf->queue, &params_vdev->params);
 	spin_unlock_irqrestore(&params_vdev->config_lock, flags);
+
+	if (params_vdev->dev->is_first_double) {
+		struct isp32_isp_params_cfg *params = params_buf->vaddr[0];
+		struct rkisp_buffer *buf;
+
+		if (!(params->module_cfg_update & ISP32_MODULE_RTT_FST))
+			return;
+		spin_lock_irqsave(&params_vdev->config_lock, flags);
+		while (!list_empty(&params_vdev->params)) {
+			buf = list_first_entry(&params_vdev->params,
+					       struct rkisp_buffer, queue);
+			if (buf == params_buf)
+				break;
+			list_del(&buf->queue);
+			vb2_buffer_done(&buf->vb.vb2_buf, VB2_BUF_STATE_DONE);
+		}
+		spin_unlock_irqrestore(&params_vdev->config_lock, flags);
+		dev_info(params_vdev->dev->dev,
+			 "first params:%d for rtt resume\n", params->frame_id);
+		params_vdev->dev->is_first_double = false;
+		rkisp_trigger_read_back(params_vdev->dev, false, false, false);
+	}
 }
 
 static void rkisp_params_vb2_stop_streaming(struct vb2_queue *vq)
@@ -193,36 +215,23 @@ static void rkisp_params_vb2_stop_streaming(struct vb2_queue *vq)
 	struct rkisp_device *dev = params_vdev->dev;
 	struct rkisp_buffer *buf;
 	unsigned long flags;
-	int i;
 
 	/* stop params input firstly */
 	spin_lock_irqsave(&params_vdev->config_lock, flags);
 	params_vdev->streamon = false;
 	wake_up(&dev->sync_onoff);
-	spin_unlock_irqrestore(&params_vdev->config_lock, flags);
-
-	for (i = 0; i < RKISP_ISP_PARAMS_REQ_BUFS_MAX; i++) {
-		spin_lock_irqsave(&params_vdev->config_lock, flags);
-		if (!list_empty(&params_vdev->params)) {
-			buf = list_first_entry(&params_vdev->params,
-					       struct rkisp_buffer, queue);
-			list_del(&buf->queue);
-			spin_unlock_irqrestore(&params_vdev->config_lock,
-					       flags);
-		} else {
-			spin_unlock_irqrestore(&params_vdev->config_lock,
-					       flags);
-			break;
-		}
-
+	while (!list_empty(&params_vdev->params)) {
+		buf = list_first_entry(&params_vdev->params,
+				       struct rkisp_buffer, queue);
+		list_del(&buf->queue);
 		vb2_buffer_done(&buf->vb.vb2_buf, VB2_BUF_STATE_ERROR);
 	}
-
 	if (params_vdev->cur_buf) {
 		buf = params_vdev->cur_buf;
 		vb2_buffer_done(&buf->vb.vb2_buf, VB2_BUF_STATE_ERROR);
 		params_vdev->cur_buf = NULL;
 	}
+	spin_unlock_irqrestore(&params_vdev->config_lock, flags);
 
 	if (dev->is_pre_on) {
 		params_vdev->first_cfg_params = true;
@@ -368,15 +377,16 @@ void rkisp_params_cfg(struct rkisp_isp_params_vdev *params_vdev, u32 frame_id)
 		params_vdev->ops->param_cfg(params_vdev, frame_id, RKISP_PARAMS_IMD);
 }
 
-void rkisp_params_cfgsram(struct rkisp_isp_params_vdev *params_vdev)
+void rkisp_params_cfgsram(struct rkisp_isp_params_vdev *params_vdev, bool is_check)
 {
-	if (params_vdev->dev->procfs.mode & RKISP_PROCFS_FIL_SW)
-		return;
+	if (is_check) {
+		if (params_vdev->dev->procfs.mode & RKISP_PROCFS_FIL_SW)
+			return;
 
-	/* multi device to switch sram config */
-	if (params_vdev->dev->hw_dev->is_single)
-		return;
-
+		/* multi device to switch sram config */
+		if (params_vdev->dev->hw_dev->is_single)
+			return;
+	}
 	if (params_vdev->ops->param_cfgsram)
 		params_vdev->ops->param_cfgsram(params_vdev);
 }
@@ -455,6 +465,7 @@ void rkisp_params_stream_stop(struct rkisp_isp_params_vdev *params_vdev)
 		params_vdev->ops->stream_stop(params_vdev);
 	if (params_vdev->ops->fop_release)
 		params_vdev->ops->fop_release(params_vdev);
+	params_vdev->first_cfg_params = false;
 }
 
 bool rkisp_params_check_bigmode(struct rkisp_isp_params_vdev *params_vdev)

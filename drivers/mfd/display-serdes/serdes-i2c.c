@@ -9,6 +9,8 @@
 
 #include "core.h"
 
+static struct serdes *g_serdes_ser_split[MAX_NUM_SERDES_SPLIT];
+
 int serdes_i2c_set_sequence(struct serdes *serdes)
 {
 	struct device *dev = serdes->dev;
@@ -52,6 +54,42 @@ int serdes_i2c_set_sequence(struct serdes *serdes)
 	return ret;
 }
 EXPORT_SYMBOL_GPL(serdes_i2c_set_sequence);
+
+static int serdes_set_i2c_address(struct serdes *serdes, u32 reg_hw, u32 reg_use, int link)
+{
+	int ret = 0;
+	struct i2c_client *client_split;
+	struct serdes *serdes_split = serdes->g_serdes_bridge_split;
+
+	if (!serdes_split) {
+		pr_info("%s: serdes_split is null\n", __func__);
+		return -1;
+	}
+
+	client_split = to_i2c_client(serdes->regmap->dev);
+	SERDES_DBG_MFD("%s: %s-%s addr=0x%x reg_hw=0x%x, reg_use=0x%x serdes_split=0x%p\n",
+		       __func__, dev_name(serdes_split->dev), client_split->name,
+		       client_split->addr, serdes->reg_hw, serdes->reg_use, serdes_split);
+
+	client_split->addr = serdes->reg_hw;
+
+	if (serdes_split && serdes_split->chip_data->split_ops &&
+	    serdes_split->chip_data->split_ops->select)
+		ret = serdes_split->chip_data->split_ops->select(serdes_split, link);
+
+	if (serdes->chip_data->split_ops && serdes->chip_data->split_ops->set_i2c_addr)
+		serdes->chip_data->split_ops->set_i2c_addr(serdes, reg_use, link);
+
+	if (serdes_split && serdes_split->chip_data->split_ops &&
+	    serdes_split->chip_data->split_ops->select)
+		ret = serdes_split->chip_data->split_ops->select(serdes_split, SER_SPLITTER_MODE);
+
+	client_split->addr = serdes->reg_use;
+
+	serdes_i2c_set_sequence(serdes);
+
+	return ret;
+}
 
 static void serdes_mfd_work(struct work_struct *work)
 {
@@ -125,8 +163,11 @@ static int serdes_get_init_seq(struct serdes *serdes)
 
 	/* init ser register(not des register) more early if uboot logo disabled */
 	serdes->route_enable = of_property_read_bool(dev->of_node, "route-enable");
-	if ((!serdes->route_enable) && (serdes->chip_data->serdes_type == TYPE_SER))
+	if ((!serdes->route_enable) && (serdes->chip_data->serdes_type == TYPE_SER)) {
+		if (serdes->chip_data->chip_init)
+			serdes->chip_data->chip_init(serdes);
 		ret = serdes_i2c_set_sequence(serdes);
+	}
 
 	return ret;
 }
@@ -146,7 +187,8 @@ static int serdes_i2c_probe(struct i2c_client *client,
 	serdes->chip_data = (struct serdes_chip_data *)of_device_get_match_data(dev);
 	i2c_set_clientdata(client, serdes);
 
-	dev_info(dev, "serdes %s probe start\n", serdes->chip_data->name);
+	dev_info(dev, "serdes %s probe start, id=%d\n", serdes->chip_data->name,
+		 serdes->chip_data->serdes_id);
 
 	serdes->type = serdes->chip_data->serdes_type;
 	serdes->regmap = devm_regmap_init_i2c(client, serdes->chip_data->regmap_config);
@@ -171,7 +213,6 @@ static int serdes_i2c_probe(struct i2c_client *client,
 	if (IS_ERR(serdes->vpower)) {
 		if (PTR_ERR(serdes->vpower) != -ENODEV)
 			return PTR_ERR(serdes->vpower);
-		dev_info(dev, "no vpower regulator found\n");
 	}
 
 	if (!IS_ERR(serdes->vpower)) {
@@ -194,8 +235,7 @@ static int serdes_i2c_probe(struct i2c_client *client,
 
 	ret = serdes_get_init_seq(serdes);
 	if (ret)
-		return dev_err_probe(dev, ret,
-				     "failed to write serdes register with i2c\n");
+		dev_err(dev, "failed to write serdes register with i2c\n");
 
 	mutex_init(&serdes->io_lock);
 	dev_set_drvdata(serdes->dev, serdes);
@@ -203,6 +243,31 @@ static int serdes_i2c_probe(struct i2c_client *client,
 	if (ret != 0) {
 		serdes_irq_exit(serdes);
 		return ret;
+	}
+
+	of_property_read_u32(dev->of_node, "id-serdes-bridge-split",
+			     &serdes->id_serdes_bridge_split);
+	if ((serdes->id_serdes_bridge_split < MAX_NUM_SERDES_SPLIT) && (serdes->type == TYPE_SER)) {
+		g_serdes_ser_split[serdes->id_serdes_bridge_split] = serdes;
+		SERDES_DBG_MFD("%s: %s-%s g_serdes_split[%d]=0x%p\n", __func__,
+			       dev_name(serdes->dev), serdes->chip_data->name,
+			       serdes->id_serdes_bridge_split, serdes);
+	}
+
+	of_property_read_u32(dev->of_node, "reg-hw", &serdes->reg_hw);
+	of_property_read_u32(dev->of_node, "reg", &serdes->reg_use);
+	of_property_read_u32(dev->of_node, "link", &serdes->link_use);
+	of_property_read_u32(dev->of_node, "id-serdes-panel-split", &serdes->id_serdes_panel_split);
+	if ((serdes->id_serdes_panel_split) && (serdes->type == TYPE_DES)) {
+		serdes->g_serdes_bridge_split = g_serdes_ser_split[serdes->id_serdes_panel_split];
+		SERDES_DBG_MFD("%s: id=%d p=0x%p\n", __func__,
+			       serdes->id_serdes_panel_split, serdes->g_serdes_bridge_split);
+	}
+
+	if (serdes->reg_hw) {
+		SERDES_DBG_MFD("%s: %s start change i2c address from 0x%x to 0x%x\n",
+			       __func__, dev->of_node->name, serdes->reg_hw, serdes->reg_use);
+		serdes_set_i2c_address(serdes, serdes->reg_hw, serdes->reg_use, serdes->link_use);
 	}
 
 	serdes->use_delay_work = of_property_read_bool(dev->of_node, "use-delay-work");
@@ -215,14 +280,22 @@ static int serdes_i2c_probe(struct i2c_client *client,
 		queue_delayed_work(serdes->mfd_wq, &serdes->mfd_delay_work, msecs_to_jiffies(300));
 		SERDES_DBG_MFD("%s: use_delay_work=%d\n", __func__, serdes->use_delay_work);
 	} else {
-		ret = serdes_device_init(serdes);
+		serdes_device_init(serdes);
 		SERDES_DBG_MFD("%s: use_delay_work=%d\n", __func__, serdes->use_delay_work);
 	}
 
 	dev_info(dev, "serdes %s serdes_i2c_probe successful version %s\n",
 		 serdes->chip_data->name, MFD_SERDES_DISPLAY_VERSION);
 
-	return ret;
+	return 0;
+}
+
+static void serdes_i2c_shutdown(struct i2c_client *client)
+{
+	struct device *dev = &client->dev;
+	struct serdes *serdes = dev_get_drvdata(dev);
+
+	serdes_device_shutdown(serdes);
 }
 
 static int serdes_i2c_prepare(struct device *dev)
@@ -266,7 +339,7 @@ static int serdes_i2c_poweroff(struct device *dev)
 {
 	struct serdes *serdes = dev_get_drvdata(dev);
 
-	serdes_device_shutdown(serdes);
+	serdes_device_poweroff(serdes);
 
 	return 0;
 }
@@ -289,6 +362,9 @@ static const struct of_device_id serdes_of_match[] = {
 #endif
 #if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_MAXIM_MAX96772)
 	{ .compatible = "maxim,max96772", .data = &serdes_max96772_data },
+#endif
+#if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_MAXIM_MAX96789)
+	{ .compatible = "maxim,max96789", .data = &serdes_max96789_data },
 #endif
 #if IS_ENABLED(CONFIG_SERDES_DISPLAY_CHIP_ROCKCHIP_RKX111)
 	{ .compatible = "rockchip,rkx111", .data = &serdes_rkx111_data },
@@ -317,6 +393,7 @@ static struct i2c_driver serdes_i2c_driver = {
 		.of_match_table = of_match_ptr(serdes_of_match),
 	},
 	.probe = serdes_i2c_probe,
+	.shutdown = serdes_i2c_shutdown,
 };
 
 static int __init serdes_i2c_init(void)
