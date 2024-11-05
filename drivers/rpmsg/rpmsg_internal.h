@@ -50,6 +50,7 @@ struct rpmsg_device_ops {
  * @poll:		see @rpmsg_poll(), optional
  * @get_signals:	see @rpmsg_get_signals(), optional
  * @set_signals:	see @rpmsg_set_signals(), optional
+ * @get_mtu:		see @rpmsg_get_mtu(), optional
  *
  * Indirection table for the operations that a rpmsg backend should implement.
  * In addition to @destroy_ept, the backend must at least implement @send and
@@ -71,6 +72,9 @@ struct rpmsg_endpoint_ops {
 			     poll_table *wait);
 	int (*get_signals)(struct rpmsg_endpoint *ept);
 	int (*set_signals)(struct rpmsg_endpoint *ept, u32 set, u32 clear);
+#ifdef CONFIG_NO_GKI
+	ssize_t (*get_mtu)(struct rpmsg_endpoint *ept);
+#endif
 };
 
 int rpmsg_register_device(struct rpmsg_device *rpdev);
@@ -89,10 +93,7 @@ struct device *rpmsg_find_device(struct device *parent,
  */
 static inline int rpmsg_chrdev_register_device(struct rpmsg_device *rpdev)
 {
-	strcpy(rpdev->id.name, "rpmsg_chrdev");
-	rpdev->driver_override = "rpmsg_chrdev";
-
-	return rpmsg_register_device(rpdev);
+	return rpmsg_register_device_override(rpdev, "rpmsg_ctrl");
 }
 
 #endif

@@ -121,7 +121,7 @@ static const char *MAX96745_UART_groups[] = { "MAX96745_UART" };
 
 #define FUNCTION_DESC_GPIO_OUTPUT_A(id) \
 { \
-	.name = "DES_GPIO"#id"_OUTPUT_A", \
+	.name = "SER_TXID"#id"_TO_DES_LINKA", \
 	.group_names = serdes_gpio_groups, \
 	.num_group_names = ARRAY_SIZE(serdes_gpio_groups), \
 	.data = (void *)(const struct serdes_function_data []) { \
@@ -132,7 +132,7 @@ static const char *MAX96745_UART_groups[] = { "MAX96745_UART" };
 
 #define FUNCTION_DESC_GPIO_OUTPUT_B(id) \
 { \
-	.name = "DES_GPIO"#id"_OUTPUT_B", \
+	.name = "SER_TXID"#id"_TO_DES_LINKB", \
 	.group_names = serdes_gpio_groups, \
 	.num_group_names = ARRAY_SIZE(serdes_gpio_groups), \
 	.data = (void *)(const struct serdes_function_data []) { \
@@ -143,7 +143,7 @@ static const char *MAX96745_UART_groups[] = { "MAX96745_UART" };
 
 #define FUNCTION_DESC_GPIO_INPUT_A(id) \
 { \
-	.name = "DES_GPIO"#id"_INPUT_A", \
+	.name = "DES_RXID"#id"_TO_SER_LINKA", \
 	.group_names = serdes_gpio_groups, \
 	.num_group_names = ARRAY_SIZE(serdes_gpio_groups), \
 	.data = (void *)(const struct serdes_function_data []) { \
@@ -153,7 +153,7 @@ static const char *MAX96745_UART_groups[] = { "MAX96745_UART" };
 
 #define FUNCTION_DESC_GPIO_INPUT_B(id) \
 { \
-	.name = "DES_GPIO"#id"_INPUT_B", \
+	.name = "DES_RXID"#id"_TO_SER_LINKB", \
 	.group_names = serdes_gpio_groups, \
 	.num_group_names = ARRAY_SIZE(serdes_gpio_groups), \
 	.data = (void *)(const struct serdes_function_data []) { \
@@ -377,12 +377,26 @@ static struct serdes_chip_pinctrl_info max96745_pinctrl_info = {
 static bool max96745_vid_tx_active(struct serdes *serdes)
 {
 	u32 val;
+	int i = 0, ret = 0;
 
-	if (serdes_reg_read(serdes, 0x0107, &val))
-		return false;
+	for (i = 0; i < 5; i++) {
+		ret = serdes_reg_read(serdes, 0x0107, &val);
+		if (!ret)
+			break;
 
-	if (!FIELD_GET(VID_TX_ACTIVE_A | VID_TX_ACTIVE_B, val))
+		SERDES_DBG_CHIP("serdes %s: false val=%d i=%d ret=%d\n", __func__, val, i, ret);
+		msleep(20);
+	}
+
+	if (ret) {
+		SERDES_DBG_CHIP("serdes %s: false val=%d ret=%d\n", __func__, val, ret);
 		return false;
+	}
+
+	if (!FIELD_GET(VID_TX_ACTIVE_A | VID_TX_ACTIVE_B, val)) {
+		SERDES_DBG_CHIP("serdes %s: false val=%d\n", __func__, val);
+		return false;
+	}
 
 	return true;
 }
@@ -391,9 +405,9 @@ static int max96745_bridge_init(struct serdes *serdes)
 {
 	if (max96745_vid_tx_active(serdes)) {
 		extcon_set_state(serdes->extcon, EXTCON_JACK_VIDEO_OUT, true);
-		pr_info("%s, extcon is true\n", __func__);
+		pr_info("serdes %s, extcon is true state=%d\n", __func__, serdes->extcon->state);
 	} else {
-		pr_info("%s, extcon is false\n", __func__);
+		pr_info("serdes %s, extcon is false\n", __func__);
 	}
 
 	return 0;
@@ -403,14 +417,21 @@ static bool max96745_bridge_link_locked(struct serdes *serdes)
 {
 	u32 val;
 
-	if (serdes->lock_gpio)
-		return gpiod_get_value_cansleep(serdes->lock_gpio);
+	if (serdes->lock_gpio) {
+		val = gpiod_get_value_cansleep(serdes->lock_gpio);
+		SERDES_DBG_CHIP("serdes %s:val=%d\n", __func__, val);
+		return val;
+	}
 
-	if (serdes_reg_read(serdes, 0x002a, &val))
+	if (serdes_reg_read(serdes, 0x002a, &val)) {
+		SERDES_DBG_CHIP("serdes %s: false val=%d\n", __func__, val);
 		return false;
+	}
 
-	if (!FIELD_GET(LINK_LOCKED, val))
+	if (!FIELD_GET(LOCKED, val)) {
+		SERDES_DBG_CHIP("serdes %s: false val=%d\n", __func__, val);
 		return false;
+	}
 
 	return true;
 }
@@ -444,11 +465,13 @@ max96745_bridge_detect(struct serdes *serdes)
 
 		if (atomic_cmpxchg(&serdes_bridge->triggered, 1, 0)) {
 			status = connector_status_disconnected;
+			SERDES_DBG_CHIP("1 status=%d state=%d\n", status, serdes->extcon->state);
 			goto out;
 		}
 
 		if (serdes_reg_read(serdes, 0x641a, &dprx_trn_status2)) {
 			status = connector_status_disconnected;
+			SERDES_DBG_CHIP("2 status=%d state=%d\n", status, serdes->extcon->state);
 			goto out;
 		}
 
@@ -456,15 +479,20 @@ max96745_bridge_detect(struct serdes *serdes)
 			dev_err(serdes->dev, "Training State: 0x%lx\n",
 				FIELD_GET(DPRX_TRAIN_STATE, dprx_trn_status2));
 			status = connector_status_disconnected;
+			SERDES_DBG_CHIP("3 status=%d state=%d\n", status, serdes->extcon->state);
 			goto out;
 		}
 	} else {
 		atomic_set(&serdes_bridge->triggered, 0);
+		SERDES_DBG_CHIP("4 status=%d state=%d\n", status, serdes->extcon->state);
 	}
+
+	if (serdes_bridge->next_bridge && (serdes_bridge->next_bridge->ops & DRM_BRIDGE_OP_DETECT))
+		return drm_bridge_detect(serdes_bridge->next_bridge);
 
 out:
 	serdes_bridge->status = status;
-	SERDES_DBG_MFD("%s: status=%d\n", __func__, status);
+	SERDES_DBG_CHIP("5 status=%d state=%d\n", status, serdes->extcon->state);
 	return status;
 }
 
@@ -472,7 +500,8 @@ static int max96745_bridge_enable(struct serdes *serdes)
 {
 	int ret = 0;
 
-	SERDES_DBG_CHIP("%s: serdes chip %s ret=%d\n", __func__, serdes->chip_data->name, ret);
+	SERDES_DBG_CHIP("%s: serdes chip %s ret=%d state=%d\n",
+				__func__, serdes->chip_data->name, ret, serdes->extcon->state);
 	return ret;
 }
 
@@ -490,6 +519,59 @@ static struct serdes_chip_bridge_ops max96745_bridge_ops = {
 	.enable = max96745_bridge_enable,
 	.disable = max96745_bridge_disable,
 };
+
+static int max96745_pinctrl_set_mux(struct serdes *serdes,
+				    unsigned int function, unsigned int group)
+{
+	struct serdes_pinctrl *pinctrl = serdes->pinctrl;
+	struct function_desc *func;
+	struct group_desc *grp;
+	int i;
+
+	func = pinmux_generic_get_function(pinctrl->pctl, function);
+	if (!func)
+		return -EINVAL;
+
+	grp = pinctrl_generic_get_group(pinctrl->pctl, group);
+	if (!grp)
+		return -EINVAL;
+
+	SERDES_DBG_CHIP("%s: serdes chip %s func=%s data=%p group=%s data=%p, num_pin=%d\n",
+			__func__, serdes->chip_data->name,
+			func->name, func->data, grp->name, grp->data, grp->num_pins);
+
+	if (func->data) {
+		struct serdes_function_data *data = func->data;
+
+		for (i = 0; i < grp->num_pins; i++) {
+			serdes_set_bits(serdes,
+					GPIO_A_REG(grp->pins[i] - pinctrl->pin_base),
+					GPIO_OUT_DIS,
+					FIELD_PREP(GPIO_OUT_DIS, data->gpio_out_dis));
+			if (data->gpio_tx_en_a || data->gpio_tx_en_b)
+				serdes_set_bits(serdes,
+						GPIO_B_REG(grp->pins[i] - pinctrl->pin_base),
+						GPIO_TX_ID,
+						FIELD_PREP(GPIO_TX_ID, data->gpio_tx_id));
+			if (data->gpio_rx_en_a || data->gpio_rx_en_b)
+				serdes_set_bits(serdes,
+						GPIO_C_REG(grp->pins[i] - pinctrl->pin_base),
+						GPIO_RX_ID,
+						FIELD_PREP(GPIO_RX_ID, data->gpio_rx_id));
+			serdes_set_bits(serdes,
+					GPIO_D_REG(grp->pins[i] - pinctrl->pin_base),
+					GPIO_TX_EN_A | GPIO_TX_EN_B | GPIO_IO_RX_EN |
+					GPIO_RX_EN_A | GPIO_RX_EN_B,
+					FIELD_PREP(GPIO_TX_EN_A, data->gpio_tx_en_a) |
+					FIELD_PREP(GPIO_TX_EN_B, data->gpio_tx_en_b) |
+					FIELD_PREP(GPIO_RX_EN_A, data->gpio_rx_en_a) |
+					FIELD_PREP(GPIO_RX_EN_B, data->gpio_rx_en_b) |
+					FIELD_PREP(GPIO_IO_RX_EN, data->gpio_io_rx_en));
+		}
+	}
+
+	return 0;
+}
 
 static int max96745_pinctrl_config_get(struct serdes *serdes,
 				       unsigned int pin, unsigned long *config)
@@ -635,59 +717,6 @@ static int max96745_pinctrl_config_set(struct serdes *serdes,
 	return 0;
 }
 
-static int max96745_pinctrl_set_mux(struct serdes *serdes,
-				    unsigned int function, unsigned int group)
-{
-	struct serdes_pinctrl *pinctrl = serdes->pinctrl;
-	struct function_desc *func;
-	struct group_desc *grp;
-	int i;
-
-	func = pinmux_generic_get_function(pinctrl->pctl, function);
-	if (!func)
-		return -EINVAL;
-
-	grp = pinctrl_generic_get_group(pinctrl->pctl, group);
-	if (!grp)
-		return -EINVAL;
-
-	SERDES_DBG_CHIP("%s: serdes chip %s func=%s data=%p group=%s data=%p, num_pin=%d\n",
-			__func__, serdes->chip_data->name,
-			func->name, func->data, grp->name, grp->data, grp->num_pins);
-
-	if (func->data) {
-		struct serdes_function_data *data = func->data;
-
-		for (i = 0; i < grp->num_pins; i++) {
-			serdes_set_bits(serdes,
-					GPIO_A_REG(grp->pins[i] - pinctrl->pin_base),
-					GPIO_OUT_DIS,
-					FIELD_PREP(GPIO_OUT_DIS, data->gpio_out_dis));
-			if (data->gpio_tx_en_a || data->gpio_tx_en_b)
-				serdes_set_bits(serdes,
-						GPIO_B_REG(grp->pins[i] - pinctrl->pin_base),
-						GPIO_TX_ID,
-						FIELD_PREP(GPIO_TX_ID, data->gpio_tx_id));
-			if (data->gpio_rx_en_a || data->gpio_rx_en_b)
-				serdes_set_bits(serdes,
-						GPIO_C_REG(grp->pins[i] - pinctrl->pin_base),
-						GPIO_RX_ID,
-						FIELD_PREP(GPIO_RX_ID, data->gpio_rx_id));
-			serdes_set_bits(serdes,
-					GPIO_D_REG(grp->pins[i] - pinctrl->pin_base),
-					GPIO_TX_EN_A | GPIO_TX_EN_B | GPIO_IO_RX_EN |
-					GPIO_RX_EN_A | GPIO_RX_EN_B,
-					FIELD_PREP(GPIO_TX_EN_A, data->gpio_tx_en_a) |
-					FIELD_PREP(GPIO_TX_EN_B, data->gpio_tx_en_b) |
-					FIELD_PREP(GPIO_RX_EN_A, data->gpio_rx_en_a) |
-					FIELD_PREP(GPIO_RX_EN_B, data->gpio_rx_en_b) |
-					FIELD_PREP(GPIO_IO_RX_EN, data->gpio_io_rx_en));
-		}
-	}
-
-	return 0;
-}
-
 static struct serdes_chip_pinctrl_ops max96745_pinctrl_ops = {
 	.pin_config_get = max96745_pinctrl_config_get,
 	.pin_config_set = max96745_pinctrl_config_set,
@@ -733,6 +762,84 @@ static struct serdes_chip_gpio_ops max96745_gpio_ops = {
 	.to_irq = max96745_gpio_to_irq,
 };
 
+static int max96745_select(struct serdes *serdes, int chan)
+{
+	/*0076 for linkA and 0086 for linkB*/
+	if (chan == DUAL_LINK) {
+		serdes_set_bits(serdes, 0x0076, DIS_REM_CC,
+				   FIELD_PREP(DIS_REM_CC, 0));
+		serdes_set_bits(serdes, 0x0086, DIS_REM_CC,
+				   FIELD_PREP(DIS_REM_CC, 0));
+		SERDES_DBG_CHIP("%s: enable %s remote i2c of linkA and linkB\n", __func__,
+				serdes->chip_data->name);
+	} else if (chan == LINKA) {
+		serdes_set_bits(serdes, 0x0076, DIS_REM_CC,
+				   FIELD_PREP(DIS_REM_CC, 0));
+		serdes_set_bits(serdes, 0x0086, DIS_REM_CC,
+				   FIELD_PREP(DIS_REM_CC, 1));
+		SERDES_DBG_CHIP("%s: only enable %s remote i2c of linkA\n", __func__,
+				serdes->chip_data->name);
+	} else if (chan == LINKB) {
+		serdes_set_bits(serdes, 0x0076, DIS_REM_CC,
+				   FIELD_PREP(DIS_REM_CC, 1));
+		serdes_set_bits(serdes, 0x0086, DIS_REM_CC,
+				   FIELD_PREP(DIS_REM_CC, 0));
+		SERDES_DBG_CHIP("%s: only enable %s remote i2c of linkB\n", __func__,
+				serdes->chip_data->name);
+	} else if (chan == SPLITTER_MODE) {
+		serdes_set_bits(serdes, 0x0076, DIS_REM_CC,
+				   FIELD_PREP(DIS_REM_CC, 0));
+		serdes_set_bits(serdes, 0x0086, DIS_REM_CC,
+				   FIELD_PREP(DIS_REM_CC, 0));
+		SERDES_DBG_CHIP("%s: enable %s remote i2c of linkA and linkB\n", __func__,
+				serdes->chip_data->name);
+	}
+
+	return 0;
+}
+
+static int max96745_deselect(struct serdes *serdes, int chan)
+{
+
+	if (chan == DUAL_LINK) {
+		serdes_set_bits(serdes, 0x0076, DIS_REM_CC,
+				   FIELD_PREP(DIS_REM_CC, 1));
+		serdes_set_bits(serdes, 0x0086, DIS_REM_CC,
+				   FIELD_PREP(DIS_REM_CC, 1));
+		SERDES_DBG_CHIP("%s: disable %s remote i2c of linkA and linkB\n", __func__,
+				serdes->chip_data->name);
+	} else if (chan == LINKA) {
+		serdes_set_bits(serdes, 0x0076, DIS_REM_CC,
+				   FIELD_PREP(DIS_REM_CC, 1));
+		serdes_set_bits(serdes, 0x0086, DIS_REM_CC,
+				   FIELD_PREP(DIS_REM_CC, 0));
+		SERDES_DBG_CHIP("%s: only disable %s remote i2c of linkA\n", __func__,
+				serdes->chip_data->name);
+	} else if (chan == LINKB) {
+		serdes_set_bits(serdes, 0x0076, DIS_REM_CC,
+				   FIELD_PREP(DIS_REM_CC, 0));
+		serdes_set_bits(serdes, 0x0086, DIS_REM_CC,
+				   FIELD_PREP(DIS_REM_CC, 1));
+		SERDES_DBG_CHIP("%s: only disable %s remote i2c of linkB\n", __func__,
+				serdes->chip_data->name);
+	} else if (chan == SPLITTER_MODE) {
+		serdes_set_bits(serdes, 0x0076, DIS_REM_CC,
+				   FIELD_PREP(DIS_REM_CC, 1));
+		serdes_set_bits(serdes, 0x0086, DIS_REM_CC,
+				   FIELD_PREP(DIS_REM_CC, 1));
+		SERDES_DBG_CHIP("%s: disable %s remote i2c of linkA and linkB\n", __func__,
+				serdes->chip_data->name);
+	}
+
+	return 0;
+}
+
+
+static struct serdes_chip_split_ops max96745_split_ops = {
+	.select = max96745_select,
+	.deselect = max96745_deselect,
+};
+
 static int max96745_pm_suspend(struct serdes *serdes)
 {
 	return 0;
@@ -773,6 +880,7 @@ struct serdes_chip_data serdes_max96745_data = {
 	.bridge_ops	= &max96745_bridge_ops,
 	.pinctrl_ops	= &max96745_pinctrl_ops,
 	.gpio_ops	= &max96745_gpio_ops,
+	.split_ops	= &max96745_split_ops,
 	.pm_ops		= &max96745_pm_ops,
 	.irq_ops	= &max96745_irq_ops,
 };

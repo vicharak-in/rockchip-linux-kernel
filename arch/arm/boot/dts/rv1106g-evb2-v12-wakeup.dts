@@ -12,10 +12,6 @@
 	model = "Rockchip RV1106G EVB2 V12 Board";
 	compatible = "rockchip,rv1106g-evb2-v12-wakeup", "rockchip,rv1106";
 
-	chosen {
-		bootargs = "clk_gate.always_on=1";
-	};
-
 	reserved-memory {
 		#address-cells = <1>;
 		#size-cells = <1>;
@@ -25,31 +21,6 @@
 			reg = <0x40000 0x3c000>;
 		};
 
-		meta: meta@800000 {
-			/* reg's offset MUST match with RTOS */
-			reg = <0x00800000 0x60000>;
-		};
-
-		rkisp_thunderboot: rkisp@860000 {
-			/* reg's offset MUST match with RTOS */
-			/*
-			 * vicap, capture raw10, ceil(w*10/8/256)*256*h *4(buf num)
-			 * e.g. 1920x1080: 0xa8c000
-			 */
-			reg = <0x00860000 0xa8c000>;
-		};
-	};
-
-	thunder_boot_service: thunder-boot-service {
-		compatible = "rockchip,thunder-boot-service";
-		mbox-names = "amp-rx";
-		mboxes = <&mailbox 1>;
-		resets = <&cru SRST_CORE_MCU>, <&cru SRST_CORE_MCU_PWRUP>,
-			 <&cru SRST_CORE_MCU_CPU>, <&cru SRST_T_CORE_MCU_CPU>;
-		reset-names = "core_mcu", "core_mcu_pwrup",
-			      "core_mcu_cpu", "t_core_mcu_cpu";
-		memory-region = <&rtos>;
-		status = "disabled";
 	};
 
 	vcc_1v8: vcc-1v8 {
@@ -83,7 +54,7 @@
 	wireless_wlan: wireless-wlan {
 		compatible = "wlan-platdata";
 		WIFI,host_wake_irq = <&gpio1 RK_PB0 GPIO_ACTIVE_HIGH>;
-		status = "okay";
+		status = "disabled";
 	};
 
 	gpio-keys {
@@ -129,6 +100,12 @@
 			csi_dphy_input0: endpoint@0 {
 				reg = <0>;
 				remote-endpoint = <&sc3338_out>;
+				data-lanes = <1 2>;
+			};
+
+			csi_dphy_input1: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&sc200ai_out>;
 				data-lanes = <1 2>;
 			};
 		};
@@ -180,6 +157,28 @@
 			};
 		};
 	};
+
+	sc200ai: sc200ai@30 {
+		compatible = "smartsens,sc200ai";
+		status = "okay";
+		reg = <0x30>;
+		clocks = <&cru MCLK_REF_MIPI0>;
+		clock-names = "xvclk";
+		reset-gpios = <&gpio3 RK_PC5 GPIO_ACTIVE_HIGH>;
+		pwdn-gpios = <&gpio3 RK_PD2 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&mipi_refclk_out0>;
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "CMK-OT2115-PC1";
+		rockchip,camera-module-lens-name = "30IRC-F16";
+		port {
+			sc200ai_out: endpoint {
+				remote-endpoint = <&csi_dphy_input1>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
 };
 
 &mipi0_csi2 {
@@ -223,7 +222,6 @@
 
 &rkcif_mipi_lvds {
 	status = "okay";
-	//memory-region-thunderboot = <&rkisp_thunderboot>;
 
 	pinctrl-names = "default";
 	pinctrl-0 = <&mipi_pins>;
@@ -323,5 +321,9 @@
 };
 
 &usbdrd_dwc3 {
-	dr_mode = "peripheral";
+	dr_mode = "otg";
+};
+
+&acodec {
+	status = "disabled";
 };

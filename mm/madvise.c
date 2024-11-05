@@ -11,6 +11,7 @@
 #include <linux/syscalls.h>
 #include <linux/mempolicy.h>
 #include <linux/page-isolation.h>
+#include <linux/pgsize_migration.h>
 #include <linux/page_idle.h>
 #include <linux/userfaultfd_k.h>
 #include <linux/hugetlb.h>
@@ -171,7 +172,7 @@ success:
 	 * vm_flags is protected by the mmap_lock held in write mode.
 	 */
 	vm_write_begin(vma);
-	WRITE_ONCE(vma->vm_flags, new_flags);
+	WRITE_ONCE(vma->vm_flags, vma_pad_fixup_flags(vma, new_flags));
 	vm_write_end(vma);
 
 out_convert_errno:
@@ -322,8 +323,11 @@ static int madvise_cold_or_pageout_pte_range(pmd_t *pmd,
 	struct page *page = NULL;
 	LIST_HEAD(page_list);
 	bool allow_shared = false;
+	bool abort_madvise = false;
+	bool skip = false;
 
-	if (fatal_signal_pending(current))
+	trace_android_vh_madvise_cold_or_pageout_abort(vma, &abort_madvise);
+	if (fatal_signal_pending(current) || abort_madvise)
 		return -EINTR;
 
 	trace_android_vh_madvise_cold_or_pageout(vma, &allow_shared);
@@ -416,6 +420,10 @@ regular_page:
 		page = vm_normal_page(vma, addr, ptent);
 		if (!page)
 			continue;
+
+		trace_android_vh_should_end_madvise(mm, &skip, &pageout);
+		if (skip)
+			break;
 
 		/*
 		 * Creating a THP page is expensive so split it only if we
@@ -785,6 +793,8 @@ static int madvise_free_single_vma(struct vm_area_struct *vma,
 static long madvise_dontneed_single_vma(struct vm_area_struct *vma,
 					unsigned long start, unsigned long end)
 {
+	madvise_vma_pad_pages(vma, start, end);
+
 	zap_page_range(vma, start, end - start);
 	return 0;
 }

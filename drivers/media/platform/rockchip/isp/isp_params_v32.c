@@ -555,11 +555,11 @@ isp_lsc_matrix_cfg_sram(struct rkisp_isp_params_vdev *params_vdev,
 			bool is_check, u32 id)
 {
 	struct rkisp_device *dev = params_vdev->dev;
-	u32 sram_addr, data, table;
+	u32 data = isp3_param_read(params_vdev, ISP3X_LSC_CTRL, id);
+	u32 sram_addr, table;
 	int i, j;
 
-	if (is_check &&
-	    !(isp3_param_read(params_vdev, ISP3X_LSC_CTRL, id) & ISP_LSC_EN))
+	if (is_check && (data & ISP3X_LSC_LUT_EN || !(data & ISP_LSC_EN)))
 		return;
 
 	table = isp3_param_read_direct(params_vdev, ISP3X_LSC_STATUS);
@@ -643,12 +643,13 @@ isp_lsc_config(struct rkisp_isp_params_vdev *params_vdev,
 		 * readback mode lsc lut AHB config to sram, once for single device,
 		 * need record to switch for multi-device.
 		 */
-		if (!IS_HDR_RDBK(dev->rd_mode))
+		if (!IS_HDR_RDBK(dev->rd_mode)) {
 			isp_lsc_matrix_cfg_ddr(params_vdev, arg);
-		else if (dev->hw_dev->is_single)
-			isp_lsc_matrix_cfg_sram(params_vdev, arg, false, id);
-		else
+		} else {
+			if (dev->hw_dev->is_single)
+				isp_lsc_matrix_cfg_sram(params_vdev, arg, false, id);
 			params_rec->others.lsc_cfg = *arg;
+		}
 	} else {
 		/* two lsc sram table */
 		params_rec->others.lsc_cfg = *arg;
@@ -1435,6 +1436,12 @@ isp_rawaebig_config(struct rkisp_isp_params_vdev *params_vdev,
 	value &= ISP3X_RAWAE_BIG_EN;
 
 	wnd_num_idx = arg->wnd_num;
+	if (wnd_num_idx >= ARRAY_SIZE(ae_wnd_num)) {
+		wnd_num_idx = ARRAY_SIZE(ae_wnd_num) - 1;
+		dev_err(params_vdev->dev->dev,
+			"%s invalid wnd_num:%d, set to %d\n",
+			__func__, arg->wnd_num, wnd_num_idx);
+	}
 	value |= ISP3X_RAWAE_BIG_WND0_NUM(wnd_num_idx);
 
 	if (arg->subwin_en[0])
@@ -1576,20 +1583,19 @@ static void
 isp_rawawb_cfg_sram(struct rkisp_isp_params_vdev *params_vdev,
 		    const struct isp32_rawawb_meas_cfg *arg, bool is_check, u32 id)
 {
-	u32 i, val = ISP32_MODULE_EN;
+	u32 i, val = isp3_param_read(params_vdev, ISP3X_RAWAWB_CTRL, id);
 
-	if (params_vdev->dev->isp_ver == ISP_V32 && is_check &&
-	    !(isp3_param_read(params_vdev, ISP3X_RAWAWB_CTRL, id) & val))
+	if (params_vdev->dev->isp_ver != ISP_V32 ||
+	    (is_check && !(val & ISP32_MODULE_EN)))
 		return;
 
 	for (i = 0; i < ISP32_RAWAWB_WEIGHT_NUM / 5; i++) {
-		isp3_param_write_direct(params_vdev,
-					(arg->wp_blk_wei_w[5 * i] & 0x3f) |
-					(arg->wp_blk_wei_w[5 * i + 1] & 0x3f) << 6 |
-					(arg->wp_blk_wei_w[5 * i + 2] & 0x3f) << 12 |
-					(arg->wp_blk_wei_w[5 * i + 3] & 0x3f) << 18 |
-					(arg->wp_blk_wei_w[5 * i + 4] & 0x3f) << 24,
-					ISP3X_RAWAWB_WRAM_DATA_BASE);
+		val = (arg->wp_blk_wei_w[5 * i] & 0x3f) |
+		      (arg->wp_blk_wei_w[5 * i + 1] & 0x3f) << 6 |
+		      (arg->wp_blk_wei_w[5 * i + 2] & 0x3f) << 12 |
+		      (arg->wp_blk_wei_w[5 * i + 3] & 0x3f) << 18 |
+		      (arg->wp_blk_wei_w[5 * i + 4] & 0x3f) << 24;
+		isp3_param_write_direct(params_vdev, val, ISP3X_RAWAWB_WRAM_DATA_BASE);
 	}
 }
 
@@ -2255,9 +2261,7 @@ isp_rawawb_config(struct rkisp_isp_params_vdev *params_vdev,
 	if (params_vdev->dev->isp_ver == ISP_V32) {
 		if (params_vdev->dev->hw_dev->is_single)
 			isp_rawawb_cfg_sram(params_vdev, arg, false, id);
-		else
-			memcpy(arg_rec->wp_blk_wei_w, arg->wp_blk_wei_w,
-			       ISP32_RAWAWB_WEIGHT_NUM);
+		memcpy(arg_rec->wp_blk_wei_w, arg->wp_blk_wei_w, ISP32_RAWAWB_WEIGHT_NUM);
 	} else {
 		for (i = 0; i < ISP32L_RAWAWB_WEIGHT_NUM; i++)
 			isp3_param_write(params_vdev, arg->win_weight[i],
@@ -2415,6 +2419,12 @@ isp_rawhstbig_cfg_sram(struct rkisp_isp_params_vdev *params_vdev,
 		return;
 
 	wnd_num_idx = arg->wnd_num;
+	if (wnd_num_idx >= ARRAY_SIZE(hist_wnd_num)) {
+		wnd_num_idx = ARRAY_SIZE(hist_wnd_num) - 1;
+		dev_err(params_vdev->dev->dev,
+			"%s invalid wnd_num:%d, set to %d\n",
+			__func__, arg->wnd_num, wnd_num_idx);
+	}
 	memset(weight15x15, 0, sizeof(weight15x15));
 	for (i = 0; i < hist_wnd_num[wnd_num_idx]; i++) {
 		for (j = 0; j < hist_wnd_num[wnd_num_idx]; j++) {
@@ -2465,6 +2475,12 @@ isp_rawhstbig_config(struct rkisp_isp_params_vdev *params_vdev,
 	}
 
 	wnd_num_idx = arg->wnd_num;
+	if (wnd_num_idx >= ARRAY_SIZE(hist_wnd_num)) {
+		wnd_num_idx = ARRAY_SIZE(hist_wnd_num) - 1;
+		dev_err(params_vdev->dev->dev,
+			"%s invalid wnd_num:%d, set to %d\n",
+			__func__, arg->wnd_num, wnd_num_idx);
+	}
 	/* avoid to override the old enable value */
 	hist_ctrl = isp3_param_read(params_vdev, addr + ISP3X_RAWHIST_BIG_CTRL, id);
 	hist_ctrl &= ISP3X_RAWHIST_EN;
@@ -2503,8 +2519,7 @@ isp_rawhstbig_config(struct rkisp_isp_params_vdev *params_vdev,
 
 	if (dev->hw_dev->is_single)
 		isp_rawhstbig_cfg_sram(params_vdev, arg, blk_no, false, id);
-	else
-		*arg_rec = *arg;
+	*arg_rec = *arg;
 }
 
 static void
@@ -4269,8 +4284,6 @@ void __isp_isr_meas_config(struct rkisp_isp_params_vdev *params_vdev,
 {
 	struct rkisp_isp_params_ops_v32 *ops =
 		(struct rkisp_isp_params_ops_v32 *)params_vdev->priv_ops;
-	struct rkisp_isp_params_val_v32 *priv_val =
-		(struct rkisp_isp_params_val_v32 *)params_vdev->priv_val;
 	u64 module_cfg_update = new_params->module_cfg_update;
 
 	params_vdev->cur_frame_id = new_params->frame_id;
@@ -4314,9 +4327,7 @@ void __isp_isr_meas_config(struct rkisp_isp_params_vdev *params_vdev,
 	if ((module_cfg_update & ISP32_MODULE_RAWHIST3))
 		ops->rawhst3_config(params_vdev, &new_params->meas.rawhist3, id);
 
-	if ((module_cfg_update & ISP32_MODULE_RAWAWB) ||
-	    ((priv_val->buf_info_owner == RKISP_INFO2DRR_OWNER_AWB) &&
-	     !(isp3_param_read(params_vdev, ISP3X_RAWAWB_CTRL, id) & ISP32_RAWAWB_2DDR_PATH_EN)))
+	if ((module_cfg_update & ISP32_MODULE_RAWAWB))
 		ops->rawawb_config(params_vdev, &new_params->meas.rawawb, id);
 }
 
@@ -5399,18 +5410,18 @@ rkisp_params_cfg_v32(struct rkisp_isp_params_vdev *params_vdev,
 			else if (new_params->module_en_update ||
 				 (new_params->module_cfg_update & ISP32_MODULE_FORCE)) {
 				/* update en immediately */
-				__isp_isr_meas_config(params_vdev, new_params, type, 0);
-				__isp_isr_other_config(params_vdev, new_params, type, 0);
-				__isp_isr_other_en(params_vdev, new_params, type, 0);
-				__isp_isr_meas_en(params_vdev, new_params, type, 0);
+				__isp_isr_meas_config(params_vdev, new_params, RKISP_PARAMS_ALL, 0);
+				__isp_isr_other_config(params_vdev, new_params, RKISP_PARAMS_ALL, 0);
+				__isp_isr_other_en(params_vdev, new_params, RKISP_PARAMS_ALL, 0);
+				__isp_isr_meas_en(params_vdev, new_params, RKISP_PARAMS_ALL, 0);
 				new_params->module_cfg_update = 0;
 				if (hw->unite) {
 					struct isp32_isp_params_cfg *params = new_params + 1;
 
-					__isp_isr_meas_config(params_vdev, params, type, 1);
-					__isp_isr_other_config(params_vdev, params, type, 1);
-					__isp_isr_other_en(params_vdev, params, type, 1);
-					__isp_isr_meas_en(params_vdev, params, type, 1);
+					__isp_isr_meas_config(params_vdev, params, RKISP_PARAMS_ALL, 1);
+					__isp_isr_other_config(params_vdev, params, RKISP_PARAMS_ALL, 1);
+					__isp_isr_other_en(params_vdev, params, RKISP_PARAMS_ALL, 1);
+					__isp_isr_meas_en(params_vdev, params, RKISP_PARAMS_ALL, 1);
 					params->module_cfg_update = 0;
 				}
 			}

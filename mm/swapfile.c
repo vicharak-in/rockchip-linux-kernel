@@ -668,12 +668,19 @@ static void __del_from_avail_list(struct swap_info_struct *p)
 {
 	int nid;
 
+	assert_spin_locked(&p->lock);
 	for_each_node(nid)
 		plist_del(&p->avail_lists[nid], &swap_avail_heads[nid]);
 }
 
 static void del_from_avail_list(struct swap_info_struct *p)
 {
+	bool skip = false;
+
+	trace_android_vh_del_from_avail_list(p, &skip);
+	if (skip)
+		return;
+
 	spin_lock(&swap_avail_lock);
 	__del_from_avail_list(p);
 	spin_unlock(&swap_avail_lock);
@@ -699,6 +706,11 @@ static void swap_range_alloc(struct swap_info_struct *si, unsigned long offset,
 static void add_to_avail_list(struct swap_info_struct *p)
 {
 	int nid;
+	bool skip = false;
+
+	trace_android_vh_add_to_avail_list(p, &skip);
+	if (skip)
+		return;
 
 	spin_lock(&swap_avail_lock);
 	for_each_node(nid) {
@@ -1111,6 +1123,7 @@ start_over:
 			goto check_out;
 		pr_debug("scan_swap_map of si %d failed to find offset\n",
 			si->type);
+		cond_resched();
 
 		spin_lock(&swap_avail_lock);
 nextsi:
@@ -1279,6 +1292,11 @@ static unsigned char __swap_entry_free_locked(struct swap_info_struct *p,
 }
 
 /*
+ * Note that when only holding the PTL, swapoff might succeed immediately
+ * after freeing a swap entry. Therefore, immediately after
+ * __swap_entry_free(), the swap info might become stale and should not
+ * be touched without a prior get_swap_device().
+ *
  * Check whether swap entry is valid in the swap device.  If so,
  * return pointer to swap_info_struct, and keep the swap entry valid
  * via preventing the swap device from being swapoff, until
@@ -1806,13 +1824,19 @@ int free_swap_and_cache(swp_entry_t entry)
 	if (non_swap_entry(entry))
 		return 1;
 
-	p = _swap_info_get(entry);
+	p = get_swap_device(entry);
 	if (p) {
+		if (WARN_ON(data_race(!p->swap_map[swp_offset(entry)]))) {
+			put_swap_device(p);
+			return 0;
+		}
+
 		count = __swap_entry_free(p, entry);
 		if (count == SWAP_HAS_CACHE &&
 		    !swap_page_trans_huge_swapped(p, entry))
 			__try_to_reclaim_swap(p, swp_offset(entry),
 					      TTRS_UNMAPPED | TTRS_FULL);
+		put_swap_device(p);
 	}
 	return p != NULL;
 }
@@ -2629,8 +2653,8 @@ SYSCALL_DEFINE1(swapoff, const char __user *, specialfile)
 		spin_unlock(&swap_lock);
 		goto out_dput;
 	}
-	del_from_avail_list(p);
 	spin_lock(&p->lock);
+	del_from_avail_list(p);
 	if (p->prio < 0) {
 		struct swap_info_struct *si = p;
 		int nid;
@@ -3392,6 +3416,8 @@ SYSCALL_DEFINE2(swapon, const char __user *, specialfile, int, swap_flags)
 	if (swap_flags & SWAP_FLAG_PREFER)
 		prio =
 		  (swap_flags & SWAP_FLAG_PRIO_MASK) >> SWAP_FLAG_PRIO_SHIFT;
+
+	trace_android_vh_swap_avail_heads_init(swap_avail_heads);
 	enable_swap_info(p, prio, swap_map, cluster_info, frontswap_map);
 
 	trace_android_vh_init_swap_info_struct(p, swap_avail_heads);
@@ -3846,6 +3872,7 @@ void __cgroup_throttle_swaprate(struct page *page, gfp_t gfp_mask)
 {
 	struct swap_info_struct *si, *next;
 	int nid = page_to_nid(page);
+	bool skip = false;
 
 	if (!(gfp_mask & __GFP_IO))
 		return;
@@ -3858,6 +3885,10 @@ void __cgroup_throttle_swaprate(struct page *page, gfp_t gfp_mask)
 	 * lock.
 	 */
 	if (current->throttle_queue)
+		return;
+
+	trace_android_vh___cgroup_throttle_swaprate(nid, &skip);
+	if (skip)
 		return;
 
 	spin_lock(&swap_avail_lock);

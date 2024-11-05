@@ -977,6 +977,15 @@ static int mi_frame_end(struct rkisp_stream *stream, u32 state)
 		struct vb2_buffer *vb2_buf = &buf->vb.vb2_buf;
 		u64 ns = 0;
 
+		if (stream->skip_frame) {
+			spin_lock_irqsave(&stream->vbq_lock, lock_flags);
+			list_add_tail(&buf->queue, &stream->buf_queue);
+			spin_unlock_irqrestore(&stream->vbq_lock, lock_flags);
+			if (stream->skip_frame)
+				stream->skip_frame--;
+			goto end;
+		}
+
 		/* Dequeue a filled buffer */
 		for (i = 0; i < isp_fmt->mplanes; i++) {
 			u32 payload_size = stream->out_fmt.plane_fmt[i].sizeimage;
@@ -987,10 +996,10 @@ static int mi_frame_end(struct rkisp_stream *stream, u32 state)
 		rkisp_dmarx_get_frame(dev, &i, NULL, &ns, true);
 		buf->vb.sequence = i;
 		if (!ns)
-			ns = ktime_get_ns();
+			ns = rkisp_time_get_ns(dev);
 		vb2_buf->timestamp = ns;
 
-		ns = ktime_get_ns();
+		ns = rkisp_time_get_ns(dev);
 		stream->dbg.interval = ns - stream->dbg.timestamp;
 		stream->dbg.timestamp = ns;
 		stream->dbg.id = buf->vb.sequence;
@@ -1097,7 +1106,7 @@ static int rkisp_start(struct rkisp_stream *stream)
 
 	stream->ops->enable_mi(stream);
 	stream->streaming = true;
-
+	stream->skip_frame = 0;
 	return 0;
 }
 
