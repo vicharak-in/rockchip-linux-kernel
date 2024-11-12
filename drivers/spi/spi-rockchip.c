@@ -478,8 +478,8 @@ static u32 rockchip_spi_calc_burst_size(u32 data_len)
 {
 	u32 i;
 
-	/* burst size: 1, 2, 4, 8 */
-	for (i = 1; i < 8; i <<= 1) {
+	/* burst size: 1, 2, 4, 8, 16 */
+	for (i = 1; i < 16; i <<= 1) {
 		if (data_len & i)
 			break;
 	}
@@ -906,6 +906,8 @@ static int rockchip_spi_setup(struct spi_device *spi)
 	cr0 |= ((spi->mode & 0x3) << CR0_SCPH_OFFSET);
 	if (spi->mode & SPI_CS_HIGH)
 		cr0 |= BIT(spi->chip_select) << CR0_SOI_OFFSET;
+	if (spi_controller_is_slave(spi->controller))
+		cr0 |= CR0_OPM_SLAVE << CR0_OPM_OFFSET;
 
 	writel_relaxed(cr0, rs->regs + ROCKCHIP_SPI_CTRLR0);
 

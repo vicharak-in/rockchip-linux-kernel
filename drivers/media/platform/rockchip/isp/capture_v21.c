@@ -1158,7 +1158,8 @@ static void rdbk_frame_end(struct rkisp_stream *stream)
 			if (!ret) {
 				denominator = sensor->fi.interval.denominator;
 				numerator = sensor->fi.interval.numerator;
-				time = numerator * 1000 / denominator * 1000 * 1000;
+				if (denominator)
+					time = numerator * 1000 / denominator * 1000 * 1000;
 				if (numerator)
 					fps = denominator / numerator;
 			}
@@ -1233,6 +1234,15 @@ static int mi_frame_end(struct rkisp_stream *stream, u32 state)
 		struct vb2_buffer *vb2_buf = &stream->curr_buf->vb.vb2_buf;
 		u64 ns = 0;
 
+		if (stream->skip_frame) {
+			spin_lock_irqsave(&stream->vbq_lock, lock_flags);
+			list_add_tail(&stream->curr_buf->queue, &stream->buf_queue);
+			spin_unlock_irqrestore(&stream->vbq_lock, lock_flags);
+			if (stream->skip_frame)
+				stream->skip_frame--;
+			goto end;
+		}
+
 		/* Dequeue a filled buffer */
 		for (i = 0; i < isp_fmt->mplanes; i++) {
 			u32 payload_size =
@@ -1249,10 +1259,10 @@ static int mi_frame_end(struct rkisp_stream *stream, u32 state)
 				atomic_read(&stream->sequence) - 1;
 		}
 		if (!ns)
-			ns = ktime_get_ns();
+			ns = rkisp_time_get_ns(dev);
 		vb2_buf->timestamp = ns;
 
-		ns = ktime_get_ns();
+		ns = rkisp_time_get_ns(dev);
 		stream->dbg.interval = ns - stream->dbg.timestamp;
 		stream->dbg.timestamp = ns;
 		stream->dbg.id = stream->curr_buf->vb.sequence;
@@ -1295,6 +1305,7 @@ static int mi_frame_end(struct rkisp_stream *stream, u32 state)
 		stream->curr_buf = NULL;
 	}
 
+end:
 	if (!interlaced ||
 		(stream->curr_buf == stream->next_buf &&
 		stream->u.sp.field == RKISP_FIELD_ODD)) {
@@ -1513,7 +1524,7 @@ static int rkisp_start(struct rkisp_stream *stream)
 	if (stream->id == RKISP_STREAM_MP || stream->id == RKISP_STREAM_SP)
 		hdr_config_dmatx(dev);
 	stream->streaming = true;
-
+	stream->skip_frame = 0;
 	return 0;
 }
 

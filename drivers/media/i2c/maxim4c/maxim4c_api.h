@@ -90,12 +90,17 @@ int maxim4c_remote_device_register(maxim4c_t *maxim4c,
 int maxim4c_v4l2_subdev_init(maxim4c_t *maxim4c);
 void maxim4c_v4l2_subdev_deinit(maxim4c_t *maxim4c);
 
+/* maxim4c driver api */
 int maxim4c_module_hw_init(maxim4c_t *maxim4c);
+int maxim4c_hot_plug_detect_work_start(maxim4c_t *maxim4c);
 
 /* maxim4c pattern api */
 int maxim4c_pattern_hw_init(maxim4c_t *maxim4c);
 int maxim4c_pattern_support_mode_init(maxim4c_t *maxim4c);
 int maxim4c_pattern_data_init(maxim4c_t *maxim4c);
 int maxim4c_pattern_enable(maxim4c_t *maxim4c, bool enable);
+
+int maxim4c_dbgfs_init(maxim4c_t *maxim4c);
+void maxim4c_dbgfs_deinit(maxim4c_t *maxim4c);
 
 #endif /* __MAXIM4C_API_H__ */

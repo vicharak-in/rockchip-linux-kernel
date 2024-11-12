@@ -45,8 +45,8 @@ struct pwm_args {
 };
 
 enum {
-	PWMF_REQUESTED = 1 << 0,
-	PWMF_EXPORTED = 1 << 1,
+	PWMF_REQUESTED = 0,
+	PWMF_EXPORTED = 1,
 };
 
 /**
@@ -74,6 +74,8 @@ struct pwm_state {
 	enum pwm_output_type output_type;
 #ifdef CONFIG_PWM_ROCKCHIP_ONESHOT
 	u64 oneshot_count;
+	u32 oneshot_repeat;
+	u64 duty_offset;
 #endif /* CONFIG_PWM_ROCKCHIP_ONESHOT */
 	bool enabled;
 };

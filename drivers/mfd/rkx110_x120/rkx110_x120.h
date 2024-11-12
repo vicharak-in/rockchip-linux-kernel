@@ -9,11 +9,13 @@
 #define _RKX110_X120_H
 
 #include <drm/drm_panel.h>
+#include <drm/drm_bridge.h>
+#include <drm/drm_connector.h>
 #include <dt-bindings/mfd/rockchip-serdes.h>
 #include <linux/i2c.h>
 #include <video/videomode.h>
 
-#define MAX_PANEL 2
+#define RK_SERDES_MAX_ROUTE		2
 #define RK_SERDES_PASSTHROUGH_CNT	11
 
 #define SERDES_VERSION_V0(type)		0x2201
@@ -142,11 +144,14 @@ struct rkx120_combtxphy {
 
 struct rkx110_combrxphy {
 	enum combrx_phy_mode mode;
+	uint8_t lanes;
 	u64 rate;
 	struct configure_opts_combphy mipi_dphy_cfg;
 };
 
 struct rkx120_dsi_tx {
+	struct rkx120_combtxphy *combtxphy;
+
 	int bpp; /* 24/18/16*/
 	enum serdes_dsi_bus_format bus_format;
 	enum serdes_dsi_mode_flags mode_flags;
@@ -221,6 +226,7 @@ struct rk_serdes_route {
 	u32 remote0_port1;
 	u32 remote1_port0;
 	u32 remote1_port1;
+	u32 route_flag;
 };
 
 struct rk_serdes_chip {
@@ -233,9 +239,11 @@ struct rk_serdes_chip {
 struct pattern_gen {
 	const char *name;
 	struct rk_serdes_chip *chip;
+	struct rk_serdes_route *route;
 	u32 base;
 	u32 link_src_reg;
 	u8 link_src_offset;
+	u8 type;
 };
 
 struct rk_serdes_pt_pin {
@@ -259,9 +267,12 @@ struct rk_serdes_pt {
 struct rk_serdes {
 	struct device *dev;
 	struct rk_serdes_chip chip[DEVICE_MAX];
+	struct regulator *supply;
 	struct gpio_desc *reset;
 	struct gpio_desc *enable;
+	struct gpio_desc *irq_gpio;
 
+	int irq;
 	/*
 	 * Control by I2C-Debug
 	 */
@@ -276,15 +287,13 @@ struct rk_serdes {
 	struct dentry *debugfs_remote1;
 	struct dentry *debugfs_rate;
 
-	struct videomode *vm;
+	struct rk_serdes_route *route[RK_SERDES_MAX_ROUTE];
 	u32 stream_type;
 	u32 version;
-	u32 route_flag;
 	u8 remote_nr;
-	struct rkx110_combrxphy combrxphy;
-	struct rkx110_dsi_rx dsi_rx;
-	struct rkx120_combtxphy combtxphy;
-	struct rkx120_dsi_tx dsi_tx;
+	u8 lane_nr;
+	u8 channel_nr;
+	u8 route_nr;
 
 	int (*i2c_read_reg)(struct i2c_client *client, u32 addr, u32 *value);
 	int (*i2c_write_reg)(struct i2c_client *client, u32 addr, u32 value);
@@ -315,13 +324,14 @@ struct panel_cmds {
 	int cmd_cnt;
 };
 
+struct rk_serdes_panel;
 struct rk_serdes_panel {
 	struct drm_panel panel;
+	struct drm_bridge bridge;
+	struct drm_connector connector;
 	struct device *dev;
 	struct rk_serdes *parent;
-	struct rk_serdes_route route;
-	unsigned int bus_format;
-	int link_mode;
+	struct rk_serdes_panel *secondary;
 
 	struct panel_cmds *on_cmds;
 	struct panel_cmds *off_cmds;
@@ -329,14 +339,27 @@ struct rk_serdes_panel {
 	struct regulator *supply;
 	struct gpio_desc *enable_gpio;
 	struct gpio_desc *reset_gpio;
+
+	struct rk_serdes_route route;
+	struct rkx110_combrxphy combrxphy;
+	struct rkx110_dsi_rx dsi_rx;
+	struct rkx120_combtxphy combtxphy;
+	struct rkx120_dsi_tx dsi_tx;
+
+	unsigned int bus_format;
+	unsigned int id;
+	u32 connector_type;
+
+	bool multi_panel;
 };
 
-int rkx110_linktx_enable(struct rk_serdes *serdes, struct rk_serdes_route *route);
+int rkx110_display_linktx_enable(struct rk_serdes *serdes, struct rk_serdes_route *route);
 void rkx110_linktx_video_enable(struct rk_serdes *serdes, u8 dev_id, bool enable);
 void rkx110_linktx_channel_enable(struct rk_serdes *serdes, u8 ch_id, u8 dev_id, bool enable);
 void rkx120_linkrx_engine_enable(struct rk_serdes *serdes, u8 en_id, u8 dev_id, bool enable);
 void rkx110_set_stream_source(struct rk_serdes *serdes, int local_port, u8 dev_id);
-int rkx120_linkrx_enable(struct rk_serdes *serdes, struct rk_serdes_route *route, u8 remote_id);
+int rkx120_display_linkrx_enable(struct rk_serdes *serdes,
+				 struct rk_serdes_route *route, u8 remote_id);
 int rkx120_rgb_tx_enable(struct rk_serdes *serdes, struct rk_serdes_route *route, u8 remote_id);
 int rkx120_lvds_tx_enable(struct rk_serdes *serdes, struct rk_serdes_route *route, u8 remote_id,
 			  u8 phy_id);
@@ -354,8 +377,8 @@ void rkx110_pcs_enable(struct rk_serdes *serdes, bool enable, u8 pcs_id, u8 dev_
 void rkx120_pcs_enable(struct rk_serdes *serdes, bool enable, u8 pcs_id, u8 dev_id);
 void rkx110_ser_pma_enable(struct rk_serdes *serdes, bool enable, u8 pma_id, u8 remote_id);
 void rkx120_des_pma_enable(struct rk_serdes *serdes, bool enable, u8 pma_id, u8 remote_id);
-void rkx110_linktx_wait_link_ready(struct rk_serdes *serdes, u8 id);
-void rkx120_linkrx_wait_link_ready(struct rk_serdes *serdes, u8 id);
+int rkx110_linktx_wait_link_ready(struct rk_serdes *serdes, u8 id);
+int rkx120_linkrx_wait_link_ready(struct rk_serdes *serdes, u8 id);
 void rkx110_x120_pattern_gen_debugfs_create_file(struct pattern_gen *pattern_gen,
 						 struct rk_serdes_chip *chip,
 						 struct dentry *dentry);
@@ -363,4 +386,15 @@ void rkx110_linktx_passthrough_cfg(struct rk_serdes *serdes, u32 client_id, u32 
 				   bool is_rx);
 void rkx120_linkrx_passthrough_cfg(struct rk_serdes *serdes, u32 client_id, u32 func_id,
 				   bool is_rx);
+void rkx110_irq_enable(struct rk_serdes *serdes, u8 dev_id);
+void rkx110_irq_disable(struct rk_serdes *serdes, u8 dev_id);
+int rkx110_irq_handler(struct rk_serdes *serdes, u8 dev_id);
+void rkx120_irq_enable(struct rk_serdes *serdes, u8 dev_id);
+void rkx120_irq_disable(struct rk_serdes *serdes, u8 dev_id);
+int rkx120_irq_handler(struct rk_serdes *serdes, u8 dev_id);
+
+int rkx110_linktx_dsi_rec_start(struct rk_serdes *serdes, u8 dev_id, u8 dsi_id, bool enable);
+int rkx110_linktx_dsi_type_select(struct rk_serdes *serdes, u8 dev_id, u8 dsi_id, bool is_cmd);
+int rkx110_linktx_dsi_deley_length_config(struct rk_serdes *serdes, u8 dev_id, u8 dsi_id,
+					  u32 length);
 #endif

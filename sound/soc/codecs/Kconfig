@@ -164,6 +164,7 @@ config SND_SOC_ALL_CODECS
 	imply SND_SOC_RK3528
 	imply SND_SOC_RK730
 	imply SND_SOC_RK817
+	imply SND_SOC_ROCKCHIP_SPI_CODEC
 	imply SND_SOC_RT274
 	imply SND_SOC_RT286
 	imply SND_SOC_RT298
@@ -532,7 +533,7 @@ config SND_SOC_AK5558
 	select REGMAP_I2C
 
 config SND_SOC_ALC5623
-       tristate "Realtek ALC5623 CODEC"
+	tristate "Realtek ALC5623 CODEC"
 	depends on I2C
 
 config SND_SOC_ALC5632
@@ -748,7 +749,7 @@ config SND_SOC_JZ4770_CODEC
 	  will be called snd-soc-jz4770-codec.
 
 config SND_SOC_L3
-       tristate
+	tristate
 
 config SND_SOC_DA7210
 	tristate
@@ -791,7 +792,7 @@ config SND_SOC_HDMI_CODEC
 	select HDMI
 
 config SND_SOC_ES7134
-       tristate "Everest Semi ES7134 CODEC"
+	tristate "Everest Semi ES7134 CODEC"
 
 config SND_SOC_ES7202
 	tristate "Everest Semi ES7202 PDM 2CH ADC"
@@ -816,7 +817,7 @@ config SND_SOC_ES7210
 	depends on I2C
 
 config SND_SOC_ES7241
-       tristate "Everest Semi ES7241 CODEC"
+	tristate "Everest Semi ES7241 CODEC"
 
 config SND_SOC_ES7243E
 	tristate "Everest Semi ES724E 2CH ADC"
@@ -1033,10 +1034,10 @@ config SND_SOC_PCM186X_SPI
 	select REGMAP_SPI
 
 config SND_SOC_PCM3008
-       tristate
+	tristate
 
 config SND_SOC_PCM3060
-       tristate
+	tristate
 
 config SND_SOC_PCM3060_I2C
 	tristate "Texas Instruments PCM3060 CODEC - I2C"
@@ -1169,6 +1170,15 @@ config SND_SOC_RL6347A
 	default m if SND_SOC_RT274=m
 	default m if SND_SOC_RT286=m
 	default m if SND_SOC_RT298=m
+
+config SND_SOC_ROCKCHIP_SPI_CODEC
+	tristate "SPI CODEC"
+	depends on ARCH_ROCKCHIP
+	depends on SPI_MASTER
+	select REGMAP_SPI
+	help
+	  Enable support for a remote audio dsp which act as a codec.
+	  Control the adsp by spi.
 
 config SND_SOC_RT274
 	tristate
@@ -1393,6 +1403,7 @@ config SND_SOC_STA529
 config SND_SOC_STAC9766
 	tristate
 	depends on SND_SOC_AC97_BUS
+	select REGMAP_AC97
 
 config SND_SOC_STI_SAS
 	tristate "codec Audio support for STI SAS codec"
@@ -1542,7 +1553,7 @@ config SND_SOC_UDA1334
 	  rate) and mute.
 
 config SND_SOC_UDA134X
-       tristate
+	tristate
 
 config SND_SOC_UDA1380
 	tristate
@@ -1804,7 +1815,7 @@ config SND_SOC_WSA881X
 config SND_SOC_ZL38060
 	tristate "Microsemi ZL38060 Connected Home Audio Processor"
 	depends on SPI_MASTER
-	select GPIOLIB
+	depends on GPIOLIB
 	select REGMAP
 	help
 	  Support for ZL38060 Connected Home Audio Processor from Microsemi,
@@ -1867,8 +1878,8 @@ config SND_SOC_MT6660
 	  Select M to build this as module.
 
 config SND_SOC_NAU8540
-       tristate "Nuvoton Technology Corporation NAU85L40 CODEC"
-       depends on I2C
+	tristate "Nuvoton Technology Corporation NAU85L40 CODEC"
+	depends on I2C
 
 config SND_SOC_NAU8810
 	tristate "Nuvoton Technology Corporation NAU88C10 CODEC"
