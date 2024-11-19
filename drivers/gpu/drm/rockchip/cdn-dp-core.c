@@ -1081,6 +1081,7 @@ static int cdn_dp_bind(struct device *dev, struct device *master, void *data)
 	connector = &dp->connector;
 	connector->polled = DRM_CONNECTOR_POLL_HPD;
 	connector->dpms = DRM_MODE_DPMS_OFF;
+        connector->fwnode = dev->fwnode;
 
 	ret = drm_connector_init(drm_dev, connector,
 				 &cdn_dp_atomic_connector_funcs,
