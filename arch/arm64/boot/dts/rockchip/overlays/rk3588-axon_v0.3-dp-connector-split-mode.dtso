@@ -1,0 +1,33 @@
+// SPDX-License_Identifier: GPL-2.0+
+// Copyright (C) 2024 Vicharak Computers PVT LTD
+
+/dts-v1/;
+/plugin/;
+
+&{/} {
+	metadata {
+		title = "Enable DP connector-split mode Axon V0.3";
+		compatible = "vicharak,rk3588-axon", "rockchip,rk3588";
+		category = "display";
+		exclusive = "dp0_in_vp2";
+		description = "Enables DP connector-split mode on Vicharak Axon\nDP0 is used as Left half of the screen and DP1 is used as the right half of the screen.\nIn this mode, the output timing of the two DP interfaces is the same. It is recommended to use two identical monitors.";
+	};
+
+};
+
+&dp0 {
+	status = "okay";
+	split-mode;
+};
+
+&dp0_in_vp2 {
+	status = "okay";
+};
+
+&dp1 {
+	status = "okay";
+};
+
+&dp1_in_vp2 {
+	status = "disabled";
+};

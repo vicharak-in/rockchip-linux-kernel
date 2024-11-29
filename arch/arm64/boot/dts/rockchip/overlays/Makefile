@@ -16,10 +16,16 @@ dtbo-$(CONFIG_BOARD_VICHARAK_VAAMAN) += \
 	rk3399-vaaman-spi2-jedec-flash.dtbo \
 	rk3399-vaaman-max9867-i2s1-i2c7.dtbo
 
-dtbo-$(CONFIG_BOARD_VICHARAK_AXON) +=
-
-dtbotxt-$(CONFIG_ARCH_ROCKCHIP) += \
-	README.rockchip-overlays
+dtbo-$(CONFIG_BOARD_VICHARAK_AXON) += \
+	rk3588-axon_v0.3-camera-ov5647-dphy1.dtbo \
+	rk3588-axon_v0.3-camera-ov5647-dphy2.dtbo \
+	rk3588-axon_v0.3-camera-ov5647-dphy4.dtbo \
+	rk3588-axon_v0.3-camera-ov5647-dphy5.dtbo \
+	rk3588-axon_v0.3-camera-ov5647-dphy-rx0.dtbo \
+	rk3588-axon_v0.3-camera-ov5647-dphy-rx1.dtbo \
+	rk3588-axon_v0.3-display-waveshare-4inch-dphy-tx0.dtbo \
+	rk3588-axon_v0.3-display-waveshare-4inch-dphy-tx1.dtbo \
+	rk3588-axon_v0.3-dp-connector-split-mode.dtbo
 
 targets += $(dtbo-y) $(dtbotxt-y)
 

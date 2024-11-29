@@ -1,0 +1,187 @@
+// SPDX-License-Identifier: GPL-2.0+
+// Copyright (C) 2024 Vicharak Computers PVT LTD
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+
+&{/} {
+    metadata {
+        title = "Enable RasPi Camera V1.3 (OV5647) on CSI1 D2,3 dphy5 Axon V0.3";
+        compatible = "vicharak,rk3588-axon", "rockchip,rk3588";
+        category = "camera";
+        exclusive = "ov5647_6_36", "csi2_dphy5", "mipi5_csi2", "rkcif_mipi_lvds5", "rkcif_mipi_lvds5_sditf", "rkisp1_vir2";
+        description = "Enables OV5647 based RaspberryPi Camera V1.3 on\nVicharak Axon at I2C 3 bus address 36 on dphy5";
+    };
+
+    cam6_ov5647_pwdn_gpio: cam6-pwdn-gpio {
+         status = "okay";
+         compatible = "regulator-fixed";
+         regulator-name = "cam6_pwdn_gpio";
+         regulator-always-on;
+         regulator-boot-on;
+         enable-active-high;
+         gpio = <&gpio1 RK_PB1 GPIO_ACTIVE_HIGH>;
+         pinctrl-names = "default";
+         pinctrl-0 = <&cam6_pwdn_gpio>;
+    };
+
+    clk_cam6_25m: external-cam6-clock-25m {
+         status = "okay";
+         compatible = "fixed-clock";
+         clock-frequency = <25000000>;
+         clock-output-names = "clk_cam6_25m";
+         #clock-cells = <0>;
+    };
+
+};
+
+&i2c6 {
+         status = "okay";
+		 #address-cells = <1>;
+		 #size-cells = <0>;
+         cam6_ov5647_36: cam6-ov5647@36 {
+                 status = "okay";
+		 compatible = "ovti,ov5647";
+		 reg = <0x36>;
+ 
+                 clocks = <&clk_cam6_25m>;
+                 clock-names = "xvclk";
+ 
+                 rockchip,camera-module-index = <0>;
+                 rockchip,camera-module-facing = "back";
+                 rockchip,camera-module-name = "rpi-camera-v1";
+                 rockchip,camera-module-lens-name = "default";
+ 
+                 port {
+                         cam6_ov5647_out0: endpoint {
+                                 remote-endpoint = <&mipidphy5_in_ucam6>;
+                                 data-lanes = <3 4>;
+                         };
+                 };
+         };
+ };
+
+&csi2_dphy5 {
+        status = "okay";
+
+        ports {
+                #address-cells = <1>;
+                #size-cells = <0>;
+
+                port@0 {
+                        reg = <0>;
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+
+                        mipidphy5_in_ucam6: endpoint@1 {
+                                reg = <1>;
+                                remote-endpoint = <&cam6_ov5647_out0>;
+                                data-lanes = <3 4>;
+                        };
+
+                };
+
+                port@1 {
+                        reg = <1>;
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+
+                        csidphy5_out: endpoint@0 {
+                                reg = <0>;
+                                remote-endpoint = <&mipi5_csi2_input>;
+                        };
+                };
+        };
+};
+
+&mipi5_csi2 {
+        status = "okay";
+
+        ports {
+                #address-cells = <1>;
+                #size-cells = <0>;
+
+                port@0 {
+                        reg = <0>;
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+
+                        mipi5_csi2_input: endpoint@1 {
+                                reg = <1>;
+                                remote-endpoint = <&csidphy5_out>;
+                        };
+                };
+
+                port@1 {
+                        reg = <1>;
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+
+                        mipi5_csi2_output: endpoint@0 {
+                                reg = <0>;
+                                remote-endpoint = <&cif_mipi5_in0>;
+                        };
+                };
+        };
+};
+
+&rkcif {
+        status = "okay";
+};
+
+&rkcif_mipi_lvds5 {
+        status = "okay";
+
+        port {
+                cif_mipi5_in0: endpoint {
+                        remote-endpoint = <&mipi5_csi2_output>;
+                };
+        };
+};
+
+&rkcif_mipi_lvds5_sditf {
+        status = "okay";
+
+        port {
+                mipi_lvds5_sditf: endpoint {
+                        remote-endpoint = <&isp1_vir2>;
+                };
+        };
+};
+
+&rkcif_mmu {
+        status = "okay";
+};
+
+&rkisp1 {
+        status = "okay";
+};
+
+&isp1_mmu {
+        status = "okay";
+};
+
+&rkisp1_vir2 {
+        status = "okay";
+
+        port {
+                #address-cells = <1>;
+                #size-cells = <0>;
+
+                isp1_vir2: endpoint@0 {
+                        reg = <0>;
+                        remote-endpoint = <&mipi_lvds5_sditf>;
+                };
+        };
+};
+
+&pinctrl {
+        camera {
+                cam6_pwdn_gpio: cam6-pwdn-gpio {
+                        rockchip,pins = <1 RK_PB1 RK_FUNC_GPIO &pcfg_pull_up>;
+                };
+        };
+};
