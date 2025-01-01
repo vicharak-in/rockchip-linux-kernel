@@ -164,6 +164,10 @@ if is_enabled CONFIG_ARCH_VICHARAK; then
 		if [ -n "${RK_KERNEL_DTS}" ]; then
 			mkdir -p "$tmpdir/boot/overlays-${version}"
 			cp -ar ${tmpdir}/usr/lib/${packagename}/rockchip/overlays/* "$tmpdir/boot/overlays-${version}"
+
+			# disabled overlays as default
+			cd "$tmpdir/boot/overlays-${version}" && ls | xargs -I {} mv {} {}.disabled && cd -
+
 			cp -ar ${tmpdir}/usr/lib/${packagename}/rockchip/${RK_KERNEL_DTS}.dtb "$tmpdir/boot/${RK_KERNEL_DTS}-${version}.dtb"
 		fi
 	fi
